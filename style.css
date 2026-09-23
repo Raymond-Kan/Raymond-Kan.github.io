@@ -1,0 +1,32 @@
+:root{--bg:#fdfdfb;--fg:#1f2328;--muted:#5b6470;--line:#e3e3de;--accent:#1d4e89;--card:#fff}
+@media (prefers-color-scheme:dark){:root{--bg:#15171a;--fg:#e6e6e3;--muted:#9aa3ad;--line:#2c3036;--accent:#8cb4e8;--card:#1b1e22}}
+*{box-sizing:border-box}
+html{font-size:17px}
+body{margin:0;background:var(--bg);color:var(--fg);font-family:Georgia,"Times New Roman",serif;line-height:1.6}
+a{color:var(--accent);text-decoration:none}a:hover{text-decoration:underline}
+header{border-bottom:1px solid var(--line)}
+.wrap{max-width:760px;margin:0 auto;padding:0 20px}
+.bar{display:flex;flex-wrap:wrap;align-items:baseline;justify-content:space-between;gap:8px 24px;padding:22px 20px 16px}
+.name{font-size:1.35rem;font-weight:bold;color:var(--fg)}
+nav a{margin-left:20px;font-family:system-ui,-apple-system,"Segoe UI",sans-serif;font-size:.92rem;color:var(--muted)}
+nav a:first-child{margin-left:0}
+nav a.active{color:var(--fg);font-weight:600}
+main{padding:36px 0 48px}
+h1{font-size:1.7rem;margin:0 0 .3em}
+h2{font-size:1.2rem;margin:2em 0 .6em;padding-bottom:.25em;border-bottom:1px solid var(--line)}
+.intro{display:flex;gap:28px;align-items:flex-start}
+.intro img{width:150px;height:180px;object-fit:cover;border-radius:4px;border:1px solid var(--line);background:var(--card)}
+.meta{color:var(--muted);margin:0 0 1em}
+.paper{margin:0 0 1.4em}
+.paper .title{font-weight:bold}
+.paper .info{color:var(--muted);font-size:.93rem}
+.paper .links a{font-family:system-ui,sans-serif;font-size:.82rem;margin-right:12px}
+details{display:inline}
+details summary{cursor:pointer;display:inline;font-family:system-ui,sans-serif;font-size:.82rem;color:var(--accent)}
+details p{font-size:.93rem;margin:.5em 0 0}
+footer{border-top:1px solid var(--line);color:var(--muted);font-size:.85rem;padding:18px 0 30px}
+@media (max-width:560px){.intro{flex-direction:column}nav a{margin-left:14px}}
+table.cv{border-collapse:collapse;width:100%}
+table.cv td{vertical-align:top;padding:3px 0}
+table.cv td:first-child{white-space:nowrap;color:var(--muted);padding-right:22px;width:1%}
+.paper .links a{margin-right:14px}
