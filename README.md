@@ -1,6 +1,6 @@
-# raykan3.github.io
+# Raymond-Kan.github.io
 
-Personal website of Raymond Kan, served by GitHub Pages at https://raykan3.github.io
+Personal website of Raymond Kan, served by GitHub Pages at https://raymond-kan.github.io
 (rebuilt from the archived www-2.rotman.utoronto.ca/~kan site).
 
 - `index.html`: About and contact
