@@ -1,0 +1,3277 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Central Wishart and Inverse Wishart Moments — the Recursion Live</title>
+<!--
+  wishartrecursioncentral.html — central Wishart and inverse Wishart moments.
+
+  Everything here rests on Hillier & Kan (2024, Scandinavian Journal of
+  Statistics) and on the companion beta-Wishart proof note.  Two families,
+  switched at the top of the page:
+
+    forward   E[W^r p_kappa(W)]      each level a linear REWRITE of the one
+                                     below; coefficients polynomial in n;
+                                     cap N <= 14 (the float64-exact domain)
+    inverse   E[W^-r p_kappa(W^-1)]  each level a linear SYSTEM to solve;
+                                     coefficients rational in n1 = n-m+1-alpha;
+                                     cap N <= 11
+
+  All three division algebras (beta = 1, 2, 4) at once, through the single
+  deformation constant c_beta = 2/beta - 1 = alpha - 1.  Serialization header
+  for the forward self-test: "wishart-central-canonical-v1".
+-->
+<style>
+  :root{
+    color-scheme: light;
+    --surface-1:#fcfcfb; --page:#f9f9f7;
+    --ink-1:#0b0b0b; --ink-2:#52514e; --ink-3:#898781;
+    --grid:#e1e0d9; --baseline:#c3c2b7; --ring:rgba(11,11,11,0.10);
+    --c-prepend:#2a78d6; --c-trace:#eb6834; --c-merge:#1baf7a;
+    --c-closure:#4a3aa7; --c-scalar:#898781;
+    --c-old:#b3403a; --c-collect:#8a6d1f;
+    --node-matrix-fill:#eef4fc; --node-matrix-stroke:#b7d3f6;
+    --node-scalar-fill:#fcfcfb; --node-base-fill:#f0efec;
+    --node-old-fill:#faeeed; --node-old-stroke:#e5b6b3;
+    --hi-ring:#0b0b0b;
+    --chip-bg:#f0efec;
+  }
+  :root[data-theme="dark"]{
+    color-scheme: dark;
+    --surface-1:#1a1a19; --page:#0d0d0d;
+    --ink-1:#ffffff; --ink-2:#c3c2b7; --ink-3:#898781;
+    --grid:#2c2c2a; --baseline:#383835; --ring:rgba(255,255,255,0.10);
+    --c-prepend:#3987e5; --c-trace:#d95926; --c-merge:#199e70;
+    --c-closure:#9085e9; --c-scalar:#898781;
+    --c-old:#e06c65; --c-collect:#c9a83c;
+    --node-matrix-fill:#20293a; --node-matrix-stroke:#2c4a75;
+    --node-scalar-fill:#1a1a19; --node-base-fill:#26261f;
+    --node-old-fill:#382222; --node-old-stroke:#75403c;
+    --hi-ring:#ffffff;
+    --chip-bg:#26262a;
+  }
+  @media (prefers-color-scheme: dark){
+    :root:not([data-theme="light"]){
+      color-scheme: dark;
+      --surface-1:#1a1a19; --page:#0d0d0d;
+      --ink-1:#ffffff; --ink-2:#c3c2b7; --ink-3:#898781;
+      --grid:#2c2c2a; --baseline:#383835; --ring:rgba(255,255,255,0.10);
+      --c-prepend:#3987e5; --c-trace:#d95926; --c-merge:#199e70;
+      --c-closure:#9085e9; --c-scalar:#898781;
+      --c-old:#e06c65; --c-collect:#c9a83c;
+      --node-matrix-fill:#20293a; --node-matrix-stroke:#2c4a75;
+      --node-scalar-fill:#1a1a19; --node-base-fill:#26261f;
+      --node-old-fill:#382222; --node-old-stroke:#75403c;
+      --hi-ring:#ffffff;
+      --chip-bg:#26262a;
+    }
+  }
+  *{box-sizing:border-box}
+  html,body{margin:0;padding:0}
+  body{
+    background:var(--page); color:var(--ink-1);
+    font-family:system-ui,-apple-system,"Segoe UI",sans-serif;
+    font-size:14px; line-height:1.45;
+  }
+  header{padding:18px 22px 10px}
+  header h1{font-size:19px;margin:0 0 3px;font-weight:650;letter-spacing:-0.01em}
+  header p, section > p.lead{margin:0;color:var(--ink-2);font-size:13px;max-width:960px}
+  .m{font-style:italic}
+  section{margin-top:6px}
+  section h2.part{
+    font-size:15px;font-weight:650;margin:18px 22px 2px;
+    letter-spacing:-0.01em;
+  }
+  section h2.part .tag{
+    display:inline-block;font-size:11px;font-weight:600;color:#fff;
+    border-radius:5px;padding:1px 8px;margin-right:8px;vertical-align:1px;
+  }
+  section > p.lead{padding:0 22px}
+  .controls{
+    display:flex;flex-wrap:wrap;align-items:center;gap:8px;
+    padding:10px 22px 8px;
+  }
+  .controls button{
+    font:inherit;font-size:13px;padding:5px 14px;border-radius:7px;
+    border:1px solid var(--ring);background:var(--surface-1);color:var(--ink-1);
+    cursor:pointer;
+  }
+  .controls button:hover{border-color:var(--baseline)}
+  .controls button.primary{background:var(--c-prepend);border-color:transparent;color:#fff}
+  .controls .counter{margin-left:6px;color:var(--ink-2);font-size:13px}
+  .counter b{color:var(--ink-1);font-variant-numeric:tabular-nums}
+  .spacer{flex:1}
+  .legend{
+    display:flex;flex-wrap:wrap;gap:4px 16px;padding:2px 22px 10px;
+    font-size:12.5px;color:var(--ink-2);align-items:center;
+  }
+  .legend .item{display:inline-flex;align-items:center;gap:6px}
+  .legend .sw{width:22px;height:0;border-top:2.5px solid;border-radius:2px}
+  .legend .sw.dashed{border-top-style:dashed}
+  .legend .nodedemo{
+    display:inline-block;width:20px;height:12px;border-radius:4px;
+    border:1px solid var(--node-matrix-stroke);background:var(--node-matrix-fill);
+  }
+  .legend .nodedemo.sc{border:1px dashed var(--baseline);background:var(--node-scalar-fill)}
+  .legend .nodedemo.old{border:1px solid var(--node-old-stroke);background:var(--node-old-fill)}
+  .layout{display:flex;gap:0;align-items:stretch;padding:0 12px 16px}
+  .graphwrap{
+    flex:1 1 auto;min-width:0;overflow:auto;
+    background:var(--surface-1);border:1px solid var(--ring);border-radius:12px;
+  }
+  svg{display:block}
+  .graphwrap.fit svg{width:100%;height:auto}
+  .panel{
+    flex:0 0 372px;margin-left:12px;padding:16px 18px;
+    background:var(--surface-1);border:1px solid var(--ring);border-radius:12px;
+    font-size:13px;color:var(--ink-2);overflow:auto;max-height:840px;
+  }
+  .panel h2{font-size:14px;margin:0 0 8px;color:var(--ink-1);font-weight:650}
+  .panel .statehead{font-size:15px;color:var(--ink-1);margin-bottom:2px}
+  .panel .meta{font-size:12px;color:var(--ink-3);margin-bottom:10px}
+  .panel p{margin:8px 0}
+  .eq{margin:10px 0 4px}
+  .eq .lhs{color:var(--ink-1);font-weight:600}
+  .term{
+    display:block;margin:6px 0 6px 14px;padding:5px 9px;border-radius:7px;
+    border-left:3px solid;background:var(--chip-bg);color:var(--ink-1);
+    font-size:13px;
+  }
+  .term .op{color:var(--ink-3);margin-right:6px}
+  .term small{display:block;color:var(--ink-3);font-size:11px;margin-top:1px}
+  .t-prepend{border-color:var(--c-prepend)}
+  .t-trace{border-color:var(--c-trace)}
+  .t-merge{border-color:var(--c-merge)}
+  .t-closure{border-color:var(--c-closure)}
+  .t-scalar{border-color:var(--c-scalar)}
+  .t-old{border-color:var(--c-old)}
+  .t-collect{border-color:var(--c-collect)}
+  .closed{margin-top:12px;padding-top:10px;border-top:1px solid var(--grid)}
+  .closed h3{font-size:12px;margin:0 0 5px;color:var(--ink-3);font-weight:600;
+    text-transform:uppercase;letter-spacing:0.04em}
+  .closed .f{color:var(--ink-1);font-size:13px}
+  /* parameter legends keep their own case: uppercasing turns c_β into C_Β */
+  .closed h3 .keep{text-transform:none;letter-spacing:0}
+  .hint{font-size:12px;color:var(--ink-3);margin-top:12px}
+  footer{padding:10px 22px 20px;color:var(--ink-3);font-size:12px;max-width:960px}
+  sub,sup{line-height:0}
+  /* SVG element styles (shared by all three parts) */
+  .edge{fill:none;stroke-width:1.6;opacity:0.62;transition:opacity .25s,stroke-width .25s}
+  .edge.e-prepend{stroke:var(--c-prepend)}
+  .edge.e-trace{stroke:var(--c-trace)}
+  .edge.e-merge{stroke:var(--c-merge)}
+  .edge.e-closure{stroke:var(--c-closure)}
+  .edge.e-scalar{stroke:var(--c-scalar);stroke-dasharray:4 4}
+  .edge.e-old{stroke:var(--c-old)}
+  .edge.e-collect{stroke:var(--c-collect)}
+  .edge.e-noreuse{stroke:var(--c-old);stroke-dasharray:5 5;opacity:0.5}
+  .edge.dim{opacity:0.07}
+  .edge.hi{opacity:1;stroke-width:2.6}
+  .edge.hidden{display:none}
+  .node{cursor:pointer}
+  .node rect{
+    rx:7;fill:var(--node-matrix-fill);stroke:var(--node-matrix-stroke);stroke-width:1;
+    transition:opacity .3s;
+  }
+  .node.scalar rect{fill:var(--node-scalar-fill);stroke:var(--baseline);stroke-dasharray:3 3}
+  .node.base rect{fill:var(--node-base-fill);stroke:var(--baseline)}
+  .node.old rect{fill:var(--node-old-fill);stroke:var(--node-old-stroke)}
+  .node.collect rect{fill:var(--node-base-fill);stroke:var(--c-collect)}
+  .node text{
+    font-family:system-ui,-apple-system,"Segoe UI",sans-serif;
+    font-size:11.5px;fill:var(--ink-1);pointer-events:none;
+  }
+  .node text.sub2{font-size:10px;fill:var(--ink-3)}
+  .node.dim{opacity:0.22}
+  .node.selected rect{stroke:var(--hi-ring);stroke-width:2;stroke-dasharray:none}
+  .node.srchi rect{stroke:var(--hi-ring);stroke-width:1.6;stroke-dasharray:none}
+  .node.hidden{display:none}
+  .lvlhead{font-size:12px;fill:var(--ink-2);font-weight:600}
+  .lvlsub{font-size:10.5px;fill:var(--ink-3)}
+  .lvlhead.hidden,.lvlsub.hidden{display:none}
+  .xmark{font-size:15px;fill:var(--c-old);font-weight:700}
+  /* Part 3 chart */
+  .bar-new{fill:var(--c-prepend)}
+  .bar-old{fill:var(--c-old)}
+  .chartlabel{fill:var(--ink-2);font-size:11.5px}
+  .chartnum{fill:var(--ink-3);font-size:9.5px}
+  .hkmark{fill:none;stroke:var(--ink-1);stroke-width:1.4}
+  @media (max-width: 1000px){
+    .layout{flex-direction:column}
+    .panel{flex:none;margin-left:0;margin-top:12px;max-height:none}
+  }
+  /* ---------- Part 4 (enhanced page only): live in-browser recursion ---- */
+  /* Phi with a tilde centred over it.  The combining character U+0303 sits
+     off-centre in most sans faces, so the accent is drawn as its own
+     absolutely positioned glyph instead. */
+  .tld{position:relative;display:inline-block;line-height:1}
+  .tld::after{
+    content:"\007E";position:absolute;left:50%;top:-0.52em;
+    transform:translateX(-50%) scaleX(1.25);
+    font-size:0.82em;line-height:1;pointer-events:none;
+  }
+  /* ---- family switch ---- */
+  .modebar{position:sticky;top:0;z-index:20;display:flex;align-items:center;gap:10px;
+    flex-wrap:wrap;margin:0 0 18px;padding:9px 12px;border:1px solid var(--grid);
+    border-radius:11px;background:var(--surface-1);
+    box-shadow:0 1px 0 var(--ring),0 6px 18px -14px rgba(0,0,0,.45)}
+  .modelab{font-size:11px;letter-spacing:.09em;text-transform:uppercase;color:var(--ink-3)}
+  .modebtn{appearance:none;cursor:pointer;font:inherit;font-size:15px;line-height:1.1;
+    padding:7px 15px 6px;border-radius:8px;border:1px solid var(--grid);
+    background:var(--page);color:var(--ink-2);display:flex;flex-direction:column;
+    align-items:flex-start;gap:2px;transition:background .15s,color .15s,border-color .15s}
+  .modebtn:hover{border-color:var(--baseline)}
+  .modebtn .sub2{font-size:10.5px;letter-spacing:.04em;color:var(--ink-3);text-transform:uppercase}
+  .modebtn.on{background:var(--ink-1);border-color:var(--ink-1);color:var(--surface-1)}
+  .modebtn.on .sub2{color:var(--surface-1);opacity:.72}
+  .modenote{font-size:12.5px;color:var(--ink-3);margin-left:2px}
+  @media (max-width:560px){ .modenote{flex-basis:100%} }
+  :root{--c-live:#0f8a8a}
+  :root[data-theme="dark"]{--c-live:#2ab5b5}
+  @media (prefers-color-scheme: dark){
+    :root:not([data-theme="light"]){--c-live:#2ab5b5}
+  }
+  .livebox{
+    margin:0 22px 16px;padding:14px 18px;background:var(--surface-1);
+    border:1px solid var(--ring);border-radius:12px;
+  }
+  .liveform{display:flex;flex-wrap:wrap;gap:10px 22px;align-items:center;font-size:13px}
+  .liveform fieldset{border:none;margin:0;padding:0;display:flex;gap:10px;align-items:center}
+  .liveform legend{display:none}
+  .liveform label{display:inline-flex;align-items:center;gap:5px;color:var(--ink-2);cursor:pointer}
+  .liveform input[type=number]{
+    width:58px;font:inherit;padding:3px 6px;border-radius:6px;
+    border:1px solid var(--ring);background:var(--page);color:var(--ink-1);
+  }
+  .liveform input[type=range]{accent-color:var(--c-live);width:180px}
+  .liveform .nval{font-weight:650;color:var(--ink-1);font-variant-numeric:tabular-nums;min-width:20px;display:inline-block}
+  .livenote{font-size:12px;color:var(--ink-3);margin-top:6px}
+  .livenote.warn{color:var(--c-trace)}
+  .livestatus{font-size:13px;color:var(--ink-2);margin:8px 0 0;min-height:18px}
+  .livestatus b{color:var(--ink-1);font-variant-numeric:tabular-nums}
+  .livestatus .fail{color:var(--c-old);font-weight:650}
+  .livestatus .pass{color:var(--c-merge);font-weight:650}
+  .progressbar{height:6px;border-radius:3px;background:var(--chip-bg);margin-top:8px;overflow:hidden}
+  .progressbar div{height:100%;width:0;background:var(--c-live);transition:width .2s}
+  /* timing visual: live stopwatch + per-level time bars */
+  .timebox{display:flex;flex-wrap:wrap;gap:10px 28px;align-items:flex-end;
+    margin-top:12px;padding:14px 18px;border:1px solid var(--ring);
+    border-radius:12px;background:var(--surface-1)}
+  .clockwrap{min-width:168px}
+  .clock{font-size:32px;font-weight:650;letter-spacing:-0.02em;line-height:1.1;
+    color:var(--ink-1);font-variant-numeric:tabular-nums}
+  .clock small{font-size:14px;font-weight:600;color:var(--ink-3)}
+  .clocklab{font-size:11px;color:var(--ink-3);margin-top:3px;
+    text-transform:uppercase;letter-spacing:0.05em}
+  .clockwrap.done .clock{color:var(--c-merge)}
+  .clockwrap.stopped .clock{color:var(--c-old)}
+  .tbarswrap{flex:1;min-width:250px}
+  .tbars{display:flex;align-items:flex-end;gap:6px;height:84px}
+  .tbars .tb{display:flex;flex-direction:column;align-items:center;
+    justify-content:flex-end;gap:3px;height:100%}
+  .tbars .tb .bar{width:26px;min-height:3px;border-radius:3px 3px 0 0;
+    background:linear-gradient(180deg,var(--c-live),var(--c-closure));
+    transition:height .25s}
+  .tbars .tb .tv{font-size:10px;color:var(--ink-3);
+    font-variant-numeric:tabular-nums;white-space:nowrap}
+  .tbars .tb .tn{font-size:10.5px;font-weight:600;color:var(--ink-2)}
+  .tbarslab{font-size:11px;color:var(--ink-3);margin-top:5px;
+    text-transform:uppercase;letter-spacing:0.05em}
+  table.livetab{
+    border-collapse:collapse;font-size:12.5px;margin-top:10px;
+    font-variant-numeric:tabular-nums;
+  }
+  table.livetab th, table.livetab td{
+    padding:3px 12px 3px 0;text-align:right;border-bottom:1px solid var(--grid);
+  }
+  table.livetab th{color:var(--ink-3);font-weight:600;font-size:11.5px}
+  table.livetab td{color:var(--ink-1)}
+  table.livetab td:first-child, table.livetab th:first-child{text-align:left}
+  .termrow{
+    display:block;margin:4px 0;padding:4px 9px;border-radius:6px;
+    border-left:3px solid var(--c-live);background:var(--chip-bg);
+    color:var(--ink-1);font-size:13px;
+  }
+  .termrow .coef{color:var(--c-prepend)}
+  .termrow .tr{color:var(--ink-2)}
+  .pager{display:flex;gap:6px;align-items:center;margin-top:8px;font-size:12.5px;color:var(--ink-2);flex-wrap:wrap}
+  .pager button{
+    font:inherit;font-size:12.5px;padding:2px 10px;border-radius:6px;
+    border:1px solid var(--ring);background:var(--surface-1);color:var(--ink-1);cursor:pointer;
+  }
+  .pager button:disabled{opacity:0.4;cursor:default}
+  select.livesel{
+    font:inherit;font-size:13px;padding:3px 8px;border-radius:6px;max-width:280px;
+    border:1px solid var(--ring);background:var(--page);color:var(--ink-1);
+  }
+  .matgrid{display:grid;gap:4px;margin:6px 0}
+  .matgrid input{
+    width:74px;font:inherit;font-size:12px;padding:2px 5px;border-radius:5px;
+    border:1px solid var(--ring);background:var(--page);color:var(--ink-1);
+  }
+  .matgrid input:disabled{opacity:0.55}
+  .matwrap{display:flex;gap:26px;flex-wrap:wrap;margin-top:8px}
+  .matwrap h4{margin:0 0 2px;font-size:12px;color:var(--ink-3);font-weight:600}
+  .evalout{margin-top:10px;font-size:13px}
+  .evalout table{border-collapse:collapse}
+  .evalout td{
+    padding:3px 10px;border:1px solid var(--grid);text-align:right;
+    font-variant-numeric:tabular-nums;font-size:12.5px;
+  }
+  @media print{
+    .controls,.liveform,.pager button,.legend,#part1,#part2,
+    .livebox .primary,.livebox button{display:none !important}
+    .graphwrap{display:none}
+    body{background:#fff;color:#000}
+  }
+</style>
+</head>
+<body>
+<header>
+  <h1>Central Wishart and inverse Wishart moments — the recursion, live (real · complex · quaternion)</h1>
+  <p>Two families, one recursion. Forward: <span class="m">{𝔼[W<sup>r</sup>p<sub>κ</sub>(W)]}</span>. Inverse:
+  <span class="m">{𝔼[W<sup>−r</sup>p<sub>κ</sub>(W<sup>−1</sup>)]}</span>. The same Stein/Haff identity generates
+  both, in all three division algebras at once — <b>real</b> (<span class="m">β = 1</span>), <b>complex</b>
+  (<span class="m">β = 2</span>), <b>quaternion</b> (<span class="m">β = 4</span>) — deformed through the single
+  constant <span class="m">c<sub>β</sub> = 2/β − 1 ∈ {1, 0, −½}</span>. But it generates them in opposite
+  directions, and that one asymmetry is what separates the two halves of this page: forward, each level is a
+  linear <b>rewrite</b> of the level below, with coefficients polynomial in <span class="m">n</span>; inverse,
+  each level is a linear <b>system</b> to be solved, with coefficients rational in
+  <span class="m">ñ = n − m + 1 − α</span> whose poles are exactly the existence thresholds. Use the switch
+  below to move between them.</p>
+  <p class="lead" id="headNote"></p>
+
+</header>
+
+<div class="modebar" role="tablist" aria-label="Which family of moments">
+  <span class="modelab">Family</span>
+  <button class="modebtn on" id="modeW" role="tab" aria-selected="true">W<span class="sub2">Wishart</span></button>
+  <button class="modebtn" id="modeWi" role="tab" aria-selected="false">W<sup>−1</sup><span class="sub2">inverse Wishart</span></button>
+  <span class="modenote" id="modeNote">𝔼[W<sup>r</sup>p<sub>κ</sub>(W)] — each level is a linear <b>rewrite</b> of the one below</span>
+  <span class="spacer" style="flex:1"></span>
+  <button id="btnTheme" class="modebtn" style="font-size:12.5px;padding:6px 12px" title="Toggle light/dark">◐ Theme</button>
+</div>
+
+<div id="wrapW">
+
+<!-- ================= PART 1 — the 2026 recursion ================= -->
+<section id="part1">
+<h2 class="part"><span class="tag" style="background:var(--c-prepend)">Part 1</span>The central recursion — dependency graph, levels 0–5</h2>
+<p class="lead">Every state <span class="m">Φ<sub>r,κ</sub> = 𝔼[W<sup>r</sup>p<sub>κ</sub>(W)]</span>
+of the central family, arranged by level <span class="m">N = r + |κ|</span>. Solid arrows are the three
+terms of the central master recursion — each state is a linear rewrite of states one level below,
+identically in β (only two weights change). Dashed arrows are the scalar trace reduction, which stays
+within a level. Press <b>Play</b> to watch the recursion fill in level by level, or click any state to
+see its instantiated recursion.</p>
+
+<div class="controls">
+  <button id="btnPlay" class="primary">▶ Play</button>
+  <button id="btnStep">Step</button>
+  <button id="btnAll">Show all</button>
+  <button id="btnReset">Reset</button>
+  <span class="counter" id="counter"></span>
+  <span class="spacer"></span>
+  <button id="btnZoom" title="Toggle fit-to-width / actual size">⤢ 1:1</button>
+</div>
+
+<div class="legend">
+  <span class="item"><span class="sw" style="border-color:var(--c-prepend)"></span>prepend&nbsp; (n+c<sub>β</sub>(r−1))Σ·Φ<sub>r−1,κ</sub></span>
+  <span class="item"><span class="sw" style="border-color:var(--c-trace)"></span>trace split&nbsp; Σ·Φ<sub>r−2−j, κ∪{j+1}</sub></span>
+  <span class="item"><span class="sw" style="border-color:var(--c-merge)"></span>part merge&nbsp; (1+c<sub>β</sub>)κ<sub>l</sub>Σ·Φ<sub>r+κ<sub>l</sub>−1, κ<sub>(l)</sub></sub></span>
+  <span class="item"><span class="sw dashed" style="border-color:var(--c-scalar)"></span>scalar trace reduction</span>
+  <span class="item"><span class="nodedemo"></span>matrix state (r ≥ 1)</span>
+  <span class="item"><span class="nodedemo sc"></span>scalar state (r = 0)</span>
+</div>
+
+<div class="layout">
+  <div class="graphwrap" id="wrap1"><svg id="svg" role="img" aria-label="Dependency graph of the Stein-identity recursion, levels 0 to 5"></svg></div>
+  <div class="panel" id="panel"></div>
+</div>
+</section>
+
+<section id="part4">
+<h2 class="part"><span class="tag" style="background:var(--c-live)">Part 2</span>Generate it yourself — run the central recursion in your browser</h2>
+<p class="lead">Part 1 shows the <em>structure</em>. This section computes the actual central tables —
+the full family <span class="m">{𝔼[W<sup>r</sup> p<sub>κ</sub>(W)] : r + |κ| ≤ N}</span> —
+live, in your browser, in exact arithmetic, for all three cases: <b>real</b>
+<span class="m">W = Z′Z</span> (β = 1) and <b>complex</b> <span class="m">W = Z*Z</span> (β = 2) —
+the two cases treated by Hillier &amp; Kan (2024) — and <b>quaternion</b>
+<span class="m">W = Z<sup>D</sup>Z</span> (β = 4, twin constant c₄ = −½; coefficients are signed
+dyadic rationals, exact in float64).
+Every table is a combination of words in Σ alone with polynomial-in-<span class="m">n</span>
+coefficients; the stored-term counts are identical across the three cases (no exact cancellations occur
+centrally) — only the coefficients differ. The computation runs in a background Web Worker, is capped at
+<span class="m">N ≤ 14</span> (the float64-exact domain), and is gated: the <b>Self-test</b> button
+recomputes all three cases to <span class="m">N = 6</span> and checks them, term by term via SHA-256 of a
+canonical serialization, against digests generated from an independent exact-rational implementation of the
+same recursion.</p>
+
+<div class="livebox">
+  <div class="liveform" id="liveForm">
+    <fieldset id="fsCase">
+      <label><input type="radio" name="lcase" value="real" checked> real <span class="m">W = Z′Z</span></label>
+      <label><input type="radio" name="lcase" value="complex"> complex <span class="m">W = Z*Z</span></label>
+      <label><input type="radio" name="lcase" value="quaternion"> quaternion <span class="m">W = Z<sup>D</sup>Z</span></label>
+    </fieldset>
+    <label>level N ≤ <input type="range" id="inN" min="1" max="14" step="1" value="10">
+      <span class="nval" id="nVal">10</span></label>
+    <button class="primary" id="btnRun">► Run</button>
+    <button id="btnCancel" disabled>■ Cancel</button>
+    <span class="spacer"></span>
+    <button id="btnSelfTest" title="Recompute all three cases to N=6 and compare against the frozen reference digests">✓ Self-test vs frozen references</button>
+  </div>
+  <div class="livenote" id="capNote">N = 10: 11,173 stored terms — instantaneous.</div>
+  <div class="livestatus" id="liveStatus">Idle. Pick a case and a level, then Run. (Self-test: not yet run.)</div>
+  <div class="progressbar"><div id="liveBar"></div></div>
+  <div class="timebox" id="timeBox" hidden>
+    <div class="clockwrap" id="clockWrap">
+      <div class="clock" id="liveClock">0.00<small> s</small></div>
+      <div class="clocklab" id="clockLab">elapsed — your machine, one thread</div>
+    </div>
+    <div class="tbarswrap">
+      <div class="tbars" id="timeBars"></div>
+      <div class="tbarslab">seconds spent on each level — the newest level dominates</div>
+    </div>
+  </div>
+  <div id="liveResults"></div>
+</div>
+
+<div class="livebox" id="stateBox" hidden>
+  <h2 style="font-size:14px;margin:0 0 6px">Browse a state at level N</h2>
+  <div class="liveform">
+    <label>state <select class="livesel" id="selState"></select></label>
+    <span id="stateMeta" style="color:var(--ink-3);font-size:12px"></span>
+    <span class="spacer"></span>
+    <button id="btnDlTxt">⬇ .txt</button>
+    <button id="btnDlCsv">⬇ .csv</button>
+    <button id="btnDlJson">⬇ .json</button>
+    <button id="btnDlTex">⬇ LaTeX</button>
+    <button id="btnDlFam" title="Every state at level N, one CSV">⬇ whole level (.csv)</button>
+  </div>
+  <div id="termList"></div>
+  <div class="pager" id="pager"></div>
+  <div class="livenote">Terms are exact: coefficient polynomial in <span class="m">n</span> ·
+  power of Σ · product of trace factors tr(Σ<sup>j</sup>). Real and complex central tables are
+  nonnegative-integer; quaternion coefficients are signed dyadic rationals (denominators 2, 4, …),
+  displayed as fractions.</div>
+</div>
+
+<div class="livebox" id="evalBox" hidden>
+  <h2 style="font-size:14px;margin:0 0 6px">Evaluate the selected state numerically</h2>
+  <p class="livenote" style="margin-top:0">Plug a numeric Σ (<span class="m">m×m</span>) and
+  <span class="m">n</span> into the exact table above (float64; the identity is polynomial in Σ and n, so
+  any symmetric — Hermitian in the complex case, quaternion-Hermitian with entries
+  <span class="m">a+bi+cj+dk</span> in the quaternion case — matrix is valid; trace factors are evaluated
+  as Re&nbsp;tr in the quaternion case, as in the stored tables).
+  Enter the upper triangle; the lower mirrors automatically.</p>
+  <div class="liveform">
+    <label>m <input type="number" id="inM" min="2" max="6" step="1" value="2"></label>
+    <label>n <input type="number" id="inNval" step="any" value="5"></label>
+    <button class="primary" id="btnEval">= Evaluate</button>
+    <span id="evalStatus" style="color:var(--ink-3);font-size:12px"></span>
+  </div>
+  <div class="livenote"><b>Entering Σ.</b> Type only the <em>upper triangle</em> (the grey lower triangle
+  fills itself). Diagonal entries must be plain real numbers. Off-diagonal entries:
+  <b>real</b> case — real numbers only (<span class="m">2</span>, <span class="m">-0.5</span>; Σ symmetric);
+  <b>complex</b> case — <span class="m">a+bi</span> (<span class="m">1+2i</span>, <span class="m">-i</span>,
+  <span class="m">0.5i</span>), mirror = complex conjugate, so Σ is Hermitian; <b>quaternion</b> case —
+  <span class="m">a+bi+cj+dk</span> (<span class="m">1+2i-3j+0.5k</span>, <span class="m">j</span>,
+  <span class="m">-k</span>), mirror = quaternion conjugate, so Σ is quaternion-Hermitian. Spaces are ignored
+  and a bare unit means coefficient 1. <b>Validity.</b> The identity is polynomial in the entries, so any
+  matrix of the required symmetry type evaluates; for the result to be the moment of an actual central
+  Wishart matrix, Σ must additionally be positive semidefinite.</div>
+  <div class="matwrap">
+    <div><h4>Σ (Sigma)</h4><div class="matgrid" id="gridS"></div></div>
+  </div>
+  <div class="evalout" id="evalOut"></div>
+</div>
+
+<p class="lead" style="margin-top:4px">Timing note: central tables are small — level 14 stores
+157,354 terms across all states, and a typical laptop computes the whole family in well under a second.
+The largest coefficient at level N occurs in the real case and is exactly
+2<sup>N−1</sup>(N−1)! — 5.1×10<sup>13</sup> at N = 14, against the float64-exact ceiling
+2<sup>53</sup> = 9.0×10<sup>15</sup>. The cap therefore keeps a full level of margin; beyond it,
+exact bignum engines take over.</p>
+</section>
+</div><!-- /wrapW -->
+
+<!-- ================= INVERSE FAMILY ================= -->
+<div id="wrapWi" hidden>
+
+<section id="ipart1">
+<h2 class="part"><span class="tag" style="background:var(--c-prepend)">Part 1</span>The inverse identity — the same states, read the other way</h2>
+<p class="lead">The inverse family is <span class="m"><span class="tld">Φ</span><sub>r,κ</sub> = 𝔼[W<sup>−r</sup>p<sub>κ</sub>(W<sup>−1</sup>)]</span>,
+arranged by the same level <span class="m">N = r + |κ|</span>. The Stein/Haff identity applies to it verbatim, but
+it comes out pointing the other way: what it gives is <span class="m">Σ<sup>−1</sup><span class="tld">Φ</span><sub>r,κ</sub></span> at level
+<span class="m">N−1</span> as a combination of states at level <span class="m">N</span>. So the arrows below run
+from an <em>equation</em> to the <em>unknowns</em> it contains, and the unknowns of a level are coupled: each column
+is a square linear system — the matrix <span class="m">D<sub>−(N−1)</sub></span> — that has to be
+<b>solved</b>. Everything that distinguishes the inverse side follows from that one fact.</p>
+
+<div class="controls">
+  <button id="ibtnPlay" class="primary">▶ Play</button>
+  <button id="ibtnStep">Step</button>
+  <button id="ibtnAll">Show all</button>
+  <button id="ibtnReset">Reset</button>
+  <span class="counter" id="icounter"></span>
+  <span class="spacer"></span>
+  <button id="ibtnZoom" title="Toggle fit-to-width / actual size">⤢ 1:1</button>
+</div>
+
+<div class="legend">
+  <span class="item"><span class="sw" style="border-color:var(--c-prepend)"></span>raise the power&nbsp; (ñ−c<sub>β</sub>r)<span class="tld">Φ</span><sub>r+1,κ</sub></span>
+  <span class="item"><span class="sw" style="border-color:var(--c-trace)"></span>split&nbsp; −<span class="tld">Φ</span><sub>r+1−j, κ∪{j}</sub></span>
+  <span class="item"><span class="sw" style="border-color:var(--c-merge)"></span>join&nbsp; −(1+c<sub>β</sub>)κ<sub>l</sub><span class="tld">Φ</span><sub>r+1+κ<sub>l</sub>, κ<sub>(l)</sub></sub></span>
+  <span class="item"><span class="sw dashed" style="border-color:var(--c-scalar)"></span>scalar trace reduction</span>
+  <span class="item"><span class="nodedemo"></span>matrix state (r ≥ 1)</span>
+  <span class="item"><span class="nodedemo sc"></span>scalar state (r = 0)</span>
+</div>
+
+<div class="layout">
+  <div class="graphwrap" id="iwrap1"><svg id="isvg" role="img" aria-label="Dependency graph of the inverse recursion, levels 0 to 5"></svg></div>
+  <div class="panel" id="ipanel"></div>
+</div>
+</section>
+
+<section id="ipart2">
+<h2 class="part"><span class="tag" style="background:var(--c-live)">Part 2</span>Generate the inverse tables — exactly, in your browser</h2>
+<p class="lead">The same three cases, and the same exactness, but a different computation. Because each level is a
+solve rather than a rewrite, the coefficients are <b>rational functions</b> of
+<span class="m">ñ = n − m + 1 − α</span> instead of polynomials in <span class="m">n</span>, and every level
+shares one denominator. The arithmetic below is exact rational arithmetic on <span class="m">BigInt</span>s. Each
+level needs <span class="m">D<sub>−k</sub><sup>−1</sup></span>, and getting it by elimination is ruinous; instead
+the page uses the fact that <span class="m">M<sub>k</sub> = D<sub>k</sub> − nI</span> is diagonalisable with
+spectrum among the α-contents of the addable cells, so
+<span class="m">p(x) = ∏(x − c)</span> annihilates it and
+<span class="m">D<sub>−k</sub><sup>−1</sup>B = (Σ<sub>j</sub> c<sub>j</sub>(ñ)M<sub>k</sub><sup>j</sup>B) / p(ñ)</span>
+— products of a <em>scalar</em> matrix against a polynomial matrix, with no polynomial × polynomial multiplication
+anywhere. (This is what <span class="m">dkimapr.m</span> does in the Matlab package.) The level denominator is then
+reduced to <span class="m">denpoly</span>'s by an exact division, which doubles as a check.</p>
+<p class="lead">Even so the cap here is <span class="m">N ≤ 11</span>, against 14 on the forward side, and the
+reason is structural rather than a matter of tuning: the forward array is <b>sparse</b> — level 12 stores 43,954
+nonzero terms across every state — while the inverse array is <b>completely dense</b>. Every one of the
+195 × 195 entries of <span class="m">C̃<sub>12</sub></span> is a nonzero rational function, 774,704 stored
+coefficients in all. Inverting a sparse matrix does not give a sparse matrix, and no amount of cleverness in the
+solve changes that.</p>
+
+<div class="livebox">
+  <div class="liveform" id="iliveForm">
+    <fieldset id="ifsCase">
+      <label><input type="radio" name="icase" value="real" checked> real <span class="m">β = 1, α = 2</span></label>
+      <label><input type="radio" name="icase" value="complex"> complex <span class="m">β = 2, α = 1</span></label>
+      <label><input type="radio" name="icase" value="quaternion"> quaternion <span class="m">β = 4, α = ½</span></label>
+    </fieldset>
+    <label>level N ≤ <input type="range" id="iinN" min="1" max="11" step="1" value="6">
+      <span class="nval" id="inVal">6</span></label>
+    <button class="primary" id="ibtnRun">► Run</button>
+    <button id="ibtnCancel" disabled>■ Cancel</button>
+  </div>
+  <div class="livenote" id="icapNote"></div>
+  <div class="livestatus" id="iliveStatus">Idle. Pick a case and a level, then Run.</div>
+  <div class="progressbar"><div id="iliveBar"></div></div>
+  <div id="iliveResults"></div>
+</div>
+
+<div class="livebox" id="istateBox" hidden>
+  <h2 style="font-size:14px;margin:0 0 6px">Browse a state at level N</h2>
+  <div class="liveform">
+    <label>state <select class="livesel" id="iselState"></select></label>
+    <span id="istateMeta" style="color:var(--ink-3);font-size:12px"></span>
+    <span class="spacer"></span>
+    <button id="ibtnDlTxt">⬇ .txt</button>
+    <button id="ibtnDlCsv">⬇ .csv</button>
+    <button id="ibtnDlTex">⬇ LaTeX</button>
+  </div>
+  <div id="itermList"></div>
+  <div class="livenote" id="idenNote"></div>
+</div>
+
+<div class="livebox" id="ievalBox" hidden>
+  <h2 style="font-size:14px;margin:0 0 6px">Evaluate the selected state numerically</h2>
+  <p class="livenote" style="margin-top:0">Everything on this page depends on <span class="m">Σ</span> only through
+  <span class="m">Σ<sup>−1</sup></span> and its power sums, and any Hermitian <span class="m">Σ</span> is unitarily
+  conjugate to a real diagonal one, so a <b>real symmetric</b> <span class="m">Σ</span> covers every case here —
+  in the complex and quaternion cases the answer for a general Hermitian <span class="m">Σ</span> is the
+  conjugate of this one. Enter the upper triangle; the lower mirrors automatically. Evaluation is float64;
+  the table above is exact.</p>
+  <div class="liveform">
+    <label>m <input type="number" id="iinM" min="2" max="6" step="1" value="3"></label>
+    <label>n <input type="number" id="iinNval" step="any" value="12"></label>
+    <button class="primary" id="ibtnEval">= Evaluate</button>
+    <span id="ievalStatus" style="color:var(--ink-3);font-size:12px"></span>
+  </div>
+  <div class="livenote" id="iexistNote"></div>
+  <div class="matwrap">
+    <div><h4>Σ (Sigma)</h4><div class="matgrid" id="igridS"></div></div>
+  </div>
+  <div class="evalout" id="ievalOut"></div>
+</div>
+
+<p class="lead" style="margin-top:4px">Where the poles come from: the denominator of level <span class="m">k</span> is
+<span class="m">∏(ñ − c)</span> over the α-contents <span class="m">c = αj − i</span> of the cells
+<span class="m">(i,j)</span> of the partitions of <span class="m">k</span>, each with the largest multiplicity it
+attains in a single partition. Its largest root is <span class="m">(k−1)α</span> — which is exactly the existence
+threshold <span class="m">(n−m+1)/α > k</span> for the inverse moments of degree <span class="m">k</span>. The
+run above prints the denominator and its roots at every level, so you can watch the threshold move.</p>
+</section>
+
+</div><!-- /wrapWi -->
+
+<footer>
+  The recursions at β = 1 and β = 2 are Hillier &amp; Kan (2024, Scandinavian Journal of Statistics),
+  which covers the real and complex Wishart and their inverses; the β-uniform form shown here
+  (leading (n+c<sub>β</sub>(r−1)), trace-pull (1+c<sub>β</sub>)κ<sub>l</sub>, c<sub>β</sub> = 2/β−1
+  = α−1) reproduces both and extends them, per the companion proof note, to the quaternion case
+  (twin constant c₄ = −½ from the unit calculus 𝔼[epē] = Re(p), 𝔼[epe] = −p̄/2) and, for the scalar
+  moments, to every β &gt; 0.
+  <br><br>
+  <b>Forward engine:</b> term rewriting on decorated words, the coefficients carried as exact float64
+  integers. Reference counts and digests generated by a byte-exact Python mirror of the same recursion.
+  Counts are identical across the three algebras at every level through N = 14 (no cancellation
+  occurs); the largest coefficient at level N is the real one, exactly 2<sup>N−1</sup>(N−1)!.
+  <br><br>
+  <b>Inverse engine:</b> exact BigInt arithmetic over ℤ[ñ]. Each level needs
+  D<sub>−k</sub><sup>−1</sup> applied to diag(C̃<sub>k</sub>, H̃<sub>k</sub>); rather than eliminate, the
+  engine uses Cayley–Hamilton — the characteristic polynomial of M<sub>k</sub> = D<sub>−k</sub> − ñI gives
+  D<sub>−k</sub><sup>−1</sup>B = (Σ<sub>j</sub> c<sub>j</sub>(ñ)M<sub>k</sub><sup>j</sup>B)/D<sub>k</sub>(ñ), so
+  the level reduces to repeated integer matrix products and one exact division by the level denominator
+  D<sub>k</sub>(ñ) = det(D<sub>−k</sub>), which factors as ∏(ñ − s) over the α-contents s of the addable
+  cells. H̃<sub>k</sub> is the compression (αk)<sup>−1</sup>D<sub>k,21</sub>C̃<sub>k</sub>D<sub>k,12</sub>.</footer>
+
+<!-- ============ shared safe DOM helpers (no innerHTML anywhere) ============ -->
+<script>
+"use strict";
+/* h("tag.class", ...children) → HTMLElement; children: strings become text
+   nodes, arrays recurse, elements append. Used by every panel renderer. */
+function h(spec){
+  const [tag,...classes]=spec.split(".");
+  const n=document.createElement(tag||"div");
+  if(classes.length) n.className=classes.join(" ");
+  for(let i=1;i<arguments.length;i++) hAppend(n,arguments[i]);
+  return n;
+}
+function hAppend(n,c){
+  if(c==null) return;
+  if(Array.isArray(c)){ c.forEach(x=>hAppend(n,x)); return; }
+  n.appendChild(typeof c==="string" ? document.createTextNode(c) : c);
+}
+function hSet(node){ // replace node's children with the given ones
+  node.replaceChildren();
+  for(let i=1;i<arguments.length;i++) hAppend(node,arguments[i]);
+}
+const SUB = t => h("sub",t), SUP_ = t => h("sup",t), B = t => h("b",t), EM = t => h("em",t);
+/* a colored recursion-term chip: term("t-prepend", [main...], [note...]) */
+function term(cls,main,note){
+  const s=h("span.term."+cls,main);
+  if(note) s.appendChild(h("small",note));
+  return s;
+}
+</script>
+
+<!-- ============ PART 1 SCRIPT — the recursion DAG (port of wishart-recursion-dag.html) ============ -->
+<script>
+function buildGraph(CFG){
+"use strict";
+const INV = !!CFG.inverse;
+/* ---------------- data model ---------------- */
+const MAXLVL = 5;
+const SUP = {1:"¹",2:"²",3:"³",4:"⁴",5:"⁵"};
+const TERMS_PER_LEVEL = {1:2, 2:8, 3:25, 4:74, 5:193}; // central counts (identical for beta = 1, 2, 4)
+
+function partitions(n){
+  if(n===0) return [[]];
+  const res=[];
+  (function rec(rem,max,cur){
+    if(rem===0){res.push(cur.slice());return;}
+    for(let v=Math.min(rem,max); v>=1; v--){cur.push(v);rec(rem-v,v,cur);cur.pop();}
+  })(n,n,[]);
+  return res;
+}
+const sortDesc = a => a.slice().sort((x,y)=>y-x);
+const kid = (r,k) => r+"|"+k.join(",");
+const kappaStr = k => k.length ? "("+k.join(",")+")" : "∅";
+
+const SUPM = {1:"⁻¹",2:"⁻²",3:"⁻³",4:"⁻⁴",5:"⁻⁵"};
+const Wsym  = (r) => INV ? "W"+SUPM[r] : "W"+(r>1?SUP[r]:"");
+function momentLabel(r,k){
+  let parts=[];
+  if(r>0) parts.push(Wsym(r));
+  let i=0;
+  while(i<k.length){
+    const v=k[i]; let m=0;
+    while(i<k.length && k[i]===v){m++;i++;}
+    let base;
+    if(INV){
+      base = (v===1) ? (m>1 ? "(tr W⁻¹)"+SUP[m] : "tr W⁻¹")
+                     : "tr(W"+SUPM[v]+")"+(m>1?SUP[m]:"");
+    } else {
+      base = (v===1) ? (m>1 ? "(trW)"+SUP[m] : "trW")
+                     : "tr(W"+SUP[v]+")"+(m>1?SUP[m]:"");
+    }
+    parts.push(base);
+  }
+  if(!parts.length) return "I";
+  return "E["+parts.join(" ")+"]";
+}
+/* phi(r,k) → DOM: Φ_{r,κ} with a real subscript */
+const PHI = () => INV ? h("span.tld","Φ") : "Φ";
+function phi(r,k){ return [PHI(),SUB(r+","+kappaStr(k))]; }
+/* momentDOM: the E[...] label with unicode superscripts kept as-is */
+function momentDOM(r,k){ return momentLabel(r,k); }
+
+/* states */
+const states=[], byId={};
+for(let N=0;N<=MAXLVL;N++){
+  for(let r=N;r>=0;r--){
+    for(const k of partitions(N-r)){
+      const s={r,k,N,id:kid(r,k),
+        type: N===0 ? "base" : (r===0 ? "scalar" : "matrix"),
+        label: momentLabel(r,k)};
+      states.push(s); byId[s.id]=s;
+    }
+  }
+}
+/* edges: {src,tgt,type} — type in prepend|trace|merge|scalar */
+const edges=[];
+if(!INV){
+  for(const s of states){
+    const {r,k}=s;
+    if(r>=1){
+      edges.push({src:kid(r-1,k), tgt:s.id, type:"prepend"});
+      for(let j=0;j<=r-2;j++){
+        edges.push({src:kid(r-2-j, sortDesc(k.concat(j+1))), tgt:s.id, type:"trace", j});
+      }
+      const seen=new Set();
+      for(const v of k){
+        if(seen.has(v)) continue; seen.add(v);
+        const m=k.filter(x=>x===v).length;
+        const k3=k.slice(); k3.splice(k.indexOf(v),1);
+        edges.push({src:kid(r+v-1, k3), tgt:s.id, type:"merge", v, m});
+      }
+    } else if(k.length){
+      edges.push({src:kid(k[0], k.slice(1)), tgt:s.id, type:"scalar"});
+    }
+  }
+} else {
+  /* INVERSE family.  The identity attached to the state (r,kappa) of level
+     N-1 reads
+        Sigma^-1 Phi~_{r,kappa}
+          = [nt - c_b r] Phi~_{r+1,kappa}
+            - sum_{j=1}^{r} Phi~_{r+1-j, kappa u {j}}
+            - (1+c_b) sum_l kappa_l Phi~_{r+1+kappa_l, kappa_(l)} ,
+     and every state on the right lives at level N.  The arrows therefore run
+     from an equation at level N-1 to the unknowns at level N, and the level-N
+     unknowns are coupled: the whole column has to be solved at once.  This is
+     row (r,kappa) of the matrix D_{-(N-1)} of the note. */
+  for(const s of states){
+    const {r,k,N}=s;
+    if(N>=MAXLVL) { /* its targets would be off the picture */ }
+    if(s.type!=="scalar" || !k.length){
+      /* every state (including the base and the scalar ones) generates one
+         equation; scalar states r = 0 generate the p^{(k)} rows */
+    }
+    if(N<MAXLVL){
+      edges.push({src:s.id, tgt:kid(r+1,k), type:"prepend"});
+      for(let j=1;j<=r;j++)
+        edges.push({src:s.id, tgt:kid(r+1-j, sortDesc(k.concat(j))), type:"trace", j});
+      const seen=new Set();
+      for(const v of k){
+        if(seen.has(v)) continue; seen.add(v);
+        const m=k.filter(x=>x===v).length;
+        const k3=k.slice(); k3.splice(k.indexOf(v),1);
+        edges.push({src:s.id, tgt:kid(r+1+v, k3), type:"merge", v, m});
+      }
+    }
+    if(r===0 && k.length) edges.push({src:kid(k[0], k.slice(1)), tgt:s.id, type:"scalar"});
+  }
+}
+for(const e of edges) e.level = byId[e.tgt].N;
+
+/* ---------------- layout ---------------- */
+const NODE_W=172, NODE_H=28, VGAP=8, COL_W=268, MARG_X=26, HEAD_H=58;
+const perLevel=[];
+for(let N=0;N<=MAXLVL;N++) perLevel[N]=states.filter(s=>s.N===N);
+const maxCount=Math.max(...perLevel.map(a=>a.length));
+const contentH=maxCount*(NODE_H+VGAP)-VGAP;
+const SVG_W=MARG_X*2+MAXLVL*COL_W+NODE_W;
+const SVG_H=HEAD_H+contentH+30;
+for(let N=0;N<=MAXLVL;N++){
+  const col=perLevel[N];
+  const colH=col.length*(NODE_H+VGAP)-VGAP;
+  const y0=HEAD_H+(contentH-colH)/2;
+  col.forEach((s,i)=>{ s.x=MARG_X+N*COL_W; s.y=y0+i*(NODE_H+VGAP); });
+}
+const inBy={}, outBy={};
+edges.forEach(e=>{ (inBy[e.tgt]=inBy[e.tgt]||[]).push(e); (outBy[e.src]=outBy[e.src]||[]).push(e); });
+for(const id in inBy){
+  const list=inBy[id].filter(e=>e.type!=="scalar");
+  list.sort((a,b)=>byId[a.src].y-byId[b.src].y || a.type.localeCompare(b.type));
+  const t=byId[id];
+  list.forEach((e,i)=>{ e.ty=t.y+NODE_H*(i+1)/(list.length+1); e.tx=t.x; });
+  inBy[id].filter(e=>e.type==="scalar").forEach(e=>{ e.ty=t.y+NODE_H/2; e.tx=t.x+NODE_W; });
+}
+for(const id in outBy){
+  const list=outBy[id].filter(e=>e.type!=="scalar");
+  list.sort((a,b)=>byId[a.tgt].y-byId[b.tgt].y || a.type.localeCompare(b.type));
+  const s=byId[id];
+  list.forEach((e,i)=>{ e.sy=s.y+NODE_H*(i+1)/(list.length+1); e.sx=s.x+NODE_W; });
+  outBy[id].filter(e=>e.type==="scalar").forEach(e=>{ e.sy=s.y+NODE_H/2; e.sx=s.x+NODE_W; });
+}
+function edgePath(e){
+  if(e.type==="scalar"){
+    const bulge=54+Math.abs(e.ty-e.sy)*0.06;
+    return `M ${e.sx} ${e.sy} C ${e.sx+bulge} ${e.sy}, ${e.tx+bulge} ${e.ty}, ${e.tx} ${e.ty}`;
+  }
+  const dx=(e.tx-e.sx)*0.45;
+  return `M ${e.sx} ${e.sy} C ${e.sx+dx} ${e.sy}, ${e.tx-dx} ${e.ty}, ${e.tx} ${e.ty}`;
+}
+
+/* ---------------- render SVG ---------------- */
+const svg=document.getElementById(CFG.svg);
+svg.setAttribute("viewBox",`0 0 ${SVG_W} ${SVG_H}`);
+svg.setAttribute("width",SVG_W); svg.setAttribute("height",SVG_H);
+const NS="http://www.w3.org/2000/svg";
+function el(name,attrs,parent){
+  const n=document.createElementNS(NS,name);
+  for(const a in attrs) n.setAttribute(a,attrs[a]);
+  (parent||svg).appendChild(n); return n;
+}
+const gEdges=el("g",{}), gNodes=el("g",{}), gHead=el("g",{});
+/* "Phi-tilde" inside an SVG <text>: the accent is its own tspan, so it sits
+   centred over the Phi instead of wherever the font puts U+0303. */
+function phiTspans(t, rest){
+  const a=el("tspan",{},t); a.textContent="Φ";
+  const b=el("tspan",{dx:"-0.66em",dy:"-0.40em","font-size":"0.78em"},t); b.textContent="~";
+  const c=el("tspan",{dx:"-0.02em",dy:"0.40em"},t); c.textContent=rest;
+}
+for(let N=0;N<=MAXLVL;N++){
+  const x=MARG_X+N*COL_W+NODE_W/2;
+  const hd=el("text",{x,y:24,"text-anchor":"middle",class:"lvlhead","data-level":N},gHead);
+  hd.textContent = N===0 ? "Level 0 · base" : `Level ${N} · ${perLevel[N].length} states`;
+  const sub=el("text",{x,y:40,"text-anchor":"middle",class:"lvlsub","data-level":N},gHead);
+  if(INV && N===0){ phiTspans(sub,"₀,∅ = I"); }
+  else if(INV){
+    const d=perLevel[N].filter(t=>t.type==="matrix").length;
+    sub.textContent = `solve ${d} × ${d}`;
+  } else {
+    sub.textContent = N===0 ? "Φ₀,∅ = I" : `${TERMS_PER_LEVEL[N].toLocaleString()} stored terms`;
+  }
+}
+edges.forEach(e=>{
+  e.elem=el("path",{d:edgePath(e),class:`edge e-${e.type}`,"data-level":e.level},gEdges);
+});
+for(const s of states){
+  const g=el("g",{class:"node "+s.type,"data-id":s.id,"data-level":s.N},gNodes);
+  el("rect",{x:s.x,y:s.y,width:NODE_W,height:NODE_H,rx:7},g);
+  const t=el("text",{x:s.x+NODE_W/2,y:s.y+NODE_H/2+4,"text-anchor":"middle"},g);
+  if(s.type==="base" && INV) phiTspans(t,"₀,∅ = I  (base)");
+  else t.textContent = s.type==="base" ? "Φ₀,∅ = I  (base)" : s.label;
+  s.elem=g;
+  g.addEventListener("click",ev=>{ev.stopPropagation();select(s.id);});
+  g.addEventListener("mouseenter",()=>{ if(!selectedId) preview(s.id,true); });
+  g.addEventListener("mouseleave",()=>{ if(!selectedId) preview(s.id,false); });
+}
+svg.addEventListener("click",()=>select(null));
+
+/* ---------------- panel (safe DOM building) ---------------- */
+const panel=document.getElementById(CFG.panel);
+const DEN2 = "ñ(ñ−1−c_β)(ñ+1)";
+const CLOSED_FORMS_INV={
+  "1|":  "𝔼[W⁻¹] = Σ⁻¹/ñ",
+  "0|1": "𝔼[tr W⁻¹] = tr(Σ⁻¹)/ñ",
+  "2|":  "𝔼[W⁻²] = [ñΣ⁻² + tr(Σ⁻¹)Σ⁻¹] / "+DEN2,
+  "1|1": "𝔼[W⁻¹ tr W⁻¹] = [(1+c_β)Σ⁻² + (ñ−c_β)tr(Σ⁻¹)Σ⁻¹] / "+DEN2,
+  "0|2": "𝔼[tr(W⁻²)] = [ñ tr(Σ⁻²) + tr(Σ⁻¹)²] / "+DEN2,
+  "0|1,1":"𝔼[(tr W⁻¹)²] = [(1+c_β)tr(Σ⁻²) + (ñ−c_β)tr(Σ⁻¹)²] / "+DEN2
+};
+const CLOSED_FORMS_FWD={
+  "1|":  "𝔼[W] = nΣ",
+  "0|1": "𝔼[trW] = n·trΣ",
+  "2|":  "𝔼[W²] = n(n+c_β)Σ² + n·tr(Σ)Σ",
+  "1|1": "𝔼[W·trW] = n²tr(Σ)Σ + (1+c_β)nΣ²",
+  "0|2": "𝔼[tr(W²)] = n(n+c_β)tr(Σ²) + n·tr(Σ)²",
+  "0|1,1":"𝔼[(trW)²] = n²tr(Σ)² + (1+c_β)n·tr(Σ²)"
+};
+const CLOSED_FORMS = INV ? CLOSED_FORMS_INV : CLOSED_FORMS_FWD;
+const op = () => h("span.op","+");
+const opm = () => h("span.op","−");
+
+/* ---- the inverse family: one equation per state, reading the level above ---- */
+function termNodesInv(s){
+  const {r,k,N}=s, out=[];
+  if(N<MAXLVL){
+    out.push(h("div.eq",h("span.lhs","Σ⁻¹· ",phi(r,k)),"  =  "));
+    const coef = (r===0) ? "ñ" : (r===1 ? "(ñ−c_β)" : "(ñ−"+r+"c_β)");
+    out.push(term("t-prepend",[coef+" · ",phi(r+1,k)],
+      "raise the matrix power: the diagonal entry of D₋"+SUB_TXT(N)));
+    for(let j=1;j<=r;j++){
+      out.push(term("t-trace",[opm(),phi(r+1-j, sortDesc(k.concat(j)))],
+        ["split (j="+j+"): one unit of the matrix power becomes a new trace factor p",SUB(String(j))]));
+    }
+    const seen=new Set();
+    for(const v of k){
+      if(seen.has(v)) continue; seen.add(v);
+      const m=k.filter(x=>x===v).length;
+      const k3=k.slice(); k3.splice(k.indexOf(v),1);
+      out.push(term("t-merge",[opm(),"(1+c_β)"+(v*m>1?"·"+(v*m):"")+" · ",phi(r+1+v,k3)],
+        ["join: the trace factor tr(W",SUPM[v]?SUPM[v]:"",")"+(m>1?" (×"+m+" equal parts)":"")+
+         " is absorbed into the matrix power"]));
+    }
+    out.push(h("p",["Every state on the right sits at level ",B(String(N+1)),
+      " — one level ",EM("above"),". This is the row of ",B("D₋"+SUB_TXT(N)),
+      " indexed by this state; the level-",String(N+1)," states are therefore coupled, and the whole column is obtained by ",
+      EM("solving")," that system, not by substitution."]));
+  } else {
+    out.push(h("p",["Its equation reads states at level ",B(String(N+1)),
+      ", beyond the levels drawn here."]));
+  }
+  if(s.type==="scalar" && k.length){
+    out.push(h("div.eq",h("span.lhs",phi(r,k)),"  =  "));
+    out.push(term("t-scalar",["tr ",phi(k[0],k.slice(1))," · I",SUB("m")],
+      "scalar reduction: trace the matrix state of the same level, exactly as in the forward family"));
+  }
+  return out;
+}
+const SUB_TXT = (x)=>String(x).split("").map(c=>"₀₁₂₃₄₅₆₇₈₉"[+c]||c).join("");
+
+function termNodes(s){
+  if(INV) return termNodesInv(s);
+  const {r,k}=s, out=[];
+  if(s.type==="base"){
+    out.push(h("div.eq",h("span.lhs",phi(0,[]),[" = I",SUB("m")])));
+    out.push(h("p","The recursion starts here: the identity matrix, a single decorated word with no letters."));
+    return out;
+  }
+  if(s.type==="scalar"){
+    out.push(h("div.eq",h("span.lhs",phi(r,k)),"  =  "));
+    out.push(term("t-scalar",["tr ",phi(k[0],k.slice(1))," · I",SUB("m")],
+      "scalar reduction (9): trace the freshly computed matrix state of the same level"));
+    return out;
+  }
+  out.push(h("div.eq",h("span.lhs",phi(r,k)),"  =  "));
+  const coef = r===1 ? "n" : "(n+"+(r-1)+"·c_β)";
+  out.push(term("t-prepend",[coef+"Σ · ",phi(r-1,k)],
+    "prepend: Stein derivative of the explicit Z factor; c_β = 1 (real), 0 (complex), −½ (quaternion)"));
+  for(let j=0;j<=r-2;j++){
+    out.push(term("t-trace",[op(),"Σ · ",phi(r-2-j, sortDesc(k.concat(j+1)))],
+      ["trace split (j="+j+"): derivative of W",SUP_(String(r-1))," spawns a new trace factor p",SUB(String(j+1))]));
+  }
+  const seen=new Set();
+  for(const v of k){
+    if(seen.has(v)) continue; seen.add(v);
+    const m=k.filter(x=>x===v).length;
+    const k3=k.slice(); k3.splice(k.indexOf(v),1);
+    out.push(term("t-merge",[op(),"(1+c_β)·"+(v*m)+"Σ · ",phi(r+v-1,k3)],
+      ["part merge: differentiating tr(W",SUP_(String(v)),")"+(m>1?" (×"+m+" equal parts)":"")+
+       " absorbs it into the matrix power; (1+c_β)κ_l = 2κ_l, κ_l, κ_l/2 for β = 1, 2, 4"]));
+  }
+  return out;
+}
+function renderPanel(id){
+  if(!id){
+    if(INV){
+      hSet(panel,
+        h("h2","Inverse master identity (all β)"),
+        h("div.eq",h("span.lhs","Σ⁻¹· ",h("span.tld","Φ"),SUB("r,κ")),"  =  "),
+        term("t-prepend",["(ñ − c",SUB("β"),"r) ",h("span.tld","Φ"),SUB("r+1,κ")]),
+        term("t-trace",[opm(),"Σ",SUB("j=1"),SUP_("r")," ",h("span.tld","Φ"),SUB("r+1−j, κ∪{j}")]),
+        term("t-merge",[opm(),"(1+c",SUB("β"),") Σ",SUB("l")," κ",SUB("l")," ",h("span.tld","Φ"),SUB("r+1+κl, κ(l)")]),
+        h("p",["Here ",h("b",h("span.tld","Φ")),SUB("r,κ")," = 𝔼[W⁻ʳ p",SUB("κ"),"(W⁻¹)] and ",
+          B("ñ = n − m + 1 − α"),", α = 1 + c",SUB("β"),". The identity is the same Stein/Haff ",
+          "identity as in the forward family, read in the other direction."]),
+        h("p",["The decisive difference: every state on the right sits ",B("one level above")," the left side. ",
+          "So the identities at level ",B("N−1")," form a square linear system for the level-",B("N")," states — ",
+          "the matrix ",B("D₋"),SUB("N−1")," — and a level is obtained by ",EM("solving")," it, ",
+          "not by rewriting. Everything downstream follows from that: the coefficients are ",
+          EM("rational")," functions of ñ rather than polynomials, the poles are the α-contents of the cells ",
+          "of the partitions, and the largest of them, ",B("(k−1)α"),", is exactly the existence threshold ",
+          B("(n−m+1)/α > k"),"."]),
+        h("p",["Scalar states ",h("span.tld","Φ"),SUB("0,μ")," (dashed) still follow from the same-level matrix states by the ",
+          "trace reduction, exactly as in the forward family."]),
+        h("p.hint","Click any state to see the identity it generates. Click the background to return here."));
+      return;
+    }
+    hSet(panel,
+      h("h2","Central master recursion (all β)"),
+      h("div.eq",h("span.lhs","Φ",SUB("r,κ")),"  =  "),
+      term("t-prepend",["(n+c",SUB("β"),"(r−1))Σ · Φ",SUB("r−1,κ")]),
+      term("t-trace",[op(),"Σ Σ",SUB("j=0"),SUP_("r−2")," Φ",SUB("r−2−j, κ∪{j+1}")]),
+      term("t-merge",[op(),"(1+c",SUB("β"),") Σ",SUB("l")," κ",SUB("l")," Σ · Φ",SUB("r+κl−1, κ(l)")]),
+      h("p",["Every source on the right sits at level ",B("N−1")," — the recursion proceeds strictly level by level, ",
+        "and each level is produced by ",EM("linear rewriting")," of the previous one; no combinatorial master ",
+        "expansion is ever formed."]),
+      h("p",["Scalar states Φ",SUB("0,μ")," (dashed nodes) follow from the same-level matrix states by the trace reduction. c",SUB("β")," = 2/β − 1: real 1, complex 0, quaternion −½."]),
+      h("p.hint","Click any state to see its recursion instantiated. Click the background to return here."));
+    return;
+  }
+  const s=byId[id];
+  const kids=[
+    h("div.statehead",phi(s.r,s.k),"  =  ",momentDOM(s.r,s.k)),
+    h("div.meta","level "+s.N+" · "+(s.type==="matrix"?"matrix state":s.type==="scalar"?"scalar state":"base state")+
+      (INV ? (s.N<MAXLVL ? " · its equation reads level "+(s.N+1) : "")
+           : (s.type==="matrix" ? " · all sources at level "+(s.N-1) : ""))),
+    ...termNodes(s)];
+  const key=s.r+"|"+s.k.join(",");
+  if(CLOSED_FORMS[key]){
+    const legend = INV
+      ? ["c",SUB("β")," = 1, 0, −½ for β = 1, 2, 4;  ñ = n−m+1−α,  α = 1+c",SUB("β")]
+      : ["c",SUB("β")," = 1, 0, −½ for β = 1, 2, 4"];
+    kids.push(h("div.closed",
+      h("h3","Closed form ",h("span.keep","(",...legend,")")),
+      h("div.f",CLOSED_FORMS[key])));
+  }
+  const consumers = INV
+    ? edges.filter(e=>e.tgt===id && e.type!=="scalar").map(e=>byId[e.src])
+    : edges.filter(e=>e.src===id).map(e=>byId[e.tgt]);
+  if(consumers.length){
+    const uniq=[...new Set(consumers.map(c=>c.id))].map(i=>byId[i]);
+    const list=[];
+    uniq.forEach((c,i)=>{ if(i) list.push(",  "); list.push(...phi(c.r,c.k)); });
+    kids.push(h("div.closed",h("h3",INV?"Appears in the equation of":"Feeds into"),h("div",list)));
+  }
+  hSet(panel,kids);
+}
+
+/* ---------------- interaction ---------------- */
+let selectedId=null;
+const ownEdge = INV ? (e,id)=> (e.type==="scalar" ? e.tgt===id : e.src===id)
+                    : (e,id)=> e.tgt===id;
+const otherEnd = (e,id)=> (e.src===id ? e.tgt : e.src);
+function applyFocus(id, strong){
+  for(const e of edges){
+    e.elem.classList.toggle("hi", !!id && ownEdge(e,id));
+    e.elem.classList.toggle("dim", !!id && !ownEdge(e,id));
+  }
+  const srcs=new Set(id ? edges.filter(e=>ownEdge(e,id)).map(e=>otherEnd(e,id)) : []);
+  for(const s of states){
+    s.elem.classList.toggle("selected", strong && s.id===id);
+    s.elem.classList.toggle("srchi", !!id && srcs.has(s.id));
+    s.elem.classList.toggle("dim", !!id && s.id!==id && !srcs.has(s.id));
+  }
+}
+function select(id){
+  selectedId = (id===selectedId) ? null : id;
+  applyFocus(selectedId, true);
+  renderPanel(selectedId);
+}
+function preview(id,on){ applyFocus(on?id:null,false); }
+
+/* ---------------- reveal / animation ---------------- */
+let shown=0, playing=false, timer=null;
+const counter=document.getElementById(CFG.counter);
+function setShown(L,animate){
+  shown=L;
+  for(const s of states) s.elem.classList.toggle("hidden", s.N>L);
+  document.querySelectorAll("#"+CFG.svg+" .lvlhead,#"+CFG.svg+" .lvlsub").forEach(hd=>{
+    hd.classList.toggle("hidden", +hd.getAttribute("data-level")>L);
+  });
+  for(const e of edges){
+    const show = e.level<=L;
+    e.elem.classList.toggle("hidden", !show);
+    if(show && animate && e.level===L){
+      const len=e.elem.getTotalLength();
+      e.elem.style.transition="none";
+      e.elem.style.strokeDasharray=(e.type==="scalar"?"4 4":len+" "+len);
+      if(e.type!=="scalar"){
+        e.elem.style.strokeDashoffset=len;
+        e.elem.getBoundingClientRect();
+        e.elem.style.transition="stroke-dashoffset .7s ease";
+        e.elem.style.strokeDashoffset="0";
+        setTimeout(()=>{e.elem.style.strokeDasharray="";e.elem.style.transition="";},750);
+      }
+    } else if(show && e.type!=="scalar"){
+      e.elem.style.strokeDasharray="";
+    }
+  }
+  let st=0,tm=0;
+  for(let N=1;N<=L;N++){st+=perLevel[N].length;tm+=TERMS_PER_LEVEL[N];}
+  if(L===0) hSet(counter,"base state only — press Play");
+  else if(INV){
+    const d=perLevel[L].filter(t=>t.type==="matrix").length;
+    hSet(counter,"through level ",B(String(L)),": ",B(String(st))," states; the last step solves a ",
+      B(d+" × "+d)," system",(L===MAXLVL?"  ·  complete":""));
+  }
+  else hSet(counter,"through level ",B(String(L)),": ",B(String(st))," states, ",
+    B(tm.toLocaleString())," stored terms",(L===MAXLVL?"  ·  complete":""));
+}
+function step(){ if(shown<MAXLVL) setShown(shown+1,true); if(shown>=MAXLVL) stopPlay(); }
+function stopPlay(){ playing=false; clearInterval(timer); document.getElementById(CFG.btnPlay).textContent="▶ Play"; }
+document.getElementById(CFG.btnPlay).addEventListener("click",()=>{
+  if(playing){ stopPlay(); return; }
+  if(shown>=MAXLVL) setShown(0,false);
+  playing=true; document.getElementById(CFG.btnPlay).textContent="❚❚ Pause";
+  step(); timer=setInterval(()=>{ step(); },1400);
+});
+document.getElementById(CFG.btnStep).addEventListener("click",()=>{ stopPlay(); step(); });
+document.getElementById(CFG.btnAll).addEventListener("click",()=>{ stopPlay(); setShown(MAXLVL,false); });
+document.getElementById(CFG.btnReset).addEventListener("click",()=>{ stopPlay(); select(null); setShown(0,false); });
+const wrap=document.getElementById(CFG.wrap);
+wrap.classList.add("fit");
+document.getElementById(CFG.btnZoom).addEventListener("click",()=>{
+  const fit=wrap.classList.toggle("fit");
+  document.getElementById(CFG.btnZoom).textContent = fit ? "⤢ 1:1" : "⤢ Fit";
+});
+/* initial state: everything visible so the full DAG greets the viewer */
+setShown(MAXLVL,false);
+renderPanel(null);
+return { relayout: ()=>{} };
+}
+/* one theme toggle for the whole page */
+document.getElementById("btnTheme").addEventListener("click",()=>{
+  const root=document.documentElement;
+  const dark = root.getAttribute("data-theme")==="dark" ||
+    (root.getAttribute("data-theme")!=="light" && matchMedia("(prefers-color-scheme: dark)").matches);
+  root.setAttribute("data-theme", dark?"light":"dark");
+});
+buildGraph({svg:"svg", panel:"panel", counter:"counter", wrap:"wrap1",
+            btnPlay:"btnPlay", btnStep:"btnStep", btnAll:"btnAll",
+            btnReset:"btnReset", btnZoom:"btnZoom", inverse:false});
+buildGraph({svg:"isvg", panel:"ipanel", counter:"icounter", wrap:"iwrap1",
+            btnPlay:"ibtnPlay", btnStep:"ibtnStep", btnAll:"ibtnAll",
+            btnReset:"ibtnReset", btnZoom:"ibtnZoom", inverse:true});
+</script>
+
+<!-- ============ FORWARD ENGINE — the recursion of Hillier & Kan (2024) ========
+  DOM-free by design: this block also runs inside a Web Worker (the UI script
+  reads its textContent and spawns a worker from a Blob URL) and inside Node
+  (the offline gate extracts everything between the ENGINE-BEGIN/END markers
+  and checks it against the reference tables). Do not touch document/window
+  here.                                                                     -->
+<script id="ncw-engine">
+/* ===ENGINE-BEGIN=== */
+"use strict";
+/* The forward recursion of Hillier & Kan (2024), in the one-parameter form
+ * implemented by the wishmom programs:
+ *
+ *   E[W^r p_kappa(W)] = (n + c_b (r-1)) Sigma E[W^(r-1) p_kappa(W)]
+ *                     + sum_{j} Sigma E[W^(r-2-j) p_{kappa u {j+1}}(W)]
+ *                     + (1+c_b) sum_l kappa_l Sigma E[W^(r+kappa_l-1) p_{kappa_(l)}(W)]
+ *
+ * with c_b = 2/beta - 1 = alpha - 1: c = 1 at beta = 1 (the real case, HK
+ * eq. (28)), c = 0 at beta = 2 (the complex case, HK eq. (86)), c = -1/2 at
+ * beta = 4.  Scalar states follow by tracing the matrix state of the same
+ * level.  Every level is a linear rewrite of the level below.
+ *
+ * Coefficient layer: plain JS numbers. For beta = 1 and beta = 2 the
+ * recursion never divides and every coefficient of the polynomial-in-n is a
+ * positive integer (verified: no negative and no zero coefficient occurs
+ * through N = 8). For beta = 4 the leading weight -(r-1)/2 and the trace-pull
+ * kappa_l/2 make the coefficients signed dyadic rationals, still exact in
+ * float64. Exactness domain: float64 integers are exact below 2^53. The
+ * largest coefficient at level N is attained in the real case and equals
+ * exactly 2^(N-1) (N-1)!: 185,794,560 (~2^27.5) at N = 10, 5.10e13 at N = 14,
+ * and 1.43e15 at N = 15 -- still under 2^53 = 9.01e15, so the N <= 14 cap
+ * keeps one full level of margin. A guard in cAddInto aborts loudly if 2^53
+ * were ever crossed.
+ *
+ * Representation:
+ *   expression = Map( "matrixword|trace1,trace2" -> dense poly-in-n array )
+ *   trace words stored canonical; matrix words raw left-to-right.
+ */
+const NCW = (function () {
+
+  const POW53 = Math.pow(2, 53);
+
+  /* ---------- coefficient arithmetic: dense array poly in n ---------- */
+  function cAddInto(dst, src, scale) {
+    for (let p = 0; p < src.length; p++) {
+      const v = src[p];
+      if (!v) continue;
+      const nv = (dst[p] || 0) + v * scale;
+      if (nv >= POW53 || nv <= -POW53) throw new Error(
+        "coefficient exceeded 2^53 — exact float64 domain left");
+      dst[p] = nv;
+    }
+  }
+  /* c * (a1 + n): the ONLY polynomial multiplier the recursion uses
+     (real leading term a1 = a-1; complex leading term a1 = 0). */
+  function cMulLinear(c, a1) {
+    const out = new Array(c.length + 1).fill(0);
+    for (let p = 0; p < c.length; p++) {
+      const v = c[p];
+      if (!v) continue;
+      out[p] += v * a1;
+      out[p + 1] += v;
+    }
+    return out;
+  }
+
+  /* ---------- word utilities ---------- */
+  /* trace canon: minimum over rotations.  Centrally every matrix word is a
+     power of S, so this is the identity; it is kept because the term key
+     must be canonical. */
+  const neckCacheC = new Map();
+  function necklaceRot(w) {
+    if (!w) return w;
+    let best = neckCacheC.get(w);
+    if (best !== undefined) return best;
+    best = w;
+    for (let i = 1; i < w.length; i++) {
+      const r = w.slice(i) + w.slice(0, i);
+      if (r < best) best = r;
+    }
+    neckCacheC.set(w, best);
+    return best;
+  }
+
+  /* integer partitions of k, parts <= maxpart, decreasing */
+  function* partitions(k, maxpart) {
+    if (maxpart === undefined) maxpart = k;
+    if (k === 0) { yield []; return; }
+    for (let first = Math.min(k, maxpart); first >= 1; first--)
+      for (const rest of partitions(k - first, first))
+        yield [first].concat(rest);
+  }
+
+  /* ---------- expressions: Map<key, poly>, key = mw + "|" + traces ---------- */
+  const keyOf = (mw, traces) => mw + "|" + traces.join(",");
+  function splitKey(key) {
+    const bar = key.indexOf("|");
+    const ts = key.slice(bar + 1);
+    return [key.slice(0, bar), ts ? ts.split(",") : []];
+  }
+  function addTerm(expr, mw, traces, coeff, scale) {
+    const key = keyOf(mw, traces);
+    let c = expr.get(key);
+    if (c === undefined) { c = []; expr.set(key, c); }
+    cAddInto(c, coeff, scale);
+    /* no zero-deletion branch here: for beta = 1, 2 every contribution is
+       positive. For beta = 4 the weights are signed, so cancellation is a
+       priori possible and sweepZeros() below removes any term that cancels;
+       empirically none does -- the stored-term counts agree across the three
+       cases at every level through N = 14. */
+  }
+  /* sorted copy of traces with t inserted — tuple(sorted(traces + (t,))) */
+  function sortedInsert(traces, t) {
+    const out = traces.slice();
+    let i = 0;
+    while (i < out.length && out[i] < t) i++;
+    out.splice(i, 0, t);
+    return out;
+  }
+
+  /* ---------- elementary operations ---------- */
+  function prependLinear(expr, a1) {          // (a1 + n) * S * expr
+    const out = new Map();
+    for (const [key, c] of expr) {
+      const [mw, traces] = splitKey(key);
+      addTerm(out, "S" + mw, traces, cMulLinear(c, a1), 1);
+    }
+    return out;
+  }
+  function prependInto(dst, expr, letter, scale) {   // dst += letter*expr*scale
+    for (const [key, c] of expr) {
+      const [mw, traces] = splitKey(key);
+      addTerm(dst, letter + mw, traces, c, scale);
+    }
+  }
+  /* with signed weights, terms can cancel exactly to zero; drop them so the
+     stored-term counts (and the canonical dump) reflect nonzero terms only */
+  function sweepZeros(expr) {
+    for (const [key, c] of Array.from(expr)) {
+      let nz = false;
+      for (let p = 0; p < c.length; p++) if (c[p]) { nz = true; break; }
+      if (!nz) expr.delete(key);
+    }
+  }
+  function traceOf(expr, canon) {   // scalar reduction (9): tr(matrix word)
+    const out = new Map();
+    for (const [key, c] of expr) {
+      const [mw, traces] = splitKey(key);
+      if (!mw) throw new Error("trace of empty matrix word");
+      addTerm(out, "", sortedInsert(traces, canon(mw)), c, 1);
+    }
+    return out;
+  }
+
+  /* ---------- the three cases, as data ----------
+     lead(r)      = c_beta * (r-1),  the leading weight is n + lead(r)
+     mergeScale   = (1 + c_beta) * kappa_l,  the trace-pull
+     with c_beta = 2/beta - 1 = alpha - 1 (real 1, complex 0, quaternion -1/2).
+     Only beta = 4 has signed weights, hence the sweep. */
+  const CASES = {
+    real:       { lead: (a) => a - 1,          mergeScale: (kl) => 2 * kl,
+                  canon: necklaceRot },
+    complex:    { lead: () => 0,               mergeScale: (kl) => kl,
+                  canon: necklaceRot },
+    quaternion: { lead: (a) => -(a - 1) / 2,   mergeScale: (kl) => kl / 2,
+                  canon: necklaceRot, sweep: true },
+  };
+
+  /* published count tables (machine-independent gates):
+     real  = Table 1 (table1.py PAPER_TERMS/PAPER_PURE);
+     complex = Complex Table 1 supplement (table1_complex.py EXPECTED_*).
+     Counts coincide through level 5 and diverge from level 6 on. */
+  const COUNTS = {
+    /* central counts, generated 2026-08-15 by gen_demo.py; identical for
+       beta = 1, 2, 4 (no exact cancellations occur centrally) */
+    real: {
+      terms: {1:2,2:8,3:25,4:74,5:193,6:482,7:1125,8:2509,9:5389,10:11173,11:22457,12:43954,13:84185,14:157354},
+      pure:  {1:1,2:2,3:4,4:7,5:12,6:19,7:30,8:45,9:67,10:97,11:139,12:195,13:272,14:373},
+    },
+    complex: {
+      terms: {1:2,2:8,3:25,4:74,5:193,6:482,7:1125,8:2509,9:5389,10:11173,11:22457,12:43954,13:84185,14:157354},
+      pure:  {1:1,2:2,3:4,4:7,5:12,6:19,7:30,8:45,9:67,10:97,11:139,12:195,13:272,14:373},
+    },
+    quaternion: {
+      terms: {1:2,2:8,3:25,4:74,5:193,6:482,7:1125,8:2509,9:5389,10:11173,11:22457,12:43954,13:84185,14:157354},
+      pure:  {1:1,2:2,3:4,4:7,5:12,6:19,7:30,8:45,9:67,10:97,11:139,12:195,13:272,14:373},
+    },
+  };
+  const NMAX_CAP = 14;   // float64-exact domain for the central coefficients
+
+  const partsKey = (a, mu) => a + ":" + mu.join(",");
+
+  /* ---------- the level loop (table1*.py run(); frontier discard) ----------
+     opts.onLevel(row) after each level; opts.tick() awaited between states
+     (main-thread fallback yields to the UI; worker passes nothing);
+     opts.keepAll retains every state (self-test / fixture comparison mode,
+     which never discards). */
+  async function run(caseName, nmax, opts) {
+    opts = opts || {};
+    if (!(nmax >= 1 && nmax <= NMAX_CAP)) throw new Error("N out of range");
+    const C = CASES[caseName];
+    const now = (typeof performance !== "undefined")
+      ? () => performance.now() : () => Date.now();
+    const states = new Map([[partsKey(0, []), new Map([["|", [1]]])]]);
+    const rows = [];
+    let cumulative = 0;
+    for (let N = 1; N <= nmax; N++) {
+      const t0 = now();
+      for (let a = N; a >= 1; a--) {
+        for (const mu of partitions(N - a)) {
+          const X1 = states.get(partsKey(a - 1, mu));
+          /* (n + a - 1) S X1   [complex: n S X1] */
+          const expr = prependLinear(X1, C.lead(a));
+          /* S * sum_j E[p_{j+1} W^{a-2-j} p_mu]  (trace split) */
+          for (let j = 0; j <= a - 2; j++) {
+            const mu2 = mu.concat([j + 1]).sort((x, y) => y - x);
+            prependInto(expr, states.get(partsKey(a - 2 - j, mu2)), "S", 1);
+          }
+          /* 2 S sum_l k_l E[...]  [complex: S sum_l k_l]  (part merge) */
+          for (let l = 0; l < mu.length; l++) {
+            const kl = mu[l];
+            const rest = mu.slice(0, l).concat(mu.slice(l + 1)).sort((x, y) => y - x);
+            prependInto(expr, states.get(partsKey(a + kl - 1, rest)), "S",
+                        C.mergeScale(kl));
+          }
+          if (C.sweep) sweepZeros(expr);
+          states.set(partsKey(a, mu), expr);
+          if (opts.tick) await opts.tick();
+        }
+      }
+      for (const mu of partitions(N)) {    // scalar states, reduction (9)
+        const sc = traceOf(states.get(partsKey(mu[0], mu.slice(1))), C.canon);
+        if (C.sweep) sweepZeros(sc);
+        states.set(partsKey(0, mu), sc);
+      }
+      if (!opts.keepAll) {                 // level N only ever needs N-1
+        for (const key of Array.from(states.keys())) {
+          const [aStr, muStr] = key.split(":");
+          const lvl = Number(aStr) +
+            (muStr ? muStr.split(",").reduce((s, x) => s + Number(x), 0) : 0);
+          if (lvl < N - 1) states.delete(key);
+        }
+      }
+      const dt = (now() - t0) / 1000;
+      cumulative += dt;
+      let terms = 0;
+      const levelKeys = [];
+      for (let a = N; a >= 0; a--)
+        for (const mu of partitions(N - a)) {
+          const k = partsKey(a, mu);
+          levelKeys.push(k);
+          terms += states.get(k).size;
+        }
+      const pure = states.get(partsKey(N, [])).size;
+      const row = {
+        N, states: levelKeys.length, terms, pure, dt, cumulative,
+        countsOK: (COUNTS[caseName].terms[N] === terms &&
+                   COUNTS[caseName].pure[N] === pure),
+      };
+      rows.push(row);
+      if (opts.onLevel) opts.onLevel(row);
+      if (!row.countsOK) throw new Error(
+        `count gate FAILED at level ${N}: got ${terms}/${pure}, ` +
+        `reference ${COUNTS[caseName].terms[N]}/${COUNTS[caseName].pure[N]}`);
+    }
+    return { rows, states, caseName, nmax };
+  }
+
+  /* ---------- canonical serialization v1 (must equal the reference generator) ----------
+     line 1: "wishart-canonical-v1 case=<c> N=<n>"; then per state, in
+     lexicographic order of "a:mu" (byte order, not numeric): "# a:mu",
+     then per term in lexicographic order of "mw|traces":
+     "mw|traces p0:c0;p1:c1" (powers ascending). Trailing newline. */
+  function canonicalDump(result) {
+    const out = [`wishart-central-canonical-v1 case=${result.caseName} N=${result.nmax}`];
+    const skeys = Array.from(result.states.keys()).sort();
+    for (const skey of skeys) {
+      out.push("# " + skey);
+      const tkeys = Array.from(result.states.get(skey).keys()).sort();
+      for (const tkey of tkeys) {
+        const c = result.states.get(skey).get(tkey);
+        const parts = [];
+        for (let p = 0; p < c.length; p++)
+          if (c[p]) parts.push(p + ":" + c[p]);
+        out.push(tkey + " " + parts.join(";"));
+      }
+    }
+    return out.join("\n") + "\n";
+  }
+
+  /* ---------- pure-JS SHA-256 (self-contained; works on file://) ---------- */
+  function sha256Hex(str) {
+    const K = [
+      0x428a2f98,0x71374491,0xb5c0fbcf,0xe9b5dba5,0x3956c25b,0x59f111f1,0x923f82a4,0xab1c5ed5,
+      0xd807aa98,0x12835b01,0x243185be,0x550c7dc3,0x72be5d74,0x80deb1fe,0x9bdc06a7,0xc19bf174,
+      0xe49b69c1,0xefbe4786,0x0fc19dc6,0x240ca1cc,0x2de92c6f,0x4a7484aa,0x5cb0a9dc,0x76f988da,
+      0x983e5152,0xa831c66d,0xb00327c8,0xbf597fc7,0xc6e00bf3,0xd5a79147,0x06ca6351,0x14292967,
+      0x27b70a85,0x2e1b2138,0x4d2c6dfc,0x53380d13,0x650a7354,0x766a0abb,0x81c2c92e,0x92722c85,
+      0xa2bfe8a1,0xa81a664b,0xc24b8b70,0xc76c51a3,0xd192e819,0xd6990624,0xf40e3585,0x106aa070,
+      0x19a4c116,0x1e376c08,0x2748774c,0x34b0bcb5,0x391c0cb3,0x4ed8aa4a,0x5b9cca4f,0x682e6ff3,
+      0x748f82ee,0x78a5636f,0x84c87814,0x8cc70208,0x90befffa,0xa4506ceb,0xbef9a3f7,0xc67178f2];
+    let H = [0x6a09e667,0xbb67ae85,0x3c6ef372,0xa54ff53a,
+             0x510e527f,0x9b05688c,0x1f83d9ab,0x5be0cd19];
+    /* UTF-8 encode (dump is ASCII, but be correct) */
+    const bytes = [];
+    for (let i = 0; i < str.length; i++) {
+      let cp = str.codePointAt(i);
+      if (cp > 0xffff) i++;
+      if (cp < 0x80) bytes.push(cp);
+      else if (cp < 0x800) bytes.push(0xc0 | (cp >> 6), 0x80 | (cp & 63));
+      else if (cp < 0x10000) bytes.push(0xe0 | (cp >> 12), 0x80 | ((cp >> 6) & 63), 0x80 | (cp & 63));
+      else bytes.push(0xf0 | (cp >> 18), 0x80 | ((cp >> 12) & 63), 0x80 | ((cp >> 6) & 63), 0x80 | (cp & 63));
+    }
+    const bitLen = bytes.length * 8;
+    bytes.push(0x80);
+    while (bytes.length % 64 !== 56) bytes.push(0);
+    for (let s = 56; s >= 0; s -= 8) bytes.push((s >= 32 ? Math.floor(bitLen / 4294967296) >>> (s - 32) : bitLen >>> s) & 0xff);
+    const rotr = (x, n) => (x >>> n) | (x << (32 - n));
+    const w = new Array(64);
+    for (let off = 0; off < bytes.length; off += 64) {
+      for (let i = 0; i < 16; i++)
+        w[i] = (bytes[off+4*i] << 24) | (bytes[off+4*i+1] << 16) | (bytes[off+4*i+2] << 8) | bytes[off+4*i+3];
+      for (let i = 16; i < 64; i++) {
+        const s0 = rotr(w[i-15], 7) ^ rotr(w[i-15], 18) ^ (w[i-15] >>> 3);
+        const s1 = rotr(w[i-2], 17) ^ rotr(w[i-2], 19) ^ (w[i-2] >>> 10);
+        w[i] = (w[i-16] + s0 + w[i-7] + s1) | 0;
+      }
+      let [a,b,c,d,e,f,g,h] = H;
+      for (let i = 0; i < 64; i++) {
+        const S1 = rotr(e,6) ^ rotr(e,11) ^ rotr(e,25);
+        const ch = (e & f) ^ (~e & g);
+        const t1 = (h + S1 + ch + K[i] + w[i]) | 0;
+        const S0 = rotr(a,2) ^ rotr(a,13) ^ rotr(a,22);
+        const mj = (a & b) ^ (a & c) ^ (b & c);
+        const t2 = (S0 + mj) | 0;
+        h=g; g=f; f=e; e=(d+t1)|0; d=c; c=b; b=a; a=(t1+t2)|0;
+      }
+      H = [ (H[0]+a)|0,(H[1]+b)|0,(H[2]+c)|0,(H[3]+d)|0,
+            (H[4]+e)|0,(H[5]+f)|0,(H[6]+g)|0,(H[7]+h)|0 ];
+    }
+    return H.map(x => (x >>> 0).toString(16).padStart(8, "0")).join("");
+  }
+
+  /* ---------- baked reference digests, generated offline by a byte-exact
+     mirror of this recursion ---------- */
+  const DIGESTS = {
+    /* central digests generated 2026-08-15 by gen_demo.py (see file header) */
+    real: {
+      3: "9221e30d7b7fca171c5ffd8928e2fc2c29c2d660871d4038e36bd47c23c34881",
+      4: "8a4710585d9f2b3fa3a17327421189203b8ae15ac939c95371c2ea4cf95d2c77",
+      5: "e119352ad9ef97a1af6e2eb75e4a16c9070e5983608a66416c5b864ab74ba95c",
+      6: "967609ca1295d2733d5c4941ce7b86298dc1c9f98047bf44662728cad601ed72",
+    },
+    complex: {
+      3: "dcd291a53ce8dcb56aed78309b6c707e6e8faeb18165d2d5e590f2d9414bf730",
+      4: "bbafad83de72fc6258c2f6e054f426d58df9b9bfadbb9e44607dbfbc25558fc7",
+      5: "8496b95e27eedec9a3547226058f859ed93dbd1435afaa6236ef2aea4d2d9618",
+      6: "bb41db1b12a0211f20086e6535ef19ade5f50ba2cff8b1c58020122a22736b19",
+    },
+    quaternion: {
+      3: "d1e4da91974bd19e4cb9632e61c080fdddb48b48efae77516ee6fc5da4fc74b4",
+      4: "edc406ed2243264171891a08965c363c99d299f516f1eda36f7aaa2b42c73c9c",
+      5: "fd075044e7cf779af3a8370cf4c480cab3c736f9b63a0e051fe1df801e166435",
+      6: "c6744955613898fab6729f683cef00f4878e9ab70763d383ba0fcc78ec0cbf57",
+    },
+  };
+
+  /* self-test: rebuild all three cases at N=3..6 (keepAll, like the reference
+     build_states) and compare canonical-dump SHA-256 against the baked
+     digests — exact term-and-coefficient equality up to hash collision. */
+  async function selftest(tick) {
+    const checks = [];
+    for (const caseName of ["real", "complex", "quaternion"]) {
+      for (const nmax of [3, 4, 5, 6]) {
+        const res = await run(caseName, nmax, { keepAll: true, tick });
+        const digest = sha256Hex(canonicalDump(res));
+        checks.push({
+          caseName, nmax, digest, expected: DIGESTS[caseName][nmax],
+          ok: digest === DIGESTS[caseName][nmax],
+        });
+      }
+    }
+    return { ok: checks.every(c => c.ok), checks };
+  }
+
+  /* ---------- display / export formatting ---------- */
+  function wname(w, tex) {   // "SSL" -> "Sig^2*Lam" / "\Sigma^{2}\Lambda"
+    if (!w) return "";       // empty word = identity: printed as nothing
+    const out = [];
+    let i = 0;
+    while (i < w.length) {
+      let j = i;
+      while (j < w.length && w[j] === w[i]) j++;
+      const k = j - i;
+      if (tex) out.push((w[i] === "S" ? "\\Sigma" : "\\Lambda") + (k > 1 ? `^{${k}}` : ""));
+      else out.push((w[i] === "S" ? "Sig" : "Lam") + (k > 1 ? `^${k}` : ""));
+      i = j;
+    }
+    return tex ? out.join("") : out.join("*");
+  }
+  function coefStr(v, tex) { // |v| as integer or dyadic fraction string
+    if (Number.isInteger(v)) return String(v);
+    let num = v, den = 1;
+    while (!Number.isInteger(num)) { num *= 2; den *= 2; }
+    return tex ? `\\tfrac{${num}}{${den}}` : `${num}/${den}`;
+  }
+  function polyStr(c, tex) { // dense poly array -> "(3n^2 - n/2)" / TeX
+    let out = "";
+    for (let p = c.length - 1; p >= 0; p--) {
+      if (!c[p]) continue;
+      const v = c[p], a = Math.abs(v);
+      out += out ? (v < 0 ? " - " : " + ") : (v < 0 ? "-" : "");
+      const np = p === 0 ? "" :
+        (tex ? (p === 1 ? "n" : `n^{${p}}`) : (p === 1 ? "n" : `n^${p}`));
+      let cs = (a === 1 && p > 0) ? "" : coefStr(a, tex);
+      if (cs && np && !Number.isInteger(a) && !tex) cs = "(" + cs + ")";
+      out += cs + np;
+    }
+    return out || "0";
+  }
+  /* repeated trace factors are collected into a power: tr(S) tr(S) -> tr(S)^2 */
+  function groupTraces(traces) {
+    const out = [];
+    for (const t of traces) {
+      const last = out[out.length - 1];
+      if (last && last.w === t) last.k++; else out.push({ w: t, k: 1 });
+    }
+    return out;
+  }
+  function termPretty(tkey, c) {   // one canonical text line for .txt export
+    const [mw, traces] = splitKey(tkey);
+    const trs = groupTraces(traces)
+      .map(g => `tr(${wname(g.w)})` + (g.k > 1 ? `^${g.k}` : "")).join("*");
+    const w = wname(mw);           // scalar state: no identity factor is printed
+    return `(${polyStr(c)})${trs ? "*" + trs : ""}${w ? " * " + w : ""}`;
+  }
+  function termTex(tkey, c) {      // one LaTeX table row body
+    const [mw, traces] = splitKey(tkey);
+    const trs = groupTraces(traces)
+      .map(g => `\\operatorname{tr}(${wname(g.w, true)})` + (g.k > 1 ? `^{${g.k}}` : ""))
+      .join("\\,");
+    return `$${polyStr(c, true)}$ & $${wname(mw, true) || "-"}$ & $${trs || "-"}$`;
+  }
+
+  /* ---------- numeric evaluation ----------
+     Complex m x m matrices as {re, im} Float64Array(m*m); the real case uses
+     the same path with zero imaginary parts (m <= 6, so the cost is nil).
+     Scalar states (a = 0) are stored as I * E[p_mu]. */
+  function matMul(A, B, m) {
+    const re = new Float64Array(m * m), im = new Float64Array(m * m);
+    for (let i = 0; i < m; i++)
+      for (let k = 0; k < m; k++) {
+        const ar = A.re[i * m + k], ai = A.im[i * m + k];
+        if (!ar && !ai) continue;
+        for (let j = 0; j < m; j++) {
+          const br = B.re[k * m + j], bi = B.im[k * m + j];
+          re[i * m + j] += ar * br - ai * bi;
+          im[i * m + j] += ar * bi + ai * br;
+        }
+      }
+    return { re, im };
+  }
+  function evaluateState(expr, Sigma, Lam, nval, m) {
+    const eye = { re: new Float64Array(m * m), im: new Float64Array(m * m) };
+    for (let i = 0; i < m; i++) eye.re[i * m + i] = 1;
+    const cache = new Map([["", eye]]);
+    function matword(w) {   // left-to-right product, cached per word
+      let Mt = cache.get(w);
+      if (Mt) return Mt;
+      Mt = matMul(matword(w.slice(0, -1)), w[w.length - 1] === "S" ? Sigma : Lam, m);
+      cache.set(w, Mt);
+      return Mt;
+    }
+    const out = { re: new Float64Array(m * m), im: new Float64Array(m * m) };
+    for (const [tkey, c] of expr) {
+      const [mw, traces] = splitKey(tkey);
+      let coef = 0;
+      for (let p = 0; p < c.length; p++) if (c[p]) coef += c[p] * Math.pow(nval, p);
+      let sr = coef, si = 0;   // scalar = coef * prod of traces (complex)
+      for (const t of traces) {
+        const Mt = matword(t);
+        let tr = 0, ti = 0;
+        for (let i = 0; i < m; i++) { tr += Mt.re[i * m + i]; ti += Mt.im[i * m + i]; }
+        const nr = sr * tr - si * ti, ni = sr * ti + si * tr;
+        sr = nr; si = ni;
+      }
+      const Mw = matword(mw);
+      for (let i = 0; i < m * m; i++) {
+        out.re[i] += sr * Mw.re[i] - si * Mw.im[i];
+        out.im[i] += sr * Mw.im[i] + si * Mw.re[i];
+      }
+    }
+    return out;
+  }
+
+
+  /* ---------- quaternion numeric evaluation (entries a+bi+cj+dk) ----------
+     Trace factors are the quaternion trace functional Re tr, exactly as in
+     the stored tables; coefficients and trace scalars are therefore real,
+     so only the matrix-word products need quaternion care. */
+  function qMatMul(A, B, m) {
+    const w = new Float64Array(m*m), x = new Float64Array(m*m),
+          y = new Float64Array(m*m), z = new Float64Array(m*m);
+    for (let i = 0; i < m; i++)
+      for (let k = 0; k < m; k++) {
+        const aw=A.w[i*m+k], ax=A.x[i*m+k], ay=A.y[i*m+k], az=A.z[i*m+k];
+        if (!aw && !ax && !ay && !az) continue;
+        for (let j = 0; j < m; j++) {
+          const bw=B.w[k*m+j], bx=B.x[k*m+j], by=B.y[k*m+j], bz=B.z[k*m+j];
+          w[i*m+j] += aw*bw - ax*bx - ay*by - az*bz;
+          x[i*m+j] += aw*bx + ax*bw + ay*bz - az*by;
+          y[i*m+j] += aw*by - ax*bz + ay*bw + az*bx;
+          z[i*m+j] += aw*bz + ax*by - ay*bx + az*bw;
+        }
+      }
+    return {w,x,y,z};
+  }
+  function evaluateStateQ(expr, Sigma, Lam, nval, m) {
+    const eye = {w:new Float64Array(m*m), x:new Float64Array(m*m),
+                 y:new Float64Array(m*m), z:new Float64Array(m*m)};
+    for (let i = 0; i < m; i++) eye.w[i*m+i] = 1;
+    const cache = new Map([["", eye]]);
+    function matword(wd) {
+      let Mt = cache.get(wd);
+      if (Mt) return Mt;
+      Mt = qMatMul(matword(wd.slice(0,-1)), wd[wd.length-1]==="S" ? Sigma : Lam, m);
+      cache.set(wd, Mt); return Mt;
+    }
+    const out = {w:new Float64Array(m*m), x:new Float64Array(m*m),
+                 y:new Float64Array(m*m), z:new Float64Array(m*m)};
+    for (const [tkey, c] of expr) {
+      const [mw, traces] = splitKey(tkey);
+      let coef = 0;
+      for (let p = 0; p < c.length; p++) if (c[p]) coef += c[p]*Math.pow(nval,p);
+      let s = coef;
+      for (const t of traces) {                 // tau = Re tr: real scalar
+        const Mt = matword(t);
+        let tr = 0;
+        for (let i = 0; i < m; i++) tr += Mt.w[i*m+i];
+        s *= tr;
+      }
+      const Mw = matword(mw);
+      for (let i = 0; i < m*m; i++) {
+        out.w[i] += s*Mw.w[i]; out.x[i] += s*Mw.x[i];
+        out.y[i] += s*Mw.y[i]; out.z[i] += s*Mw.z[i];
+      }
+    }
+    return out;
+  }
+
+  /* ---------- session: one message handler shared by the Web Worker and the
+     main-thread fallback, so both run the identical code path ---------- */
+  function createSession() {
+    let last = null;                       // {rows, states, caseName, nmax}
+    let sortedCache = new Map();           // stateKey -> sorted term keys
+    function sortedTerms(skey) {
+      let tk = sortedCache.get(skey);
+      if (!tk) {
+        tk = Array.from(last.states.get(skey).keys()).sort();
+        sortedCache.set(skey, tk);
+      }
+      return tk;
+    }
+    function levelStateList() {            // level-N states, matrix first
+      const list = [];
+      for (let a = last.nmax; a >= 0; a--)
+        for (const mu of partitions(last.nmax - a)) {
+          const k = partsKey(a, mu);
+          list.push({ key: k, a, mu, terms: last.states.get(k).size });
+        }
+      return list;
+    }
+    async function handle(msg, post) {
+      try {
+        if (msg.cmd === "run") {
+          sortedCache = new Map();
+          last = await run(msg.caseName, msg.nmax, {
+            tick: msg.tick, onLevel: (row) => post({ type: "level", row }),
+          });
+          post({ type: "done", caseName: last.caseName, nmax: last.nmax,
+                 stateList: levelStateList() });
+        } else if (msg.cmd === "page") {
+          const tk = sortedTerms(msg.stateKey);
+          const expr = last.states.get(msg.stateKey);
+          const from = msg.page * msg.pageSize;
+          const rows = tk.slice(from, from + msg.pageSize).map(tkey => {
+            const [mw, traces] = splitKey(tkey);
+            return { mw, traces, poly: Array.from(expr.get(tkey)) };
+          });
+          post({ type: "page", stateKey: msg.stateKey, page: msg.page,
+                 total: tk.length, rows });
+        } else if (msg.cmd === "export") {
+          post({ type: "export", ...exportData(msg) });
+        } else if (msg.cmd === "eval") {
+          const expr = last.states.get(msg.stateKey);
+          if (msg.quat) {
+            const mk = (w,x,y,z) => ({ w:Float64Array.from(w), x:Float64Array.from(x),
+                                       y:Float64Array.from(y), z:Float64Array.from(z) });
+            const out = evaluateStateQ(expr, mk(msg.sW,msg.sX,msg.sY,msg.sZ),
+                                       mk(msg.lW,msg.lX,msg.lY,msg.lZ), msg.nval, msg.m);
+            post({ type: "eval", quat: true, stateKey: msg.stateKey, m: msg.m,
+                   w: Array.from(out.w), x: Array.from(out.x),
+                   y: Array.from(out.y), z: Array.from(out.z) });
+          } else {
+            const out = evaluateState(expr,
+              { re: Float64Array.from(msg.sigmaRe), im: Float64Array.from(msg.sigmaIm) },
+              { re: Float64Array.from(msg.lamRe),   im: Float64Array.from(msg.lamIm) },
+              msg.nval, msg.m);
+            post({ type: "eval", stateKey: msg.stateKey, m: msg.m,
+                   re: Array.from(out.re), im: Array.from(out.im) });
+          }
+        } else if (msg.cmd === "selftest") {
+          post({ type: "selftest", ...(await selftest(msg.tick)) });
+        }
+      } catch (err) {
+        post({ type: "error", message: String(err && err.message || err) });
+      }
+    }
+    function exportData(msg) {
+      const caseName = last.caseName, nmax = last.nmax;
+      const stamp = `central_${caseName}_N${nmax}`;
+      if (msg.what === "family") {           // whole level, one CSV
+        const lines = ["state,matrix_word,trace_words,coeff_poly"];
+        for (const st of levelStateList()) {
+          const expr = last.states.get(st.key);
+          for (const tkey of sortedTerms(st.key)) {
+            const [mw, traces] = splitKey(tkey);
+            const c = expr.get(tkey);
+            const poly = [];
+            for (let p = 0; p < c.length; p++) if (c[p]) poly.push(p + ":" + c[p]);
+            lines.push(`"${st.key}","${mw}","${traces.join(";")}","${poly.join(";")}"`);
+          }
+        }
+        return { filename: `ncw_${stamp}_level.csv`, mime: "text/csv",
+                 data: lines.join("\n") + "\n" };
+      }
+      const skey = msg.stateKey;
+      const expr = last.states.get(skey);
+      const tk = sortedTerms(skey);
+      const safe = skey.replace(":", "_").replace(/,/g, "-");
+      if (msg.format === "txt") {
+        const lines = [`E[W^${skey.split(":")[0]} p_(${skey.split(":")[1]})]  ` +
+          `case=${caseName}  ${tk.length} terms  (S=Sigma, L=Lambda)`];
+        for (const tkey of tk) lines.push(termPretty(tkey, expr.get(tkey)));
+        return { filename: `ncw_${stamp}_state_${safe}.txt`, mime: "text/plain",
+                 data: lines.join("\n") + "\n" };
+      }
+      if (msg.format === "csv") {
+        const lines = ["matrix_word,trace_words,coeff_poly"];
+        for (const tkey of tk) {
+          const [mw, traces] = splitKey(tkey);
+          const c = expr.get(tkey);
+          const poly = [];
+          for (let p = 0; p < c.length; p++) if (c[p]) poly.push(p + ":" + c[p]);
+          lines.push(`"${mw}","${traces.join(";")}","${poly.join(";")}"`);
+        }
+        return { filename: `ncw_${stamp}_state_${safe}.csv`, mime: "text/csv",
+                 data: lines.join("\n") + "\n" };
+      }
+      if (msg.format === "json") {
+        const terms = tk.map(tkey => {
+          const [mw, traces] = splitKey(tkey);
+          const c = expr.get(tkey), poly = {};
+          for (let p = 0; p < c.length; p++) if (c[p]) poly[p] = c[p];
+          return { word: mw, traces, coeff: poly };
+        });
+        return { filename: `ncw_${stamp}_state_${safe}.json`, mime: "application/json",
+                 data: JSON.stringify({ case: caseName, state: skey, terms }, null, 1) };
+      }
+      /* LaTeX: longtable rows, coefficient & word & traces */
+      const lines = [
+        `% ${tk.length} terms of E[W^${skey.split(":")[0]} p_(${skey.split(":")[1]})], ${caseName} case`,
+        `% generated in-browser by wishartrecursioncentral.html`,
+        `\\begin{longtable}{lll}`,
+        `\\toprule coefficient & matrix word & trace factors \\\\ \\midrule`,
+      ];
+      for (const tkey of tk) lines.push(termTex(tkey, expr.get(tkey)) + " \\\\");
+      lines.push(`\\bottomrule`, `\\end{longtable}`);
+      return { filename: `ncw_${stamp}_state_${safe}.tex`, mime: "text/plain",
+               data: lines.join("\n") + "\n" };
+    }
+    return { handle };
+  }
+
+  /* worker entry: the UI appends "NCW.workerMain(self)" to this script's
+     text when spawning the Blob worker. */
+  function workerMain(self_) {
+    const session = createSession();
+    self_.onmessage = (e) => session.handle(e.data, (m) => self_.postMessage(m));
+  }
+
+  return { run, selftest, canonicalDump, sha256Hex, DIGESTS, COUNTS, NMAX_CAP,
+           CASES, partitions, partsKey, splitKey, wname, polyStr, termPretty,
+           termTex, evaluateState, evaluateStateQ, createSession, workerMain };
+})();
+/* ===ENGINE-END=== */
+</script>
+
+<!-- ============ PART 4 UI — form, worker plumbing, rendering ============ -->
+<script>
+(function () {
+"use strict";
+/* UI layer only: all math lives in the ncw-engine script above (gated by
+   selftest/). Reuses the page's safe DOM helpers h()/hSet(); no innerHTML. */
+
+const $ = (id) => document.getElementById(id);
+const PAGE_SIZE = 200;
+const WATCHDOG_MS = 180000;          // hard wall-clock budget per run
+const fmtInt = (x) => x.toLocaleString("en-CA");
+
+/* ---------- backend: Blob-URL worker, main-thread fallback ---------- */
+/* The worker is spawned from this page's own engine script text, so the
+   single-file / zero-network property is preserved. terminate() doubles as
+   cancel AND instant memory reclaim (the worker heap dies with it). */
+let worker = null, workerBroken = false, fallbackSession = null;
+let running = false, cancelFlag = false, watchdog = null;
+const handlers = { level: null, done: null, page: null, export: null,
+                   eval: null, selftest: null, error: null };
+function dispatch(msg) { if (handlers[msg.type]) handlers[msg.type](msg); }
+
+function makeWorker() {
+  const src = $("ncw-engine").textContent + "\nNCW.workerMain(self);";
+  const w = new Worker(URL.createObjectURL(new Blob([src], { type: "text/javascript" })));
+  w.onmessage = (e) => dispatch(e.data);
+  w.onerror = (e) => dispatch({ type: "error", message: e.message || "worker error" });
+  return w;
+}
+function post(msg) {
+  if (!workerBroken) {
+    try {
+      if (!worker) worker = makeWorker();
+      worker.postMessage(msg);
+      return;
+    } catch (err) {   // e.g. exotic file:// configurations: fall back
+      workerBroken = true;
+      setStatus([em("Web Worker unavailable (" + err.message + ") — running on the main thread; long runs may briefly stutter the page.")]);
+    }
+  }
+  if (!fallbackSession) fallbackSession = NCW.createSession();
+  if (msg.cmd === "run" || msg.cmd === "selftest") {
+    let i = 0;
+    msg.tick = () => {                 // yield to the UI + honor Cancel
+      if (cancelFlag) throw new Error("cancelled");
+      if (++i % 256 === 0) return new Promise((r) => setTimeout(r, 0));
+    };
+  }
+  fallbackSession.handle(msg, dispatch);
+}
+function killBackend() {              // cancel = terminate = reclaim memory
+  if (worker) { worker.terminate(); worker = null; }
+  fallbackSession = null;
+  cancelFlag = true;
+}
+
+/* ---------- small DOM helpers on top of h() ---------- */
+const em = (t) => h("i", t);
+function setStatus(children, cls) {
+  const el = $("liveStatus");
+  hSet(el, children);
+  el.className = "livestatus" + (cls ? " " + cls : "");
+}
+function supNum(base, k) {            // "Σ", 3 -> Σ<sup>3</sup>
+  return k > 1 ? [base, h("sup", String(k))] : [base];
+}
+function wordNodes(w) {               // "SSL" -> Σ²Λ (unicode + <sup>)
+  if (!w) return [];                  // empty word = identity: printed as nothing
+  const out = [];
+  let i = 0;
+  while (i < w.length) {
+    let j = i;
+    while (j < w.length && w[j] === w[i]) j++;
+    out.push(...supNum(w[i] === "S" ? "Σ" : "Λ", j - i));
+    i = j;
+  }
+  return out;
+}
+/* consecutive equal trace words -> one factor with an exponent */
+function groupTraces(traces) {
+  const out = [];
+  for (const t of traces) {
+    const last = out[out.length - 1];
+    if (last && last.w === t) last.k++; else out.push({ w: t, k: 1 });
+  }
+  return out;
+}
+function coefNodes(v) {               // |v| -> "3" or "3/2" (dyadic)
+  if (Number.isInteger(v)) return fmtInt(v);
+  let num = v, den = 1;
+  while (!Number.isInteger(num)) { num *= 2; den *= 2; }
+  return fmtInt(num) + "/" + den;
+}
+function polyNodes(c) {               // dense poly array -> 3n² − n/2
+  const out = [];
+  for (let p = c.length - 1; p >= 0; p--) {
+    if (!c[p]) continue;
+    const v = c[p], a = Math.abs(v);
+    if (out.length) out.push(v < 0 ? " − " : " + ");
+    else if (v < 0) out.push("−");
+    if (!(a === 1 && p > 0))
+      out.push(p > 0 && !Number.isInteger(a) ? "(" + coefNodes(a) + ")" : coefNodes(a));
+    if (p > 0) out.push(...(p === 1 ? ["n"] : ["n", h("sup", String(p))]));
+  }
+  return out.length ? out : ["0"];
+}
+function stateLabel(a, mu) {          // 𝔼[W³·p₍₂,₁₎] as h() child nodes
+  const frag = [];
+  frag.push("𝔼[");
+  if (a > 0) frag.push("W", ...(a > 1 ? [h("sup", String(a))] : []));
+  if (mu.length) frag.push(a > 0 ? "·" : "", "p", h("sub", "(" + mu.join(",") + ")"));
+  if (a === 0 && !mu.length) frag.push("I");
+  frag.push("]");
+  return frag;
+}
+function stateText(a, mu) {           // plain-text option label
+  let s = "E[";
+  if (a > 0) s += "W" + (a > 1 ? "^" + a : "");
+  if (mu.length) s += (a > 0 ? " " : "") + "p(" + mu.join(",") + ")";
+  if (a === 0 && !mu.length) s = "E[I";
+  return s + "]";
+}
+
+/* ---------- form state ---------- */
+const curCase = () => document.querySelector('input[name="lcase"]:checked').value;
+const curN = () => Number($("inN").value);
+let lastRun = null;                   // {caseName, nmax, stateList}
+let curState = null, curPage = 0, curTotal = 0;
+
+function refreshCapNote() {
+  const N = curN(), c = curCase();
+  const terms = NCW.COUNTS[c].terms[N];
+  let note = `N = ${N}: ${fmtInt(terms)} stored terms — ` +
+    (N <= 12 ? "instantaneous." : "well under a second.");
+  $("capNote").textContent = note;
+  $("capNote").className = "livenote";
+}
+$("inN").addEventListener("input", () => { $("nVal").textContent = $("inN").value; refreshCapNote(); });
+$("fsCase").addEventListener("change", () => { refreshCapNote(); rebuildGrids(); });
+refreshCapNote();
+
+/* ---------- timing visual: live stopwatch + per-level time bars ---------- */
+/* Wall clock (UI-side performance.now) ticks at 10 Hz while the worker runs;
+   each completed level adds a bar whose height is that level's share of the
+   slowest level so far (engine-reported cumulative deltas — the same numbers
+   as the table's T_N column). Runs only for real runs; the self-test and
+   the state browser never touch it. */
+let runT0 = 0, clockTimer = null, levelSecs = [], prevCum = 0;
+const fmtSec = (s) => (s >= 100 ? s.toFixed(0) : s >= 10 ? s.toFixed(1) : s.toFixed(2));
+function clockTick() {
+  $("liveClock").replaceChildren(fmtSec((performance.now() - runT0) / 1000), h("small", " s"));
+}
+function startClock() {
+  levelSecs = []; prevCum = 0;
+  $("timeBox").hidden = false;
+  $("timeBars").replaceChildren();
+  $("clockWrap").className = "clockwrap";
+  $("clockLab").textContent = "elapsed — your machine, one thread";
+  runT0 = performance.now();
+  clockTick();
+  clockTimer = setInterval(clockTick, 100);
+}
+function stopClock(ok) {
+  if (clockTimer) { clearInterval(clockTimer); clockTimer = null; }
+  if (!runT0) return;
+  const wall = (performance.now() - runT0) / 1000;
+  runT0 = 0;
+  $("liveClock").replaceChildren(fmtSec(wall), h("small", " s"));
+  $("clockWrap").className = "clockwrap " + (ok ? "done" : "stopped");
+  $("clockLab").textContent = ok
+    ? "done — wall clock; engine compute " + fmtSec(prevCum) + " s"
+    : "stopped — wall clock";
+}
+function drawTimeBars() {
+  const wrap = $("timeBars");
+  wrap.replaceChildren();
+  const mx = Math.max(...levelSecs, 1e-9);
+  levelSecs.forEach((dt, i) => {
+    const bar = h("div.bar");
+    bar.style.height = Math.max(3, Math.round(60 * dt / mx)) + "px";
+    const tb = h("div.tb", h("span.tv", fmtSec(dt)), bar, h("span.tn", String(i + 1)));
+    tb.title = "level " + (i + 1) + ": " + dt.toFixed(3) + " s of engine compute";
+    wrap.appendChild(tb);
+  });
+}
+
+
+/* ---------- run / cancel ---------- */
+const levelTable = () => {
+  const tab = h("table.livetab");
+  tab.appendChild(h("tr",
+    h("th", "N"), h("th", "states"), h("th", "terms at level N"),
+    h("th", "terms in E[W", h("sup", "N"), "]"), h("th", "T", h("sub", "N"), " (s)"),
+    h("th", "counts")));
+  return tab;
+};
+let runTable = null, totalTermsTarget = 0, termsDone = 0;
+
+$("btnRun").addEventListener("click", () => {
+  if (running) return;
+  const caseName = curCase(), nmax = curN();
+  running = true; cancelFlag = false;
+  $("btnRun").disabled = true; $("btnCancel").disabled = false;
+  $("stateBox").hidden = true; $("evalBox").hidden = true;
+  runTable = levelTable();
+  hSet($("liveResults"), runTable);
+  termsDone = 0; totalTermsTarget = 0;
+  for (let i = 1; i <= nmax; i++) totalTermsTarget += NCW.COUNTS[caseName].terms[i];
+  $("liveBar").style.width = "0%";
+  startClock();
+  setStatus(["computing ", em(caseName), " family to level ", h("b", String(nmax)), " …"]);
+  watchdog = setTimeout(() => {
+    finishRun(false, "watchdog: exceeded " + (WATCHDOG_MS / 1000) + " s — cancelled. " +
+      "This machine is unusually slow for N=" + nmax + "; try a lower level.");
+  }, WATCHDOG_MS);
+  post({ cmd: "run", caseName, nmax });
+});
+$("btnCancel").addEventListener("click", () => {
+  if (!running) return;
+  killBackend();
+  finishRun(false, "cancelled — worker terminated, memory reclaimed.");
+});
+function finishRun(ok, msg) {
+  running = false;
+  clearTimeout(watchdog); watchdog = null;
+  stopClock(ok);
+  $("btnRun").disabled = false; $("btnCancel").disabled = true;
+  if (!ok) setStatus([h("span.fail", msg)]);
+}
+
+handlers.level = (m) => {
+  const r = m.row;
+  termsDone += r.terms;
+  levelSecs.push(Math.max(0, r.cumulative - prevCum));
+  prevCum = r.cumulative;
+  drawTimeBars();
+  $("liveBar").style.width = (100 * termsDone / totalTermsTarget).toFixed(1) + "%";
+  runTable.appendChild(h("tr",
+    h("td", String(r.N)), h("td", fmtInt(r.states)), h("td", fmtInt(r.terms)),
+    h("td", fmtInt(r.pure)), h("td", r.cumulative.toFixed(2)),
+    h("td", r.countsOK ? "= reference" : "MISMATCH")));
+  setStatus(["level ", h("b", String(r.N)), " done: ", h("b", fmtInt(r.terms)),
+             " terms in ", h("b", r.cumulative.toFixed(2)), " s (your machine, one thread)"]);
+};
+handlers.done = (m) => {
+  finishRun(true);
+  lastRun = m;
+  setStatus(["done: ", em(m.caseName), " family to level ", h("b", String(m.nmax)),
+    " — counts identical to the reference table at every level. ",
+    "Browse or download any level-", String(m.nmax), " state below."]);
+  const sel = $("selState");
+  sel.replaceChildren();
+  for (const st of m.stateList) {
+    const opt = document.createElement("option");
+    opt.value = st.key;
+    opt.textContent = stateText(st.a, st.mu) + " — " + fmtInt(st.terms) + " terms";
+    sel.appendChild(opt);
+  }
+  $("stateBox").hidden = false; $("evalBox").hidden = false;
+  sel.value = m.nmax + ":";               // default: the pure power E[W^N]
+  selectState(sel.value);
+  rebuildGrids();
+};
+handlers.error = (m) => {
+  finishRun(false, "error: " + m.message);
+};
+
+/* ---------- state browser + pagination ---------- */
+function selectState(key) {
+  curState = key; curPage = 0;
+  post({ cmd: "page", stateKey: key, page: 0, pageSize: PAGE_SIZE });
+}
+$("selState").addEventListener("change", (e) => selectState(e.target.value));
+
+handlers.page = (m) => {
+  if (m.stateKey !== curState) return;
+  curTotal = m.total;
+  const st = lastRun.stateList.find((s) => s.key === curState);
+  hSet($("stateMeta"), ...stateLabel(st.a, st.mu), " — " + fmtInt(m.total) + " exact terms");
+  const list = h("div");
+  for (const r of m.rows) {
+    const chip = h("span.termrow");
+    chip.appendChild(h("span.coef", "(", ...polyNodes(r.poly), ")"));
+    chip.appendChild(document.createTextNode(" "));
+    for (const g of groupTraces(r.traces)) {
+      const tr = h("span.tr", "tr(", ...wordNodes(g.w), ")",
+        ...(g.k > 1 ? [h("sup", String(g.k))] : []));
+      chip.appendChild(tr);
+      chip.appendChild(document.createTextNode(" "));
+    }
+    /* a scalar state (empty matrix word) is the identity times a scalar; the
+       identity is not printed. */
+    if (r.mw) chip.appendChild(h("b", ...wordNodes(r.mw)));
+    list.appendChild(chip);
+  }
+  hSet($("termList"), list);
+  const pages = Math.max(1, Math.ceil(m.total / PAGE_SIZE));
+  const pager = $("pager");
+  pager.replaceChildren();
+  const btn = (label, page, dis) => {
+    const b = h("button", label);
+    b.disabled = dis;
+    b.addEventListener("click", () => {
+      curPage = page;
+      post({ cmd: "page", stateKey: curState, page, pageSize: PAGE_SIZE });
+    });
+    return b;
+  };
+  pager.appendChild(btn("⏮", 0, m.page === 0));
+  pager.appendChild(btn("‹ prev", Math.max(0, m.page - 1), m.page === 0));
+  pager.appendChild(h("span", `page ${m.page + 1} of ${pages}`,
+    ` (terms ${fmtInt(m.page * PAGE_SIZE + 1)}–${fmtInt(Math.min(m.total, (m.page + 1) * PAGE_SIZE))})`));
+  pager.appendChild(btn("next ›", Math.min(pages - 1, m.page + 1), m.page >= pages - 1));
+  pager.appendChild(btn("⏭", pages - 1, m.page >= pages - 1));
+};
+
+/* ---------- downloads ---------- */
+function download(what, format) {
+  if (!lastRun) return;
+  if (format === "tex" && curTotal > 2000 &&
+      !confirm(`This state has ${fmtInt(curTotal)} terms — the compiled LaTeX table will run to dozens of pages. Generate anyway?`)) return;
+  if (what === "family") {
+    const tot = lastRun.stateList.reduce((s, x) => s + x.terms, 0);
+    if (tot > 500000 &&
+        !confirm(`The whole level holds ${fmtInt(tot)} terms — the CSV will be tens of MB. Generate anyway?`)) return;
+  }
+  post({ cmd: "export", what, stateKey: curState, format });
+}
+handlers.export = (m) => {
+  const blob = new Blob([m.data], { type: m.mime + ";charset=utf-8" });
+  const a = document.createElement("a");
+  a.href = URL.createObjectURL(blob);
+  a.download = m.filename;
+  a.click();
+  setTimeout(() => URL.revokeObjectURL(a.href), 5000);
+};
+$("btnDlTxt").addEventListener("click", () => download("state", "txt"));
+$("btnDlCsv").addEventListener("click", () => download("state", "csv"));
+$("btnDlJson").addEventListener("click", () => download("state", "json"));
+$("btnDlTex").addEventListener("click", () => download("state", "tex"));
+$("btnDlFam").addEventListener("click", () => download("family", "csv"));
+
+/* ---------- self-test (fresh worker so a finished run's state survives) ---------- */
+$("btnSelfTest").addEventListener("click", () => {
+  if (running) return;
+  setStatus(["self-test: recomputing all three cases to N = 6 and hashing against the frozen reference digests …"]);
+  const src = $("ncw-engine").textContent + "\nNCW.workerMain(self);";
+  let w = null;
+  const onResult = (m) => {
+    if (m.type !== "selftest") { if (m.type === "error") setStatus([h("span.fail", "self-test error: " + m.message)]); return; }
+    if (w) w.terminate();
+    const detail = m.checks.map((c) => `${c.caseName} N=${c.nmax} ${c.ok ? "ok" : "MISMATCH"}`).join(", ");
+    setStatus(m.ok
+      ? [h("span.pass", "SELF-TEST PASS"), " — 12/12 canonical digests equal the frozen references’ (", detail, ")."]
+      : [h("span.fail", "SELF-TEST FAIL"), " — ", detail,
+         ". The engine on this page does NOT match the reference tables; do not trust its output."],
+      undefined);
+  };
+  try {
+    w = new Worker(URL.createObjectURL(new Blob([src], { type: "text/javascript" })));
+    w.onmessage = (e) => onResult(e.data);
+    w.onerror = () => {   // fall back to main thread
+      w.terminate(); w = null;
+      NCW.selftest().then((r) => onResult({ type: "selftest", ...r }));
+    };
+    w.postMessage({ cmd: "selftest" });
+  } catch (_) {
+    NCW.selftest().then((r) => onResult({ type: "selftest", ...r }));
+  }
+});
+
+/* ---------- numeric evaluation ---------- */
+/* quaternion-general entry parser: "1.5", "2i", "1+2i", "1+2i-3j+.5k";
+   subsumes the real and complex cases (i -> x, j -> y, k -> z). */
+function parseQuat(s) {
+  s = String(s).trim().replace(/\s+/g, "").replace(/−/g, "-");
+  if (!s) return { w: 0, x: 0, y: 0, z: 0 };
+  const out = { w: 0, x: 0, y: 0, z: 0 };
+  const rx = /([+-]?)((?:\d+\.?\d*|\.\d+)?)([ijk]?)/y;
+  let idx = 0;
+  while (idx < s.length) {
+    rx.lastIndex = idx;
+    const m = rx.exec(s);
+    if (!m || (!m[2] && !m[3])) return null;
+    const v = (m[1] === "-" ? -1 : 1) * (m[2] === "" ? 1 : Number(m[2]));
+    out[m[3] === "" ? "w" : m[3] === "i" ? "x" : m[3] === "j" ? "y" : "z"] += v;
+    idx = rx.lastIndex;
+  }
+  return out;
+}
+const qconjQ = (q) => ({ w: q.w, x: -q.x, y: -q.y, z: -q.z });
+function fmtQuat(q, digits) {
+  const parts = [];
+  const push = (v, u) => {
+    v = Number(v.toFixed(digits));
+    if (!v) return;
+    const a = Math.abs(v), mag = (a === 1 && u) ? "" : String(a);
+    parts.push((v < 0 ? "−" : (parts.length ? "+" : "")) + mag + u);
+  };
+  push(q.w, ""); push(q.x, "i"); push(q.y, "j"); push(q.z, "k");
+  return parts.length ? parts.join("") : "0";
+}
+function fmtComplex(re, im, digits) { return fmtQuat({ w: re, x: im, y: 0, z: 0 }, digits); }
+const evalMode = () => (lastRun ? lastRun.caseName : curCase());
+let grids = { S: [], L: [] };
+
+function rebuildGrids() {
+  const m = Math.min(6, Math.max(2, Number($("inM").value) || 2));
+  $("inM").value = m;
+  const mode = evalMode();
+  for (const which of ["S"]) {
+    const grid = $("grid" + which);
+    grid.replaceChildren();
+    grid.style.gridTemplateColumns = `repeat(${m}, auto)`;
+    grids[which] = [];
+    for (let i = 0; i < m; i++) {
+      grids[which].push([]);
+      for (let j = 0; j < m; j++) {
+        const inp = document.createElement("input");
+        inp.type = "text";
+        inp.value = (i === j) ? (which === "S" ? String(i + 2) : "1") : "0";
+        if (i > j) {                   // lower triangle mirrors the upper
+          inp.disabled = true;
+        } else if (i < j) {
+          inp.placeholder = mode === "complex" ? "a+bi" :
+                            mode === "quaternion" ? "a+bi+cj+dk" : "0";
+          inp.addEventListener("input", () => mirror(which, m));
+        }
+        grid.appendChild(inp);
+        grids[which][i].push(inp);
+      }
+    }
+    mirror(which, m);
+  }
+}
+function mirror(which, m) {
+  const mode = evalMode();
+  for (let i = 0; i < m; i++)
+    for (let j = i + 1; j < m; j++) {
+      const q = parseQuat(grids[which][i][j].value);
+      grids[which][j][i].value = q === null ? "?" :
+        fmtQuat(mode === "real" ? q : qconjQ(q), 6);   // symmetric / conjugate mirror
+    }
+}
+$("inM").addEventListener("change", rebuildGrids);
+rebuildGrids();
+
+$("btnEval").addEventListener("click", () => {
+  if (!lastRun || !curState) return;
+  const m = Number($("inM").value);
+  const nval = Number($("inNval").value);
+  const mode = lastRun.caseName;
+  const mats = { L: { W: new Array(m*m).fill(0), X: new Array(m*m).fill(0), Y: new Array(m*m).fill(0), Z: new Array(m*m).fill(0) } };
+  for (const which of ["S"]) {
+    const W = new Array(m*m).fill(0), X = new Array(m*m).fill(0),
+          Y = new Array(m*m).fill(0), Z = new Array(m*m).fill(0);
+    for (let i = 0; i < m; i++)
+      for (let j = 0; j < m; j++) {
+        const src = i <= j ? grids[which][i][j] : grids[which][j][i];
+        const q0 = parseQuat(src.value);
+        if (q0 === null) { $("evalStatus").textContent = `bad entry in ${which === "S" ? "Σ" : "Λ"} (${i + 1},${j + 1})`; return; }
+        if (i === j && (q0.x || q0.y || q0.z)) { $("evalStatus").textContent = "diagonal entries must be real"; return; }
+        if (mode === "real" && (q0.x || q0.y || q0.z)) { $("evalStatus").textContent = "imaginary entries need the complex or quaternion case"; return; }
+        if (mode === "complex" && (q0.y || q0.z)) { $("evalStatus").textContent = "j, k entries need the quaternion case"; return; }
+        const q = (i > j && mode !== "real") ? qconjQ(q0) : q0;   // Hermitian mirror
+        W[i*m+j] = q.w; X[i*m+j] = q.x; Y[i*m+j] = q.y; Z[i*m+j] = q.z;
+      }
+    mats[which] = { W, X, Y, Z };
+  }
+  $("evalStatus").textContent = "…";
+  if (mode === "quaternion") {
+    post({ cmd: "eval", quat: true, stateKey: curState, m, nval,
+           sW: mats.S.W, sX: mats.S.X, sY: mats.S.Y, sZ: mats.S.Z,
+           lW: mats.L.W, lX: mats.L.X, lY: mats.L.Y, lZ: mats.L.Z });
+  } else {
+    post({ cmd: "eval", stateKey: curState, m, nval,
+           sigmaRe: mats.S.W, sigmaIm: mats.S.X,
+           lamRe: mats.L.W, lamIm: mats.L.X });
+  }
+});
+handlers.eval = (msg) => {
+  const m = msg.m;
+  const st = lastRun.stateList.find((s) => s.key === curState);
+  const tab = h("table");
+  let maxAsym = 0;
+  const at = msg.quat
+    ? (i, j) => ({ w: msg.w[i*m+j], x: msg.x[i*m+j], y: msg.y[i*m+j], z: msg.z[i*m+j] })
+    : (i, j) => ({ w: msg.re[i*m+j], x: msg.im[i*m+j], y: 0, z: 0 });
+  for (let i = 0; i < m; i++) {
+    const row = h("tr");
+    for (let j = 0; j < m; j++) {
+      const q = at(i, j), qt = at(j, i);
+      row.appendChild(h("td", fmtQuat(q, 6)));
+      maxAsym = Math.max(maxAsym, Math.abs(q.w - qt.w),
+        Math.abs(q.x + qt.x), Math.abs(q.y + qt.y), Math.abs(q.z + qt.z));
+    }
+    tab.appendChild(row);
+  }
+  const out = $("evalOut");
+  const head = h("div");
+  head.appendChild(h("b", ...stateLabel(st.a, st.mu)));
+  head.appendChild(document.createTextNode(" = "));
+  if (st.a === 0) {
+    /* scalar state: the table is a multiple of I_m, so only the scalar is
+       shown (and the deviation from scalarity is reported as the check). */
+    const q0 = at(0, 0);
+    let dev = 0;
+    for (let i = 0; i < m; i++)
+      for (let j = 0; j < m; j++) {
+        const q = at(i, j), d = i === j ? q.w - q0.w : q.w;
+        dev = Math.max(dev, Math.abs(d), Math.abs(q.x), Math.abs(q.y), Math.abs(q.z));
+      }
+    head.appendChild(h("b", fmtQuat(q0, 6)));
+    hSet(out, head,
+      h("div.livenote", `float64 evaluation of the exact table (n = ${$("inNval").value}); ` +
+        `the state is scalar — the matrix is this multiple of I` +
+        (dev === 0 ? " exactly." : ", to " + dev.toExponential(1) + ".")));
+  } else {
+    hSet(out, head, tab,
+      h("div.livenote", `float64 evaluation of the exact table (n = ${$("inNval").value}); ` +
+        `${lastRun.caseName === "real" ? "symmetry" : "hermiticity"} of the result holds to ` +
+        maxAsym.toExponential(1) + "."));
+  }
+  $("evalStatus").textContent = "";
+};
+})();
+</script>
+<!-- ============ INVERSE ENGINE — exact rational arithmetic in n-tilde ============
+  DOM-free: this block also runs inside a Web Worker (the UI script below reads
+  its textContent and spawns a worker from a Blob URL) and inside Node (the
+  offline gate extracts everything between the INVENGINE-BEGIN/END markers and
+  checks it against iwishmom.m of the wishmom package).
+============================================================================ -->
+<script id="iwe-engine">/* ===INVENGINE-BEGIN=== */
+"use strict";
+/* Exact inverse-Wishart coefficient engine.
+ *
+ *   Ct_k  (d_k x d_k)   : E[W^-r p_lam(W^-1)] = sum Ct_k[(r,lam),(r',rho)] Sig^-r' p_rho(Sig^-1)
+ *   Ht_k  (pi(k))       : E[p_lam(W^-1)]      = sum Ht_k[lam,rho] p_rho(Sig^-1)
+ *
+ * Recursion (Hillier & Kan 2026, Corollary 5.9):
+ *      D_{-k} Ct_{k+1} = diag(Ct_k, Ht_k),        Ct_1 = Ht_1 = 1/nt,
+ *      Ht_k = (alpha k)^{-1} D_{k,21} Ct_k D_{k,12},
+ * with D_{-k} = nt*I - (D_k - n I), nt = n-m+1-alpha.  Unlike the forward
+ * recursion this is a linear SYSTEM: every level costs one exact solve, and
+ * the entries are rational functions of nt whose poles are the alpha-contents
+ * of the cells of the partitions of k.  Everything below is exact (BigInt
+ * rationals).  The solve is NOT an elimination: by Cayley-Hamilton,
+ * D_{-k}^{-1} B = (sum_j c_j(nt) M_k^j B) / D_k(nt) with M_k = D_{-k} - nt I,
+ * so the level is repeated integer matrix products followed by one exact
+ * division by the level denominator D_k(nt) (see run2/levelStep below).
+ */
+const IWE = (function(){
+
+/* ---------------- BigInt rationals ---------------- */
+function bgcd(a,b){ a=a<0n?-a:a; b=b<0n?-b:b; while(b){ const t=a%b; a=b; b=t; } return a; }
+function rat(n,d){
+  if(d===undefined) d=1n;
+  if(d===0n) throw new Error("zero denominator");
+  if(d<0n){ n=-n; d=-d; }
+  const g=bgcd(n,d)||1n;
+  return {n:n/g, d:d/g};
+}
+const R0=rat(0n), R1=rat(1n);
+const rIsZero=(a)=>a.n===0n;
+const rAdd=(a,b)=>rat(a.n*b.d+b.n*a.d, a.d*b.d);
+const rSub=(a,b)=>rat(a.n*b.d-b.n*a.d, a.d*b.d);
+const rMul=(a,b)=>rat(a.n*b.n, a.d*b.d);
+const rDiv=(a,b)=>{ if(b.n===0n) throw new Error("division by zero"); return rat(a.n*b.d, a.d*b.n); };
+const rNeg=(a)=>({n:-a.n,d:a.d});
+function rStr(a){ return a.d===1n ? String(a.n) : String(a.n)+"/"+String(a.d); }
+function rNum(a){ return Number(a.n)/Number(a.d); }
+
+/* ---------------- polynomials in nt: array of Rat, index = power ------- */
+function pTrim(p){ let i=p.length-1; while(i>=0 && rIsZero(p[i])) i--; return p.slice(0,i+1); }
+const pZero=[], pOne=[R1];
+const pIsZero=(p)=>p.length===0;
+const pDeg=(p)=>p.length-1;
+function pAdd(a,b){ const n=Math.max(a.length,b.length), o=new Array(n);
+  for(let i=0;i<n;i++) o[i]=rAdd(a[i]||R0,b[i]||R0); return pTrim(o); }
+function pSub(a,b){ const n=Math.max(a.length,b.length), o=new Array(n);
+  for(let i=0;i<n;i++) o[i]=rSub(a[i]||R0,b[i]||R0); return pTrim(o); }
+function pMul(a,b){ if(!a.length||!b.length) return pZero;
+  const o=new Array(a.length+b.length-1).fill(R0);
+  for(let i=0;i<a.length;i++){ if(rIsZero(a[i])) continue;
+    for(let j=0;j<b.length;j++){ if(rIsZero(b[j])) continue;
+      o[i+j]=rAdd(o[i+j], rMul(a[i],b[j])); } }
+  return pTrim(o); }
+function pScale(a,c){ if(rIsZero(c)) return pZero; return a.map(x=>rMul(x,c)); }
+/* exact quotient a/b (throws if not exact) */
+function pDivExact(a,b){
+  if(!b.length) throw new Error("polynomial division by zero");
+  a=a.slice(); const q=new Array(Math.max(0,a.length-b.length+1)).fill(R0);
+  const lb=b[b.length-1];
+  for(let i=a.length-1;i>=b.length-1;i--){
+    if(rIsZero(a[i])) continue;
+    const c=rDiv(a[i],lb), s=i-(b.length-1);
+    q[s]=rAdd(q[s],c);
+    for(let j=0;j<b.length;j++) a[s+j]=rSub(a[s+j],rMul(c,b[j]));
+  }
+  if(!pIsZero(pTrim(a))) throw new Error("inexact polynomial division");
+  return pTrim(q);
+}
+function pRem(a,b){
+  a=a.slice(); const lb=b[b.length-1];
+  for(let i=a.length-1;i>=b.length-1;i--){
+    if(rIsZero(a[i])) continue;
+    const c=rDiv(a[i],lb), s=i-(b.length-1);
+    for(let j=0;j<b.length;j++) a[s+j]=rSub(a[s+j],rMul(c,b[j]));
+  }
+  return pTrim(a);
+}
+function pMonic(p){ if(!p.length) return p; const l=p[p.length-1]; return p.map(x=>rDiv(x,l)); }
+function pGcd(a,b){
+  a=pTrim(a); b=pTrim(b);
+  while(b.length){ const r=pRem(a,b); a=b; b=r; }
+  return a.length?pMonic(a):pZero;
+}
+function pEval(p,x){ let s=0; for(let i=p.length-1;i>=0;i--) s=s*x+rNum(p[i]); return s; }
+function pStr(p,v){
+  v=v||"ñ";
+  if(!p.length) return "0";
+  const out=[];
+  for(let i=p.length-1;i>=0;i--){
+    if(rIsZero(p[i])) continue;
+    const c=p[i]; let cs=rStr(c), neg=c.n<0n;
+    if(neg) cs=rStr(rNeg(c));
+    let t;
+    if(i===0) t=cs;
+    else{ const pw = i===1 ? v : v+"^"+i; t = (cs==="1") ? pw : cs+pw; }
+    out.push((out.length? (neg?" − ":" + ") : (neg?"−":"")) + t);
+  }
+  return out.join("");
+}
+
+/* ---------------- partitions and the degree-k index set ---------------- */
+function partitions(k,maxpart){
+  if(maxpart===undefined) maxpart=k;
+  if(k===0) return [[]];
+  const out=[];
+  for(let first=Math.min(k,maxpart); first>=1; first--)
+    for(const rest of partitions(k-first,first)) out.push([first].concat(rest));
+  return out;
+}
+/* degree-k generators (r,lam), r = k..0; r>=1 block first (that is L_k) */
+function indexSet(k){
+  const out=[];
+  for(let r=k;r>=0;r--) for(const lam of partitions(k-r)) out.push({r,lam});
+  return out;
+}
+const ikey=(r,lam)=>r+":"+lam.join(",");
+function mult(lam){ const m=new Map(); for(const v of lam) m.set(v,(m.get(v)||0)+1); return m; }
+const sortDesc=(a)=>a.slice().sort((x,y)=>y-x);
+
+/* ---------------- M_k = D_k - n I, as a Rat matrix ---------------- */
+function Mk(k,alpha){
+  const I=indexSet(k), pos=new Map(); I.forEach((u,i)=>pos.set(ikey(u.r,u.lam),i));
+  const N=I.length;
+  const A=Array.from({length:N},()=>new Array(N).fill(R0));
+  I.forEach((u,i)=>{
+    A[i][i]=rAdd(A[i][i], rMul(rSub(alpha,R1), rat(BigInt(u.r))));      // (alpha-1) r
+    for(let j=1;j<=u.r;j++){                                            // splits
+      const t=pos.get(ikey(u.r-j, sortDesc(u.lam.concat([j]))));
+      A[i][t]=rAdd(A[i][t],R1);
+    }
+    for(const [v,mu] of mult(u.lam)){                                   // joins
+      const rest=u.lam.slice(); rest.splice(rest.indexOf(v),1);
+      const t=pos.get(ikey(u.r+v, rest));
+      A[i][t]=rAdd(A[i][t], rMul(alpha, rat(BigInt(v*mu))));
+    }
+  });
+  return {A,I,pos,N};
+}
+
+/* ---------------- exact solve  M X = B  (Bareiss-Jordan, polynomial) ----
+   M: n x n polynomial matrix, B: n x p polynomial matrix.
+   Returns {X, det} with  det * X  polynomial and X = det^{-1}(det*X):
+   we return the numerator matrix DX (= det * X) and det itself.       */
+function solveFF(M,B){
+  const n=M.length, p=B[0]?B[0].length:0, w=n+p;
+  const a=[];
+  for(let i=0;i<n;i++) a.push(M[i].concat(B[i]));
+  let prev=pOne, sign=1;
+  for(let c=0;c<n-1;c++){                       /* forward Bareiss */
+    if(pIsZero(a[c][c])){
+      let s=-1;
+      for(let i=c+1;i<n;i++) if(!pIsZero(a[i][c])){ s=i; break; }
+      if(s<0) return {DX:null, det:pZero};
+      const t=a[c]; a[c]=a[s]; a[s]=t; sign=-sign;
+    }
+    const piv=a[c][c];
+    for(let i=c+1;i<n;i++){
+      const f=a[i][c];
+      for(let j=c+1;j<w;j++){
+        const v=pSub(pMul(a[i][j],piv), pMul(f,a[c][j]));
+        a[i][j]=pIsZero(v)?pZero:pDivExact(v,prev);
+      }
+      a[i][c]=pZero;
+    }
+    prev=piv;
+  }
+  if(pIsZero(a[n-1][n-1])) return {DX:null, det:pZero};
+  let det=a[n-1][n-1];
+  if(sign<0) det=pScale(det,rat(-1n));
+  /* back substitution for  y = det * x  (all divisions exact) */
+  const Y=Array.from({length:n},()=>new Array(p).fill(pZero));
+  for(let i=n-1;i>=0;i--){
+    for(let j=0;j<p;j++){
+      let acc=pMul(det,a[i][n+j]);
+      for(let l=i+1;l<n;l++)
+        if(!pIsZero(a[i][l]) && !pIsZero(Y[l][j])) acc=pSub(acc,pMul(a[i][l],Y[l][j]));
+      Y[i][j]=pIsZero(acc)?pZero:pDivExact(acc,a[i][i]);
+    }
+  }
+  return {DX:Y, det};
+}
+/* ---------------- the level recursion ---------------- */
+/* levels[k] = { Ct:{num,den,idx}, Ht:{num,den,idx}, den, detD } for k=1..nmax
+   num entries are polynomials in nt; the whole level shares one denominator. */
+function run(alpha, nmax, opts){
+  opts=opts||{};
+  const levels=[];
+  /* level 1: Ct_1 = Ht_1 = 1/nt */
+  const nt=[R0,R1];                                   /* the polynomial nt */
+  let Ct={num:[[pOne]], den:nt, idx:indexSet(1).filter(u=>u.r>=1)};
+  let Ht={num:[[pOne]], den:nt, idx:partitions(1)};
+  levels[1]={Ct,Ht,den:nt,detD:null,solveN:1};
+  for(let k=1;k<nmax;k++){
+    const M=Mk(k,alpha), N=M.N;
+    const s=M.I.filter(u=>u.r>=1).length;            /* block split */
+    /* D_{-k} = nt I - M_k */
+    const D=[];
+    for(let i=0;i<N;i++){
+      const row=new Array(N);
+      for(let j=0;j<N;j++){
+        const mij=M.A[i][j];
+        row[j] = (i===j) ? pSub(nt, rIsZero(mij)?pZero:[mij])
+                         : (rIsZero(mij)?pZero:[rNeg(mij)]);
+      }
+      D.push(row);
+    }
+    /* B = diag(Ct_k, Ht_k) numerators (common denominator Ct.den) */
+    const B=Array.from({length:N},()=>new Array(N).fill(pZero));
+    for(let i=0;i<Ct.num.length;i++) for(let j=0;j<Ct.num.length;j++) B[i][j]=Ct.num[i][j];
+    for(let i=0;i<Ht.num.length;i++) for(let j=0;j<Ht.num.length;j++) B[s+i][s+j]=Ht.num[i][j];
+    const {DX,det}=solveFF(D,B);
+    if(!DX) throw new Error("singular D_{-"+k+"}");
+    /* Ct_{k+1} = DX / (det * Ct.den) */
+    let num=DX, den=pMul(det,Ct.den);
+    ({num,den}=reduce(num,den));
+    const idxC=indexSet(k+1).filter(u=>u.r>=1);
+    const Ct1={num,den,idx:idxC};
+    /* Ht_{k+1} = (alpha (k+1))^{-1} D_{k+1,21} Ct_{k+1} D_{k+1,12} */
+    const M1=Mk(k+1,alpha), s1=M1.I.filter(u=>u.r>=1).length, N1=M1.N;
+    const pk=N1-s1;
+    const H=Array.from({length:pk},()=>new Array(pk).fill(pZero));
+    const inv=rDiv(R1, rMul(alpha, rat(BigInt(k+1))));
+    for(let a2=0;a2<pk;a2++) for(let b2=0;b2<pk;b2++){
+      let acc=pZero;
+      for(let i=0;i<s1;i++){
+        const w=M1.A[s1+a2][i]; if(rIsZero(w)) continue;
+        for(let j=0;j<s1;j++){
+          const v=M1.A[j][s1+b2]; if(rIsZero(v)) continue;
+          if(pIsZero(Ct1.num[i][j])) continue;
+          acc=pAdd(acc, pScale(Ct1.num[i][j], rMul(w,v)));
+        }
+      }
+      H[a2][b2]=pScale(acc,inv);
+    }
+    let hnum=H, hden=Ct1.den;
+    ({num:hnum,den:hden}=reduce(hnum,hden));
+    Ct=Ct1; Ht={num:hnum,den:hden,idx:partitions(k+1)};
+    levels[k+1]={Ct,Ht,den:Ct.den,detD:det,solveN:N};
+    if(opts.onLevel) opts.onLevel(k+1,levels[k+1]);
+  }
+  return levels;
+}
+/* divide a whole matrix and its denominator by their common polynomial gcd */
+function reduce(num,den){
+  let g=den;
+  for(const row of num) for(const e of row){
+    if(pIsZero(e)) continue;
+    g=pGcd(g,e);
+    if(pDeg(g)<=0) return {num,den};
+  }
+  if(pDeg(g)<=0) return {num,den};
+  const out=num.map(row=>row.map(e=>pIsZero(e)?pZero:pDivExact(e,g)));
+  return {num:out, den:pDivExact(den,g)};
+}
+/* the alpha-contents of the cells of the partitions of k, each with the
+   largest multiplicity it attains in a single partition: the roots of the
+   level-k denominator (denpoly.m).  Returned as [{c:Rat, mult:int}]. */
+function denomRoots(k,alpha){
+  const best=new Map();
+  for(const lam of partitions(k)){
+    const cnt=new Map();
+    for(let i=0;i<lam.length;i++) for(let j=0;j<lam[i];j++){
+      const c=rSub(rMul(alpha,rat(BigInt(j))), rat(BigInt(i)));
+      const key=rStr(c); cnt.set(key,(cnt.get(key)||0)+1);
+    }
+    for(const [key,v] of cnt){ if(!best.has(key)||best.get(key).m<v) best.set(key,{m:v,key}); }
+  }
+  const out=[];
+  for(const [key,o] of best){
+    const [nn,dd]=key.split("/");
+    out.push({c:rat(BigInt(nn), dd?BigInt(dd):1n), mult:o.m});
+  }
+  out.sort((a,b)=>rNum(b.c)-rNum(a.c));
+  return out;
+}
+
+/* ======================================================================
+   Fast level step: Cayley-Hamilton instead of Gaussian elimination.
+
+   M_k is diagonalisable with real spectrum contained in the alpha-contents
+   of the addable cells of the partitions of k (Hillier & Kan 2026,
+   Prop. 5.6 and Thm. 5.11), so
+
+       p(x) = prod over the DISTINCT contents c of (x - c)
+
+   annihilates M_k, and for (xI - M)q(x,M) = p(x)I with
+   q(x,M) = sum_{i>=1} a_i sum_{j<i} x^{i-1-j} M^j,
+
+       D_{-k}^{-1} B = q(nt, M) B / p(nt)
+                     = ( sum_j c_j(nt) M^j B ) / p(nt),
+       c_j(nt) = sum_{i>j} a_i nt^{i-1-j}.
+
+   The work is then d matrix products of the SCALAR matrix M against a
+   polynomial matrix -- no polynomial x polynomial multiplication at all,
+   which is what made the Bareiss version cubic in the polynomial degree as
+   well as in the size.  The products are run on integer coefficient arrays
+   over one shared denominator, so the inner loop is pure BigInt with no
+   gcd; the rational bookkeeping happens once per level.
+
+   The level denominator is then reduced to the one the programs use
+   (denpoly.m): the alpha-contents of the CELLS of the partitions of k+1,
+   each with the largest multiplicity it attains in one partition.  The
+   reduction is an exact division, so it doubles as a self-check.
+   ====================================================================== */
+
+/* distinct alpha-contents of the addable cells of the partitions of k */
+function addableContents(k,alpha){
+  const seen=new Map();
+  for(let i=0;i*1<=k+1;i++){
+    for(let j=0;(i+1)*(j+1)<=k+1;j++){
+      if(i===0&&j===0) continue;
+      const c=rSub(rMul(alpha,rat(BigInt(j))), rat(BigInt(i)));
+      seen.set(rStr(c), c);
+    }
+    if((i+1)>k+1) break;
+  }
+  return Array.from(seen.values());
+}
+/* the polynomial prod (x - c) over a list of Rat roots */
+function polyFromRoots(rs){
+  let p=pOne;
+  for(const c of rs) p=pMul(p,[rNeg(c),R1]);
+  return p;
+}
+/* clear denominators: Rat poly -> {c:[BigInt], g:BigInt} with p = c/g */
+function toInt(p){
+  let g=1n;
+  for(const x of p) g=g/bgcd(g,x.d)*x.d;          // lcm of denominators
+  return {c:p.map(x=>x.n*(g/x.d)), g};
+}
+function fromInt(ci,g){
+  return pTrim(ci.map(v=>rat(v,g)));
+}
+
+function levelStep(k,alpha,Cnum,Hnum,den){
+  const M=Mk(k,alpha), N=M.N;
+  const s=M.I.filter(u=>u.r>=1).length;
+  /* --- integer matrix Mi with M = Mi/sM --- */
+  let sM=1n;
+  for(let i=0;i<N;i++) for(let j=0;j<N;j++) sM=sM/bgcd(sM,M.A[i][j].d)*M.A[i][j].d;
+  const Mi=M.A.map(row=>row.map(x=>x.n*(sM/x.d)));
+  /* --- annihilating polynomial and the c_j --- */
+  const roots=addableContents(k,alpha);
+  const p=polyFromRoots(roots), d=pDeg(p);
+  const P=toInt(p);                                   // p = P.c / P.g
+  const cj=[];                                        // cj[j] = integer array
+  for(let j=0;j<d;j++){
+    const arr=[];
+    for(let i=j+1;i<=d;i++){ arr[i-1-j]=P.c[i]; }
+    for(let t=0;t<arr.length;t++) if(arr[t]===undefined) arr[t]=0n;
+    cj.push(arr);                                     // over the same scale P.g
+  }
+  /* --- B = diag(Cnum, Hnum) as an integer tensor over gB --- */
+  let gB=1n;
+  const scan=(Mx)=>{ for(const row of Mx) for(const e of row) for(const x of e) gB=gB/bgcd(gB,x.d)*x.d; };
+  scan(Cnum); scan(Hnum);
+  const deg=Math.max(...[].concat(...Cnum,...Hnum).map(e=>e.length),1);
+  const U=[];                                          // U[i][j] = BigInt[]
+  for(let i=0;i<N;i++){ const row=[]; for(let j=0;j<N;j++) row.push(new Array(deg).fill(0n)); U.push(row); }
+  const put=(Mx,off)=>{ for(let i=0;i<Mx.length;i++) for(let j=0;j<Mx.length;j++){
+      const e=Mx[i][j];
+      for(let t=0;t<e.length;t++) U[off+i][off+j][t]=e[t].n*(gB/e[t].d);
+    }; };
+  put(Cnum,0); put(Hnum,s);
+  /* --- acc = sum_j c_j(nt) * sM^{d-1-j} * (Mi^j B) --- */
+  const accDeg=deg+d;
+  const acc=[];
+  for(let i=0;i<N;i++){ const row=[]; for(let j=0;j<N;j++) row.push(new Array(accDeg).fill(0n)); acc.push(row); }
+  const pow=[1n]; for(let t=1;t<d;t++) pow.push(pow[t-1]*sM);
+  let Y=U;
+  for(let j=0;j<d;j++){
+    const w=cj[j], sc=pow[d-1-j];
+    for(let i=0;i<N;i++) for(let l=0;l<N;l++){
+      const y=Y[i][l], a=acc[i][l];
+      for(let t=0;t<deg;t++){
+        const v=y[t]; if(v===0n) continue;
+        const vs=v*sc;
+        for(let u2=0;u2<w.length;u2++){ const wu=w[u2]; if(wu!==0n) a[t+u2]+=vs*wu; }
+      }
+    }
+    if(j<d-1){                                        /* Y <- Mi * Y */
+      const Z=[];
+      for(let i=0;i<N;i++){
+        const row=[];
+        for(let l=0;l<N;l++) row.push(new Array(deg).fill(0n));
+        Z.push(row);
+      }
+      for(let i=0;i<N;i++){
+        const mi=Mi[i];
+        for(let q2=0;q2<N;q2++){
+          const m=mi[q2]; if(m===0n) continue;
+          const yq=Y[q2], zi=Z[i];
+          for(let l=0;l<N;l++){
+            const y=yq[l]; const z=zi[l];
+            for(let t=0;t<deg;t++){ const v=y[t]; if(v!==0n) z[t]+=m*v; }
+          }
+        }
+      }
+      Y=Z;
+    }
+  }
+  /* --- back to rationals: numerator / (gB * sM^{d-1} * P.g) , denominator p*den --- */
+  const gNum=gB*pow[d-1]*P.g;
+  const num=[];
+  for(let i=0;i<N;i++){
+    const row=[];
+    for(let j=0;j<N;j++) row.push(fromInt(acc[i][j],gNum));
+    num.push(row);
+  }
+  const denRaw=pMul(p,den);
+  return {num, denRaw, N, s};
+}
+/* the denominator the programs use: contents of the CELLS of the partitions
+   of k, each with its largest multiplicity in a single partition */
+function denomPoly(k,alpha){
+  const rs=denomRoots(k,alpha);
+  let p=pOne;
+  for(const o of rs) for(let t=0;t<o.mult;t++) p=pMul(p,[rNeg(o.c),R1]);
+  return p;
+}
+function run2(alpha,nmax,opts){
+  opts=opts||{};
+  const levels=[];
+  const nt=[R0,R1];
+  let Cnum=[[pOne]], Hnum=[[pOne]], den=nt;
+  levels[1]={Ct:{num:Cnum,den,idx:indexSet(1).filter(u=>u.r>=1)},
+             Ht:{num:Hnum,den,idx:partitions(1)}, den, solveN:1};
+  if(opts.onLevel) opts.onLevel(1,levels[1]);
+  for(let k=1;k<nmax;k++){
+    const st=levelStep(k,alpha,Cnum,Hnum,den);
+    /* reduce to the programs' denominator by exact division */
+    const target=denomPoly(k+1,alpha);
+    let surplus;
+    try{ surplus=pDivExact(st.denRaw,target); }
+    catch(e){ surplus=pOne; }                          /* keep unreduced */
+    let newDen=surplus===pOne?st.denRaw:target;
+    let num=st.num;
+    if(surplus!==pOne && pDeg(surplus)>0){
+      try{ num=st.num.map(row=>row.map(e=>pIsZero(e)?pZero:pDivExact(e,surplus))); }
+      catch(e){ num=st.num; newDen=st.denRaw; }        /* fall back, still exact */
+    }
+    Cnum=num; den=newDen;
+    /* H_{k+1} from the compression */
+    const M1=Mk(k+1,alpha), s1=M1.I.filter(u=>u.r>=1).length, N1=M1.N, pk=N1-s1;
+    const inv=rDiv(R1, rMul(alpha, rat(BigInt(k+1))));
+    Hnum=[];
+    for(let a2=0;a2<pk;a2++){
+      const row=[];
+      for(let b2=0;b2<pk;b2++){
+        let accp=pZero;
+        for(let i=0;i<s1;i++){
+          const w=M1.A[s1+a2][i]; if(rIsZero(w)) continue;
+          for(let j=0;j<s1;j++){
+            const v=M1.A[j][s1+b2]; if(rIsZero(v)) continue;
+            if(pIsZero(Cnum[i][j])) continue;
+            accp=pAdd(accp, pScale(Cnum[i][j], rMul(w,v)));
+          }
+        }
+        row.push(pScale(accp,inv));
+      }
+      Hnum.push(row);
+    }
+    levels[k+1]={Ct:{num:Cnum,den,idx:indexSet(k+1).filter(u=>u.r>=1)},
+                 Ht:{num:Hnum,den,idx:partitions(k+1)}, den, solveN:st.N};
+    if(opts.onLevel) opts.onLevel(k+1,levels[k+1]);
+  }
+  return levels;
+}
+return {rat,R0,R1,rStr,rNum,rAdd,rSub,rMul,rDiv,rNeg,
+        pZero,pOne,pAdd,pSub,pMul,pScale,pDivExact,pGcd,pEval,pStr,pDeg,pIsZero,pTrim,
+        partitions,indexSet,ikey,mult,sortDesc,Mk,solveFF,run,run2,reduce,denomRoots,denomPoly,addableContents};
+})();
+
+/* ---------------- transfer format + session (worker or main thread) ------- */
+function polyOut(p){
+  if(IWE.pIsZero(p)) return null;
+  return {s:IWE.pStr(p), c:p.map(x=>IWE.rNum(x))};
+}
+IWE.buildPayload=function(caseName,nmax,onLevel){
+  const ALPHA={real:IWE.rat(2n,1n), complex:IWE.rat(1n,1n), quaternion:IWE.rat(1n,2n)};
+  const alpha=ALPHA[caseName];
+  if(!alpha) throw new Error("unknown case "+caseName);
+  const out={caseName, nmax, alpha:IWE.rNum(alpha), levels:[null]};
+  const t0=Date.now(); let prev=t0;
+  const record=function(k,lv){
+    const rows=lv.Ct.num.map(row=>row.map(polyOut));
+    const hrows=lv.Ht.num.map(row=>row.map(polyOut));
+    const roots=IWE.denomRoots(k,alpha).map(o=>({c:IWE.rStr(o.c), cv:IWE.rNum(o.c), m:o.mult}));
+    const now=Date.now();
+    const rec={
+      den:polyOut(lv.den)||{s:"1",c:[1]},
+      denDeg:IWE.pDeg(lv.den),
+      roots,
+      C:{idx:lv.Ct.idx.map(u=>({r:u.r,lam:u.lam})), rows},
+      H:{idx:lv.Ht.idx.map(l=>l.slice()), rows:hrows},
+      solveN:lv.solveN,
+      ms: now-prev
+    };
+    prev=now;
+    out.levels[k]=rec;
+    if(onLevel) onLevel(k,rec);
+  };
+  IWE.run2(alpha,nmax,{onLevel:record});
+  out.totalMs=Date.now()-t0;
+  return out;
+};
+IWE.createSession=function(){
+  function handle(msg,post){
+    try{
+      if(msg.cmd==="run"){
+        const payload=IWE.buildPayload(msg.case,msg.nmax,(k,rec)=>{
+          post({type:"level", k, solveN:rec.solveN, denDeg:rec.denDeg,
+                ms:rec.ms, states:rec.C.idx.length+rec.H.idx.length});
+        });
+        post({type:"done", payload});
+      }
+    }catch(err){ post({type:"error", message:String(err && err.message || err)}); }
+  }
+  return {handle};
+};
+IWE.workerMain=function(self_){
+  const session=IWE.createSession();
+  self_.onmessage=(e)=>session.handle(e.data,(m)=>self_.postMessage(m));
+};
+
+/* ===INVENGINE-END=== */
+</script>
+
+<script>
+(function () {
+"use strict";
+/* UI for the inverse family; all math lives in the iwe-engine script above. */
+const $ = (id) => document.getElementById(id);
+const ALPHA = { real: 2, complex: 1, quaternion: 0.5 };
+const BETA  = { real: 1, complex: 2, quaternion: 4 };
+const SUPM = {1:"⁻¹",2:"⁻²",3:"⁻³",4:"⁻⁴",5:"⁻⁵",6:"⁻⁶",7:"⁻⁷",8:"⁻⁸"};
+const SUPP = {2:"²",3:"³",4:"⁴",5:"⁵",6:"⁶",7:"⁷",8:"⁸"};
+const fmtInt = (x) => x.toLocaleString("en-CA");
+
+/* ================= family switch ================= */
+function setMode(inv) {
+  $("wrapW").hidden = inv;
+  $("wrapWi").hidden = !inv;
+  $("modeW").classList.toggle("on", !inv);
+  $("modeWi").classList.toggle("on", inv);
+  $("modeW").setAttribute("aria-selected", String(!inv));
+  $("modeWi").setAttribute("aria-selected", String(inv));
+  hSet($("headNote"), inv
+    ? ["Below: ", h("b","Part 1"), " draws the identity that generates the inverse family and shows why a level is a ",
+       "coupled system rather than a rewrite; ", h("b","Part 2"),
+       " solves those systems exactly in your browser, in rational arithmetic over ℚ[ñ], to level 7, ",
+       "and prints the denominator — and therefore the existence threshold — at every level."]
+    : ["Below: ", h("b","Part 1"), " draws the dependency graph of the forward recursion; ", h("b","Part 2"),
+       " computes the actual tables live in your browser, in exact arithmetic, to level 14. In the central case ",
+       "every forward table is a combination of words in Σ alone."]);
+  hSet($("modeNote"), inv
+    ? ["𝔼[W", h("sup", "−r"), "p", h("sub", "κ"), "(W", h("sup", "−1"), ")] — each level is a linear ",
+       h("b", "system"), " to be solved"]
+    : ["𝔼[W", h("sup", "r"), "p", h("sub", "κ"), "(W)] — each level is a linear ",
+       h("b", "rewrite"), " of the one below"]);
+  try { localStorage.setItem("wishmom-family", inv ? "inv" : "fwd"); } catch (e) {}
+}
+$("modeW").addEventListener("click", () => setMode(false));
+$("modeWi").addEventListener("click", () => setMode(true));
+setMode(false);
+try { if (localStorage.getItem("wishmom-family") === "inv") setMode(true); } catch (e) {}
+
+/* ================= backend ================= */
+let worker = null, workerBroken = false, fallback = null, running = false;
+const handlers = { level: null, done: null, error: null };
+function dispatch(m) { if (handlers[m.type]) handlers[m.type](m); }
+function makeWorker() {
+  const src = $("iwe-engine").textContent + "\nIWE.workerMain(self);";
+  const w = new Worker(URL.createObjectURL(new Blob([src], { type: "text/javascript" })));
+  w.onmessage = (e) => dispatch(e.data);
+  w.onerror = (e) => dispatch({ type: "error", message: e.message || "worker error" });
+  return w;
+}
+function post(msg) {
+  if (!workerBroken) {
+    try { if (!worker) worker = makeWorker(); worker.postMessage(msg); return; }
+    catch (err) { workerBroken = true; }
+  }
+  if (!fallback) fallback = IWE.createSession();
+  setTimeout(() => fallback.handle(msg, dispatch), 0);
+}
+function kill() { if (worker) { worker.terminate(); worker = null; } fallback = null; }
+
+/* ================= small helpers ================= */
+function stateLabel(r, lam) {
+  const parts = [];
+  if (r > 0) parts.push("W" + SUPM[r]);
+  let i = 0;
+  while (i < lam.length) {
+    const v = lam[i]; let mu = 0;
+    while (i < lam.length && lam[i] === v) { mu++; i++; }
+    const base = v === 1 ? "tr W⁻¹" : "tr(W" + SUPM[v] + ")";
+    parts.push(mu > 1 ? (v === 1 ? "(tr W⁻¹)" : base) + SUPP[mu] : base);
+  }
+  return parts.length ? "𝔼[" + parts.join(" ") + "]" : "𝔼[I]";
+}
+function wordNodes(r, lam) {          /* Σ^-r ∏ tr(Σ^-j) */
+  const out = [];
+  if (r > 0) out.push("Σ" + SUPM[r]);
+  let i = 0;
+  while (i < lam.length) {
+    const v = lam[i]; let mu = 0;
+    while (i < lam.length && lam[i] === v) { mu++; i++; }
+    const base = v === 1 ? "tr(Σ⁻¹)" : "tr(Σ" + SUPM[v] + ")";
+    out.push(mu > 1 ? base + SUPP[mu] : base);
+  }
+  return out.length ? out.join(" ") : "I";
+}
+const polyEval = (c, x) => { let s = 0; for (let i = c.length - 1; i >= 0; i--) s = s * x + c[i]; return s; };
+const SUPD = { "0":"⁰","1":"¹","2":"²","3":"³","4":"⁴","5":"⁵","6":"⁶","7":"⁷","8":"⁸","9":"⁹" };
+/* display only: "72ñ^6" -> "72ñ⁶".  The stored strings keep the ASCII "^"
+   so the LaTeX export can turn it into ^{6}. */
+const sup = (t) => t.replace(/\^(\d+)/g, (_, d) => d.split("").map(c => SUPD[c]).join(""));
+
+/* real matrix helpers (m <= 6) */
+function matInv(A) {
+  const m = A.length, M = A.map((r, i) => r.concat(Array.from({length:m}, (_, j) => i === j ? 1 : 0)));
+  for (let c = 0; c < m; c++) {
+    let p = c;
+    for (let i = c + 1; i < m; i++) if (Math.abs(M[i][c]) > Math.abs(M[p][c])) p = i;
+    if (Math.abs(M[p][c]) < 1e-300) return null;
+    const t = M[c]; M[c] = M[p]; M[p] = t;
+    const d = M[c][c];
+    for (let j = 0; j < 2 * m; j++) M[c][j] /= d;
+    for (let i = 0; i < m; i++) {
+      if (i === c) continue;
+      const f = M[i][c];
+      if (!f) continue;
+      for (let j = 0; j < 2 * m; j++) M[i][j] -= f * M[c][j];
+    }
+  }
+  return M.map(r => r.slice(m));
+}
+const matMul = (A, B) => A.map(r => B[0].map((_, j) => r.reduce((s, v, k) => s + v * B[k][j], 0)));
+const matEye = (m) => Array.from({length:m}, (_, i) => Array.from({length:m}, (_, j) => i === j ? 1 : 0));
+const matTr = (A) => A.reduce((s, r, i) => s + r[i], 0);
+
+/* ================= run ================= */
+let payload = null, curKey = null;
+const caseName = () => document.querySelector('#ifsCase input:checked').value;
+function setStatus(children, cls) {
+  const el = $("iliveStatus");
+  hSet(el, children);
+  el.className = "livestatus" + (cls ? " " + cls : "");
+}
+const SOLVE_N = [1, 1, 2, 4, 7, 12, 19, 30, 45, 67, 97, 139];
+const APPROX_S = { 8: 0.5, 9: 2, 10: 6, 11: 19 };
+function capNote() {
+  const N = +$("iinN").value;
+  const d = SOLVE_N[N];
+  const t = APPROX_S[N];
+  hSet($("icapNote"), "N = " + N + ": the last step inverts a " + d + " × " + d +
+    " matrix over ℚ[ñ]." + (t ? "  Expect roughly " + t + " s (a little more for β = 4, whose coefficients are fractions)." :
+    "  Instantaneous."));
+}
+$("iinN").addEventListener("input", () => { $("inVal").textContent = $("iinN").value; capNote(); });
+capNote();
+
+let rows = [];
+handlers.level = (m) => {
+  rows.push(m);
+  $("iliveBar").style.width = (100 * m.k / (+$("iinN").value)) + "%";
+  setStatus(["level ", h("b", String(m.k)), " done — solved a ", h("b", m.solveN + " × " + m.solveN),
+             " system, denominator degree ", h("b", String(m.denDeg)), " (", (m.ms / 1000).toFixed(2), " s)"]);
+  renderRuns();
+};
+handlers.error = (m) => { running = false; $("ibtnRun").disabled = false; $("ibtnCancel").disabled = true;
+  setStatus([h("b", "Error: "), m.message], "err"); };
+handlers.done = (m) => {
+  running = false; $("ibtnRun").disabled = false; $("ibtnCancel").disabled = true;
+  $("iliveBar").style.width = "100%";
+  payload = m.payload;
+  setStatus(["Done — levels 1 to ", h("b", String(payload.nmax)), " computed exactly in ",
+             h("b", (payload.totalMs / 1000).toFixed(2) + " s"), ". Every coefficient below is a ratio of ",
+             "integer (or dyadic-rational) polynomials in ñ; nothing is rounded."]);
+  buildStateList();
+  $("istateBox").hidden = false;
+  $("ievalBox").hidden = false;
+  buildGrid();
+};
+function renderRuns() {
+  const t = h("table.livetab");
+  const hd = h("tr"); ["level N", "states", "system solved", "denominator deg", "seconds"]
+    .forEach(x => hd.appendChild(h("th", x)));
+  t.appendChild(hd);
+  for (const r of rows) {
+    const tr = h("tr");
+    [String(r.k), fmtInt(r.states), r.solveN + " × " + r.solveN, String(r.denDeg), (r.ms / 1000).toFixed(2)]
+      .forEach(x => tr.appendChild(h("td", x)));
+    t.appendChild(tr);
+  }
+  hSet($("iliveResults"), t);
+}
+$("ibtnRun").addEventListener("click", () => {
+  if (running) return;
+  running = true; rows = []; payload = null; curKey = null;
+  $("ibtnRun").disabled = true; $("ibtnCancel").disabled = false;
+  $("istateBox").hidden = true; $("ievalBox").hidden = true;
+  $("iliveBar").style.width = "0%";
+  hSet($("iliveResults"), []);
+  setStatus(["Solving level by level…"]);
+  post({ cmd: "run", case: caseName(), nmax: +$("iinN").value });
+});
+$("ibtnCancel").addEventListener("click", () => {
+  kill(); running = false;
+  $("ibtnRun").disabled = false; $("ibtnCancel").disabled = true;
+  setStatus(["Cancelled."]);
+});
+
+/* ================= state browser ================= */
+function statesOf(k) {
+  const L = payload.levels[k], out = [];
+  L.C.idx.forEach((u, i) => out.push({ k, kind: "C", i, r: u.r, lam: u.lam }));
+  L.H.idx.forEach((lam, i) => out.push({ k, kind: "H", i, r: 0, lam }));
+  return out;
+}
+function buildStateList() {
+  const sel = $("iselState");
+  sel.replaceChildren();
+  for (let k = 1; k <= payload.nmax; k++)
+    for (const s of statesOf(k)) {
+      const o = h("option", "level " + k + " · " + stateLabel(s.r, s.lam));
+      o.value = [k, s.kind, s.i].join("/");
+      sel.appendChild(o);
+    }
+  sel.value = [payload.nmax, "C", 0].join("/");
+  curKey = sel.value;
+  renderState();
+}
+$("iselState").addEventListener("change", () => { curKey = $("iselState").value; renderState(); evaluate(true); });
+
+function currentState() {
+  const [k, kind, i] = curKey.split("/");
+  const K = +k, I = +i, L = payload.levels[K];
+  const idx = kind === "C" ? L.C.idx[I] : { r: 0, lam: L.H.idx[I] };
+  const row = kind === "C" ? L.C.rows[I] : L.H.rows[I];
+  const cols = kind === "C" ? L.C.idx : L.H.idx.map(lam => ({ r: 0, lam }));
+  return { K, kind, I, L, idx, row, cols };
+}
+function renderState() {
+  const { K, idx, row, cols, L } = currentState();
+  const out = [];
+  out.push(h("div.termrow", h("b", stateLabel(idx.r, idx.lam)), "  =  (1 / D",
+    h("sub", String(K)), "(ñ)) × [ the ", h("b", "sum of the rows below"), " ]"));
+  let nz = 0;
+  row.forEach((p, j) => {
+    if (!p) return;
+    nz++;
+    const c = cols[j];
+    out.push(h("div.termrow",
+      h("span.coef", "(" + sup(p.s) + ")"), "  ",
+      h("span.tr", wordNodes(c.r, c.lam))));
+  });
+  hSet($("itermList"), out);
+  hSet($("istateMeta"), "level " + K + " · " + nz + " of " + row.length + " terms nonzero · α = " +
+    (payload.alpha === 0.5 ? "½" : String(payload.alpha)) + " (β = " + BETA[payload.caseName] + ")");
+  const roots = L.roots.map(r => {
+    const b = r.cv === 0 ? "ñ"
+            : r.cv < 0 ? "(ñ + " + r.c.replace("-", "") + ")"
+            : "(ñ − " + r.c + ")";
+    return r.m > 1 ? b + (r.m === 2 ? "²" : r.m === 3 ? "³" : "^" + r.m) : b;
+  }).join(" ");
+  const big = L.roots.reduce((a, r) => Math.max(a, r.cv), -Infinity);
+  hSet($("idenNote"), [
+    h("b", "D", h("sub", String(K)), "(ñ)"), " = ", sup(L.den.s),
+    h("br"), "= ", roots,
+    h("br"), "Largest root ", h("b", String(big)), " = (k−1)α with k = " + K +
+    ": the moments of degree " + K + " exist exactly when ñ > " + big + ", i.e. (n−m+1)/α > " + K + "."
+  ]);
+}
+
+/* ================= evaluation ================= */
+let gridInputs = [];
+function buildGrid() {
+  const m = Math.max(2, Math.min(6, +$("iinM").value || 3));
+  const g = $("igridS");
+  g.replaceChildren();
+  g.style.gridTemplateColumns = "repeat(" + m + ", auto)";
+  gridInputs = [];
+  for (let i = 0; i < m; i++) {
+    const row = [];
+    for (let j = 0; j < m; j++) {
+      const inp = h("input");
+      inp.type = "text";
+      if (j < i) { inp.disabled = true; }
+      else { inp.value = (i === j) ? String(2 + i) : (j === i + 1 ? "0.5" : "0.1"); }
+      inp.addEventListener("input", () => { if (j > i) mirror(); });
+      g.appendChild(inp);
+      row.push(inp);
+    }
+    gridInputs.push(row);
+  }
+  mirror();
+}
+function mirror() {
+  const m = gridInputs.length;
+  for (let i = 0; i < m; i++) for (let j = 0; j < i; j++) gridInputs[i][j].value = gridInputs[j][i].value;
+}
+$("iinM").addEventListener("change", () => { buildGrid(); });
+$("ibtnEval").addEventListener("click", () => evaluate(false));
+
+function evaluate(quiet) {
+  if (!payload || !curKey) return;
+  const { K, idx, row, cols, L } = currentState();
+  const m = gridInputs.length, nval = parseFloat($("iinNval").value);
+  const alpha = ALPHA[payload.caseName];
+  const S = gridInputs.map(r => r.map(x => parseFloat(x.value)));
+  if (S.some(r => r.some(v => !isFinite(v))) || !isFinite(nval)) {
+    hSet($("ievalStatus"), "enter numbers"); return;
+  }
+  const nt = nval - m + 1 - alpha;
+  const a = (nval - m + 1) / alpha;
+  const exists = a > K;
+  hSet($("iexistNote"), [
+    "ñ = n − m + 1 − α = ", h("b", nt.toFixed(6).replace(/\.?0+$/, "")),
+    " ;  (n−m+1)/α = ", h("b", a.toFixed(6).replace(/\.?0+$/, "")),
+    " ;  degree k = ", h("b", String(K)), " — ",
+    exists ? h("b", "the moment exists") : h("b", "the moment does NOT exist"),
+    exists ? "" : "  (the table below still evaluates the rational function, but it is not a moment)"
+  ]);
+  const Si = matInv(S);
+  if (!Si) { hSet($("ievalStatus"), "Σ is singular"); return; }
+  const pw = [matEye(m)];
+  for (let i = 1; i <= 2 * K + 2; i++) pw.push(matMul(pw[i - 1], Si));
+  const trp = pw.map(matTr);
+  const den = polyEval(L.den.c, nt);
+  let M = Array.from({length:m}, () => new Array(m).fill(0)), scalar = 0;
+  row.forEach((p, j) => {
+    if (!p) return;
+    const c = cols[j];
+    let v = polyEval(p.c, nt) / den;
+    for (const t of c.lam) v *= trp[t];
+    if (idx.r === 0) scalar += v * m; else
+      for (let x = 0; x < m; x++) for (let y = 0; y < m; y++) M[x][y] += v * pw[c.r][x][y];
+  });
+  const out = [];
+  out.push(h("div", h("b", stateLabel(idx.r, idx.lam)), " with m = " + m + ", n = " + nval +
+    (Math.abs(den) < 1e-12 ? "  — denominator is zero at this ñ" : "")));
+  if (idx.r === 0) {
+    out.push(h("div.termrow", String(scalar / m)));
+  } else {
+    const t = h("table");
+    for (let x = 0; x < m; x++) {
+      const tr = h("tr");
+      for (let y = 0; y < m; y++) tr.appendChild(h("td", Number(M[x][y]).toPrecision(10)));
+      t.appendChild(tr);
+    }
+    out.push(t);
+  }
+  hSet($("ievalOut"), out);
+  if (!quiet) hSet($("ievalStatus"), "evaluated");
+}
+
+/* ================= downloads ================= */
+function save(name, mime, data) {
+  const url = URL.createObjectURL(new Blob([data], { type: mime }));
+  const a = document.createElement("a");
+  a.href = url; a.download = name;
+  document.body.appendChild(a); a.click(); a.remove();
+  setTimeout(() => URL.revokeObjectURL(url), 4000);
+}
+function stamp() { return new Date().toISOString().slice(0, 10); }
+function dl(fmt) {
+  if (!payload || !curKey) return;
+  const { K, idx, row, cols, L } = currentState();
+  const nm = "iwishmom_" + payload.caseName + "_k" + K + "_" + stamp();
+  const terms = [];
+  row.forEach((p, j) => { if (p) terms.push({ p, c: cols[j] }); });
+  if (fmt === "txt") {
+    const l = [stateLabel(idx.r, idx.lam) + "   (" + payload.caseName + ", alpha = " + payload.alpha + ")",
+      "denominator D_" + K + "(nt) = " + L.den.s, ""];
+    for (const t of terms) l.push("  (" + t.p.s + ") * " + wordNodes(t.c.r, t.c.lam));
+    save(nm + ".txt", "text/plain", l.join("\n") + "\n");
+  } else if (fmt === "csv") {
+    const l = ["numerator,sigma_power,trace_factors"];
+    for (const t of terms) l.push('"' + t.p.s + '",' + t.c.r + ',"' + t.c.lam.join(" ") + '"');
+    l.push('"' + L.den.s + '",denominator,');
+    save(nm + ".csv", "text/csv", l.join("\n") + "\n");
+  } else {
+    const tex = (s) => s.replace(/ñ/g, "\\tilde n").replace(/−/g, "-").replace(/\^(\d+)/g, "^{$1}");
+    const word = (c) => {
+      const p = [];
+      if (c.r > 0) p.push("\\Sigma^{-" + c.r + "}");
+      let i = 0;
+      while (i < c.lam.length) {                 /* tr(X)tr(X) -> tr(X)^{2} */
+        const v = c.lam[i]; let mu = 0;
+        while (i < c.lam.length && c.lam[i] === v) { mu++; i++; }
+        p.push("\\operatorname{tr}(\\Sigma^{-" + v + "})" + (mu > 1 ? "^{" + mu + "}" : ""));
+      }
+      return p.join("") || "1";
+    };
+    const l = ["% " + stateLabel(idx.r, idx.lam) + "  (" + payload.caseName + ")",
+      "\\begin{align*}", "&\\frac{1}{" + tex(L.den.s) + "}\\Bigl["];
+    terms.forEach((t, i) => l.push("  " + (i ? "+" : "") + "\\left(" + tex(t.p.s) + "\\right)" + word(t.c)));
+    l.push("\\Bigr]", "\\end{align*}");
+    save(nm + ".tex", "text/plain", l.join("\n") + "\n");
+  }
+}
+$("ibtnDlTxt").addEventListener("click", () => dl("txt"));
+$("ibtnDlCsv").addEventListener("click", () => dl("csv"));
+$("ibtnDlTex").addEventListener("click", () => dl("tex"));
+})();
+</script>
+
+</body>
+</html>
