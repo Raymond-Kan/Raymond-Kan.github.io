@@ -1,0 +1,576 @@
+[
+ {
+  "sec": "pub",
+  "title": "Optimal Portfolio Choice with Fat Tails and Parameter Uncertainty",
+  "url": "papers/elliptical.pdf",
+  "extras": [
+   [
+    "Appendix",
+    "papers/elliptical_appendix.pdf"
+   ]
+  ],
+  "info": "with <a href=\"https://sites.google.com/view/nathanlassance\">Nathan Lassance</a>, in <i>Journal of Financial and Quantitative Analysis</i>, 60(8), 3753-3790, 2025."
+ },
+ {
+  "sec": "pub",
+  "title": "A Fast Algorithm for Computing Product Moments of Multivariate Normal Random Variables",
+  "url": "papers/univmom.pdf",
+  "extras": [
+   [
+    "Matlab Programs",
+    "papers/prmom.zip"
+   ]
+  ],
+  "info": "with Jiening Pan, in <i>Communications in Statistics - Simulation and Computation</i>, 54(9), 3593-3607, 2025."
+ },
+ {
+  "sec": "pub",
+  "title": "Stock Return Autocorrelations and Expected Option Returns",
+  "url": "papers/JKL.pdf",
+  "extras": [
+   [
+    "Appendix",
+    "papers/JKL_app.pdf"
+   ]
+  ],
+  "info": "with <a href=\"https://experts.mcmaster.ca/display/jeony5\">Yoontae Jeon</a> and <a href=\"https://www.bschool.cuhk.edu.hk/staff/li-gang/\">Gang Li</a>, in <i>Management Science</i>, 71(6), 4895-4914, 2025."
+ },
+ {
+  "sec": "pub",
+  "title": "Optimal Portfolio Choice with Unknown Benchmark Efficiency",
+  "url": "papers/opc.pdf",
+  "extras": [],
+  "info": "with <a href=\"https://www.ivybusiness.iastate.edu/directory/xiaoluw/\">Xiaolu Wang</a>, in <i>Management Science</i>, 70(9), 6117-6138, 2024."
+ },
+ {
+  "sec": "pub",
+  "title": "In-sample and Out-of-sample Sharpe Ratios of Multi-factor Asset Pricing Models",
+  "url": "papers/sr_kwz.pdf",
+  "extras": [],
+  "info": "with <a href=\"https://www.ivybusiness.iastate.edu/directory/xiaoluw/\">Xiaolu Wang</a> and <a href=\"https://isom.hkust.edu.hk/faculty-and-staff/directory/xhzheng\">Xinghua Zheng</a>, in <i>Journal of Financial Economics</i>, 155, 103837, 2024."
+ },
+ {
+  "sec": "pub",
+  "title": "On the Expectations of Equivariant Matrix-valued Functions of Wishart and Inverse Wishart Matrices",
+  "url": "papers/wishmom.pdf",
+  "extras": [
+   [
+    "Errata",
+    "papers/errata_wishmom.pdf"
+   ],
+   [
+    "Matlab Programs",
+    "papers/wishmom.zip"
+   ],
+   [
+    "R wishmom package",
+    "https://cran.r-project.org/web/packages/wishmom/index.html"
+   ],
+   [
+    "Visual Demo",
+    "papers/wishmom.html"
+   ]
+  ],
+  "info": "with <a href=\"https://cemmap.ac.uk/person/grant-hillier/\">Grant Hillier</a>, in <i>Scandinavian Journal of Statistics</i>, 51(2), 697-723, 2024."
+ },
+ {
+  "sec": "pub",
+  "title": "The Distribution of Sample Mean-variance Portfolio Weights",
+  "url": "papers/klw_dist.pdf",
+  "extras": [],
+  "info": "with <a href=\"https://sites.google.com/view/nathanlassance\">Nathan Lassance</a> and <a href=\"https://www.ivybusiness.iastate.edu/directory/xiaoluw/\">Xiaolu Wang</a>, in <i>Random Matrices: Theory and Applications</i>, 13(1), 2024."
+ },
+ {
+  "sec": "pub",
+  "title": "Properties of the Inverse of a Noncentral Wishart Matrix",
+  "url": "papers/ncwishinv.pdf",
+  "extras": [
+   [
+    "Matlab Programs",
+    "papers/ncwishinv.zip"
+   ]
+  ],
+  "info": "with <a href=\"https://cemmap.ac.uk/person/grant-hillier/\">Grant Hillier</a>, in <i>Econometric Theory</i>, 38(6), 1092-1116, 2022."
+ },
+ {
+  "sec": "pub",
+  "title": "Optimal Portfolio Choice with Estimation Risk: No Risk-free Asset Case",
+  "url": "papers/optport.pdf",
+  "extras": [
+   [
+    "Appendix",
+    "papers/optport_app.pdf"
+   ]
+  ],
+  "info": "with <a href=\"https://www.ivybusiness.iastate.edu/directory/xiaoluw/\">Xiaolu Wang</a> and <a href=\"https://guofuzhou.github.io/\">Guofu Zhou</a>, in <i>Management Science</i>, 68(3), 2047-2068, 2022."
+ },
+ {
+  "sec": "pub",
+  "title": "Moments of a Wishart Matrix",
+  "url": "papers/Wishart_Moments.pdf",
+  "extras": [
+   [
+    "Matlab Programs",
+    "papers/ncwishmom.zip"
+   ]
+  ],
+  "info": "with <a href=\"https://cemmap.ac.uk/person/grant-hillier/\">Grant Hillier</a>, in <i>Journal of Quantitative Economics</i>, 19(S1), 141-162, 2021."
+ },
+ {
+  "sec": "pub",
+  "title": "The Densities and Distributions of the Largest Eigenvalue and the Trace of a Beta-Wishart Matrix",
+  "url": "papers/WishartTrace.pdf",
+  "extras": [],
+  "info": "with Vesselin Drensky, <a href=\"https://math.mit.edu/~edelman/classic.htm\">Alan Edelman</a>, Tierney Genoar, and <a href=\"https://www.sjsu.edu/math/about-us/faculty/plamen-koev.php\">Plamen Koev</a>, in <i>Random Matrices: Theory and Applications</i>, 10(1), 2021."
+ },
+ {
+  "sec": "pub",
+  "title": "Model Comparison with Sharpe Ratios",
+  "url": "papers/bkrs.pdf",
+  "extras": [],
+  "info": "with <a href=\"https://www.business.unsw.edu.au/our-people/francisco-barillas\">Francisco Barillas</a>, <a href=\"https://www.wbs.ac.uk/about/person/cesare-robotti\">Cesare Robotti</a>, and <a href=\"https://goizueta.emory.edu/faculty/profiles/jay-shanken\">Jay Shanken</a>, in <i>Journal of Financial and Quantitative Analysis</i>, 55(6), 1840-1874, 2020."
+ },
+ {
+  "sec": "pub",
+  "title": "On Computing Schur Functions and Series Thereof",
+  "url": "papers/cdekk.pdf",
+  "extras": [],
+  "info": "with <a href=\"http://people.csail.mit.edu/cychan/\">Cy Chan</a>, Vesselin Drensky, <a href=\"https://math.mit.edu/~edelman/classic.htm\">Alan Edelman</a>, and <a href=\"https://www.sjsu.edu/math/about-us/faculty/plamen-koev.php\">Plamen Koev</a>, in <i>Journal of Algebraic Combinatorics</i>, 50(2), 127-141, 2019."
+ },
+ {
+  "sec": "pub",
+  "title": "Densities of the Extreme Eigenvalues of Beta-MANOVA Matrices",
+  "url": "papers/KanKoev16.pdf",
+  "extras": [
+   [
+    "Matlab Programs",
+    "papers/manova.zip"
+   ]
+  ],
+  "info": "with <a href=\"https://www.sjsu.edu/math/about-us/faculty/plamen-koev.php\">Plamen Koev</a>, in <i>Random Matrices: Theory and Applications</i>, 8(1), 2019."
+ },
+ {
+  "sec": "pub",
+  "title": "Too Good to Be True? Fallacies in Evaluating Risk Factor Models",
+  "url": "papers/tgtbt_jfe.pdf",
+  "extras": [],
+  "info": "with <a href=\"https://sites.google.com/site/gospodinovfed/\">Nikolay Gospodinov</a> and <a href=\"https://www.wbs.ac.uk/about/person/cesare-robotti\">Cesare Robotti</a>, in <i>Journal of Financial Economics</i>, 132(2), 451-471, 2019."
+ },
+ {
+  "sec": "pub",
+  "title": "Asymptotic Variance Approximations for Invariant Estimators in Uncertain Asset-Pricing Models",
+  "url": "papers/invariant_misspecified.pdf",
+  "extras": [],
+  "info": "with <a href=\"https://sites.google.com/site/gospodinovfed/\">Nikolay Gospodinov</a> and <a href=\"https://www.wbs.ac.uk/about/person/cesare-robotti\">Cesare Robotti</a>, in <i>Econometric Reviews</i>, 33(7), 695-718, 2018."
+ },
+ {
+  "sec": "pub",
+  "title": "Spurious Inference in Reduced-Rank Asset-Pricing Models",
+  "url": "papers/cue_rev.pdf",
+  "extras": [],
+  "info": "with <a href=\"https://sites.google.com/site/gospodinovfed/\">Nikolay Gospodinov</a> and <a href=\"https://www.wbs.ac.uk/about/person/cesare-robotti\">Cesare Robotti</a>, in <i>Econometrica</i>, 85(5), 1641-1656, 2017."
+ },
+ {
+  "sec": "pub",
+  "title": "On Moments of Folded and Truncated Multivariate Normal Distributions",
+  "url": "papers/kr.pdf",
+  "extras": [
+   [
+    "Errata",
+    "papers/errata_jcgs.pdf"
+   ],
+   [
+    "Matlab Programs",
+    "papers/ftnorm.zip"
+   ]
+  ],
+  "info": "with <a href=\"https://www.wbs.ac.uk/about/person/cesare-robotti\">Cesare Robotti</a>, in <i>Journal of Computational and Graphical Statistics</i>, 26(4), 930-934, 2017."
+ },
+ {
+  "sec": "pub",
+  "title": "Modeling Non-normality Using Multivariate t: Implications for Asset Pricing",
+  "url": "papers/tdist.pdf",
+  "extras": [
+   [
+    "Matlab Programs",
+    "papers/tdist.zip"
+   ]
+  ],
+  "info": "with <a href=\"https://guofuzhou.github.io/\">Guofu Zhou</a>, in <i>China Finance Review International</i>, 7(1), 2-32, 2017."
+ },
+ {
+  "sec": "pub",
+  "title": "On Distributions of Ratios",
+  "url": "papers/ratios.pdf",
+  "extras": [
+   [
+    "Supplementary Material",
+    "papers/ratios_supplement.pdf"
+   ],
+   [
+    "Matlab Programs",
+    "papers/ratio_matlab.zip"
+   ]
+  ],
+  "info": "with <a href=\"https://www.hslu.ch/de-ch/hochschule-luzern/ueber-uns/personensuche/profile/?pid=4728\">Simon Broda</a>, in <i>Biometrika</i>, 103(1), 205-218, 2016."
+ },
+ {
+  "sec": "pub",
+  "title": "On the Properties of the Constrained Hansen-Jagannathan Distance",
+  "url": "papers/hjplus.pdf",
+  "extras": [],
+  "info": "with <a href=\"https://sites.google.com/site/gospodinovfed/\">Nikolay Gospodinov</a> and <a href=\"https://www.wbs.ac.uk/about/person/cesare-robotti\">Cesare Robotti</a>, in <i>Journal of Empirical Finance</i>, 36, 121-150, 2016."
+ },
+ {
+  "sec": "pub",
+  "title": "The Exact Distribution of the Hansen-Jagannathan Bound",
+  "url": "papers/hjbound.pdf",
+  "extras": [
+   [
+    "Matlab Programs",
+    "papers/hjbound.zip"
+   ]
+  ],
+  "info": "with <a href=\"https://www.wbs.ac.uk/about/person/cesare-robotti\">Cesare Robotti</a>, in <i>Management Science</i>, 62(7), 1915-1943, 2016."
+ },
+ {
+  "sec": "pub",
+  "title": "Misspecification-Robust Inference in Linear Asset Pricing Models with Irrelevant Risk Factors",
+  "url": "papers/robust.pdf",
+  "extras": [
+   [
+    "Appendix",
+    "papers/robust_app.pdf"
+   ]
+  ],
+  "info": "with <a href=\"https://sites.google.com/site/gospodinovfed/\">Nikolay Gospodinov</a> and <a href=\"https://www.wbs.ac.uk/about/person/cesare-robotti\">Cesare Robotti</a>, in <i>Review of Financial Studies</i>, 27(7), 2139-2170, 2014."
+ },
+ {
+  "sec": "pub",
+  "title": "Generating Functions and Short Recursions, with Applications to the Moments of Quadratic Forms in Noncentral Normal Vectors",
+  "url": "papers/ncq.pdf",
+  "extras": [
+   [
+    "Matlab Programs",
+    "papers/ncq.zip"
+   ]
+  ],
+  "info": "with <a href=\"https://cemmap.ac.uk/person/grant-hillier/\">Grant Hillier</a> and <a href=\"https://www.ivybusiness.iastate.edu/directory/xiaoluw/\">Xiaolu Wang</a>, in <i>Econometric Theory</i>, 30(2), 436-473, 2014."
+ },
+ {
+  "sec": "pub",
+  "title": "Pricing Model Performance and the Two-Pass Cross-Sectional Regression Methodology",
+  "url": "papers/twopass.pdf",
+  "extras": [
+   [
+    "Appendix",
+    "papers/twopass_app.pdf"
+   ],
+   [
+    "Matlab Programs",
+    "papers/csr.zip"
+   ]
+  ],
+  "info": "with <a href=\"https://www.wbs.ac.uk/about/person/cesare-robotti\">Cesare Robotti</a> and <a href=\"https://goizueta.emory.edu/faculty/profiles/jay-shanken\">Jay Shanken</a>, in <i>Journal of Finance</i>, 68(6), 2617-2649, 2013."
+ },
+ {
+  "sec": "pub",
+  "title": "On the Moments of Ratios of Quadratic Forms in Normal Random Variables",
+  "url": "papers/mupq.pdf",
+  "extras": [
+   [
+    "Errata",
+    "papers/errata_mupq.pdf"
+   ],
+   [
+    "Matlab Programs",
+    "papers/qrat.zip"
+   ]
+  ],
+  "info": "with <a href=\"http://web.ics.purdue.edu/~ybao/\">Yong Bao</a>, in <i>Journal of Multivariate Analysis</i>, 117, 229-245, 2013."
+ },
+ {
+  "sec": "pub",
+  "title": "Chi-Squared Tests for Evaluation and Comparison of Asset Pricing Models",
+  "url": "papers/hj_eco.pdf",
+  "extras": [
+   [
+    "Appendix",
+    "papers/hj_eco_app.pdf"
+   ],
+   [
+    "Matlab Programs",
+    "papers/hj_eco.zip"
+   ]
+  ],
+  "info": "with <a href=\"https://sites.google.com/site/gospodinovfed/\">Nikolay Gospodinov</a> and <a href=\"https://www.wbs.ac.uk/about/person/cesare-robotti\">Cesare Robotti</a>, in <i>Journal of Econometrics</i>, 173, 108-125, 2013."
+ },
+ {
+  "sec": "pub",
+  "title": "Further Results on the Limiting Distribution of GMM Sample Moment Conditions",
+  "url": "papers/GMM_dist.pdf",
+  "extras": [],
+  "info": "with <a href=\"https://sites.google.com/site/gospodinovfed/\">Nikolay Gospodinov</a> and <a href=\"https://www.wbs.ac.uk/about/person/cesare-robotti\">Cesare Robotti</a>, in <i>Journal of Business and Economic Statistics</i>, 30(4), 494-504, 2012."
+ },
+ {
+  "sec": "pub",
+  "title": "Tests of Mean-Variance Spanning",
+  "url": "papers/span_AEF.pdf",
+  "extras": [
+   [
+    "Matlab Programs",
+    "papers/span.zip"
+   ]
+  ],
+  "info": "with <a href=\"https://guofuzhou.github.io/\">Guofu Zhou</a>, in <i>Annals of Economics and Finance</i>, 13(1), 145-193, 2012."
+ },
+ {
+  "sec": "pub",
+  "title": "On the Estimation of Asset Pricing Models Using Univariate Betas",
+  "url": "papers/sb.pdf",
+  "extras": [
+   [
+    "Matlab Programs",
+    "papers/sb.zip"
+   ]
+  ],
+  "info": "with <a href=\"https://www.wbs.ac.uk/about/person/cesare-robotti\">Cesare Robotti</a>, in <i>Economics Letters</i>, 110, 117-121, 2011."
+ },
+ {
+  "sec": "pub",
+  "title": "On the Distribution of the Sample Autocorrelation Coefficients",
+  "url": "papers/sacf4.pdf",
+  "extras": [
+   [
+    "Matlab Programs",
+    "papers/sacf.zip"
+   ]
+  ],
+  "info": "with <a href=\"https://www.ivybusiness.iastate.edu/directory/xiaoluw/\">Xiaolu Wang</a>, in <i>Journal of Econometrics</i>, 154(2), 101-121, 2010."
+ },
+ {
+  "sec": "pub",
+  "title": "Model Comparison Using the Hansen-Jagannathan Distance",
+  "url": "papers/test_equal3.pdf",
+  "extras": [
+   [
+    "Unpublished Appendix",
+    "papers/excess.pdf"
+   ],
+   [
+    "Errata",
+    "papers/errata_rfs2009.pdf"
+   ]
+  ],
+  "info": "with <a href=\"https://www.wbs.ac.uk/about/person/cesare-robotti\">Cesare Robotti</a>, in <i>Review of Financial Studies</i>, 22(9), 3449-3490, 2009."
+ },
+ {
+  "sec": "pub",
+  "title": "What Will the Likely Range of My Wealth Be?",
+  "url": "papers/KZ_Wealth_04.pdf",
+  "extras": [
+   [
+    "Matlab Programs",
+    "papers/wealth.zip"
+   ]
+  ],
+  "info": "with <a href=\"https://guofuzhou.github.io/\">Guofu Zhou</a>, in <i>Financial Analysts Journal</i>, 65(4), 68-77, 2009."
+ },
+ {
+  "sec": "pub",
+  "title": "Computationally Efficient Recursions for Top-Order Invariant Polynomials with Applications",
+  "url": "papers/zonal5.pdf",
+  "extras": [
+   [
+    "Matlab Programs",
+    "papers/zonal.zip"
+   ]
+  ],
+  "info": "with <a href=\"https://cemmap.ac.uk/person/grant-hillier/\">Grant Hillier</a> and <a href=\"https://www.ivybusiness.iastate.edu/directory/xiaoluw/\">Xiaolu Wang</a>, in <i>Econometric Theory</i>, 25(1), 211-242, 2009."
+ },
+ {
+  "sec": "pub",
+  "title": "Specification Tests of Asset Pricing Models Using Excess Returns",
+  "url": "papers/hjdist3.pdf",
+  "extras": [
+   [
+    "Errata",
+    "papers/errata_jef.pdf"
+   ]
+  ],
+  "info": "with <a href=\"https://www.wbs.ac.uk/about/person/cesare-robotti\">Cesare Robotti</a>, in <i>Journal of Empirical Finance</i>, 15, 816-838, 2008."
+ },
+ {
+  "sec": "pub",
+  "title": "The Distribution of the Sample Minimum-Variance Frontier",
+  "url": "papers/effset4.pdf",
+  "extras": [],
+  "info": "with <a href=\"http://staff.qut.edu.au/staff/smithd4\">Daniel Smith</a>, in <i>Management Science</i> 54(7), 1364-1380, 2008."
+ },
+ {
+  "sec": "pub",
+  "title": "From Moments of Sum to Moments of Product",
+  "url": "papers/moment.pdf",
+  "extras": [
+   [
+    "Errata",
+    "papers/errata.pdf"
+   ],
+   [
+    "Matlab Programs",
+    "papers/prodmom.zip"
+   ]
+  ],
+  "info": "in <i>Journal of Multivariate Analysis</i> 99(3), 542-554, 2008."
+ },
+ {
+  "sec": "pub",
+  "title": "Optimal Portfolio Choice with Parameter Uncertainty",
+  "url": "papers/erisk8.pdf",
+  "extras": [],
+  "info": "with <a href=\"https://guofuzhou.github.io/\">Guofu Zhou</a>, in <i>Journal of Financial and Quantitative Analysis</i> 42(3), 621-656, 2007."
+ },
+ {
+  "sec": "pub",
+  "title": "A New Variance Bound on the Stochastic Discount Factor",
+  "url": "papers/bound.pdf",
+  "extras": [],
+  "info": "with <a href=\"https://guofuzhou.github.io/\">Guofu Zhou</a>, in <i>Journal of Business</i> 79(2), 941-961, 2006."
+ },
+ {
+  "sec": "pub",
+  "title": "GMM Tests of Stochastic Discount Factor Models with Useless Factors",
+  "url": "papers/sdf10.pdf",
+  "extras": [],
+  "info": "with <a href=\"http://ihome.ust.hk/~czhang/\">Chu Zhang</a>, in <i>Journal of Financial Economics</i> 54(1), 103-127, 1999."
+ },
+ {
+  "sec": "pub",
+  "title": "A Critique of the Stochastic Discount Factor Methodology",
+  "url": "papers/sdf3.pdf",
+  "extras": [],
+  "info": "with <a href=\"https://guofuzhou.github.io/\">Guofu Zhou</a>, in <i>Journal of Finance</i> 54, 1221-1248, 1999."
+ },
+ {
+  "sec": "pub",
+  "title": "Two-pass Tests of Asset Pricing Models with Useless Factors",
+  "url": "papers/spur11.pdf",
+  "extras": [],
+  "info": "with <a href=\"http://ihome.ust.hk/~czhang/\">Chu Zhang</a>, in <i>Journal of Finance</i> 54, 203-235, 1999."
+ },
+ {
+  "sec": "pub",
+  "title": "Tests of the Relations Among Marketwide Factors, Firm-Specific Variables, and Stock Returns Using a Conditional Asset Pricing Model",
+  "url": "papers/cond.pdf",
+  "extras": [],
+  "info": "with Jia He, Lilian Ng, and <a href=\"http://ihome.ust.hk/~czhang/\">Chu Zhang</a>, in <i>Journal of Finance</i> 51, 1891-1908, 1996."
+ },
+ {
+  "sec": "pub",
+  "title": "Biases in Evaluating Trading Strategies",
+  "url": "papers/mom1.pdf",
+  "extras": [],
+  "info": "with <a href=\"http://www.kirikos.com/\">George Kirikos</a>, <i>Canadian Investment Review</i>, 9-18, Summer 1996. (This is the original version of the paper, which is slightly different but better than the published version.)"
+ },
+ {
+  "sec": "pub",
+  "title": "Expected Return and the Bid-Ask Spread",
+  "url": "papers/bidask.pdf",
+  "extras": [],
+  "info": "with <a href=\"https://merage.uci.edu/research-faculty/faculty-directory/Nai-fu-Chen.html\">Nai-fu Chen</a>, in <i>Modern Portfolio Theory and Applications</i>, (S. Saitou, K. Sawaki, and K. Kubota eds.), Gakujutsu Shuppan Center, Osaka, 1996."
+ },
+ {
+  "sec": "pub",
+  "title": "Are the Discounts on Closed-end Funds a Sentiment Index?",
+  "url": null,
+  "extras": [],
+  "info": "with <a href=\"https://merage.uci.edu/research-faculty/faculty-directory/Nai-fu-Chen.html\">Nai-fu Chen</a> and Merton Miller, in <i>Journal of Finance</i> 48, 795-800, 1993."
+ },
+ {
+  "sec": "pub",
+  "title": "A Rejoinder",
+  "url": null,
+  "extras": [],
+  "info": "with <a href=\"https://merage.uci.edu/research-faculty/faculty-directory/Nai-fu-Chen.html\">Nai-fu Chen</a> and Merton Miller, in <i>Journal of Finance</i> 48, 809-810, 1993."
+ },
+ {
+  "sec": "wp",
+  "title": "Shape of the Yield Curve Under CIR Single Factor Model: A Note",
+  "url": "papers/term.pdf",
+  "extras": [],
+  "info": "1992."
+ },
+ {
+  "sec": "wp",
+  "title": "The Value-weighted Average Misspecification in Asset Pricing Models",
+  "url": null,
+  "extras": [],
+  "info": "with <a href=\"http://ihome.ust.hk/~czhang/\">Chu Zhang</a>, 1995."
+ },
+ {
+  "sec": "wp",
+  "title": "On the Predicted Returns Explained by Asset Pricing Models",
+  "url": null,
+  "extras": [],
+  "info": "with <a href=\"http://ihome.ust.hk/~czhang/\">Chu Zhang</a>, 1995."
+ },
+ {
+  "sec": "wp",
+  "title": "A Critique of the Use of t-ratios in Model Selection",
+  "url": "papers/misspec7.pdf",
+  "extras": [],
+  "info": "with <a href=\"https://merage.uci.edu/research-faculty/faculty-directory/Nai-fu-Chen.html\">Nai-fu Chen</a> and <a href=\"http://ihome.ust.hk/~czhang/\">Chu Zhang</a>, 1997."
+ },
+ {
+  "sec": "wp",
+  "title": "On the Explanatory Power of Asset Pricing Models Across and Within Portfolios",
+  "url": "papers/port3.pdf",
+  "extras": [],
+  "info": "1999."
+ },
+ {
+  "sec": "wp",
+  "title": "Empirical Asset Pricing: the Beta Method versus the Stochastic Discount Factor Method",
+  "url": "papers/sdf1.pdf",
+  "extras": [],
+  "info": "with <a href=\"https://guofuzhou.github.io/\">Guofu Zhou</a>, 2001."
+ },
+ {
+  "sec": "wp",
+  "title": "Hansen-Jagannathan Distance: Geometry and Exact Distribution",
+  "url": "papers/hj2.pdf",
+  "extras": [],
+  "info": "with <a href=\"https://guofuzhou.github.io/\">Guofu Zhou</a>, 2003."
+ },
+ {
+  "sec": "wp",
+  "title": "Finite Sample Analysis of Two-Pass Cross-Sectional Regressions",
+  "url": "papers/csr2.pdf",
+  "extras": [],
+  "info": "with Robert Chen, 2004."
+ },
+ {
+  "sec": "wp",
+  "title": "Exact Variance Ratio Test with Overlapping Data",
+  "url": "papers/vratio3.pdf",
+  "extras": [
+   [
+    "Matlab Programs",
+    "papers/vratio.zip"
+   ]
+  ],
+  "info": "2011."
+ },
+ {
+  "sec": "wp",
+  "title": "An Explicit Expression for the Expectation of a Product of Quadratic Forms in Multivariate Normal Random Variables",
+  "url": "papers/qprod.pdf",
+  "extras": [
+   [
+    "Matlab Programs",
+    "papers/qprod.zip"
+   ]
+  ],
+  "info": "with Jiening Pan, 2025."
+ }
+]
