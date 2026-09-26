@@ -1,0 +1,1914 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Products of Quadratic Forms — the Explicit Expression, Live</title>
+<!--
+  qprod.html — visual companion to Kan & Pan, "An explicit expression for the
+  expectation of a product of quadratic forms in multivariate normal random
+  variables" (JMVA), and to the Matlab package in program/public.
+
+  Two families, switched at the top of the page:
+    z   E[prod_i (z'A_i z)^{s_i}],   z ~ N(mu, Sigma) or CN(mu, Sigma)
+    W   E[prod_i tr(W A_i)^{s_i}],   W ~ W_m(n, Sigma, Lambda) or CW_m(...)
+  and two fields (real / complex).  Part 1 animates Propositions 1-3 (set
+  partitions -> block sums -> distinct terms, and the k! permutation screening
+  they replace).  Part 2 runs Proposition 4 (multiset partitions, Knuth's
+  Algorithm M, bracelets with fixed content) live in a Web Worker, and checks
+  every number against an independent route (polarization + cumulants of a
+  single form) and Monte Carlo.  Part 3 compares term counts.
+-->
+<style>
+  :root{
+    color-scheme: light;
+    --surface-1:#fcfcfb; --page:#f9f9f7;
+    --ink-1:#0b0b0b; --ink-2:#52514e; --ink-3:#898781;
+    --grid:#e1e0d9; --baseline:#c3c2b7; --ring:rgba(11,11,11,0.10);
+    --c-tau:#2a78d6; --c-theta:#eb6834; --c-lam:#4a3aa7; --c-ok:#1baf7a;
+    --c-bad:#b3403a; --c-live:#0f8a8a; --c-gold:#8a6d1f;
+    --tau-fill:#eef4fc; --theta-fill:#fdf0ea;
+    --chip-bg:#f0efec; --hi-ring:#0b0b0b;
+  }
+  :root[data-theme="dark"]{
+    color-scheme: dark;
+    --surface-1:#1a1a19; --page:#0d0d0d;
+    --ink-1:#ffffff; --ink-2:#c3c2b7; --ink-3:#898781;
+    --grid:#2c2c2a; --baseline:#383835; --ring:rgba(255,255,255,0.10);
+    --c-tau:#3987e5; --c-theta:#d95926; --c-lam:#9085e9; --c-ok:#199e70;
+    --c-bad:#e06c65; --c-live:#2ab5b5; --c-gold:#c9a83c;
+    --tau-fill:#20293a; --theta-fill:#3a2519;
+    --chip-bg:#26262a; --hi-ring:#ffffff;
+  }
+  @media (prefers-color-scheme: dark){
+    :root:not([data-theme="light"]){
+      color-scheme: dark;
+      --surface-1:#1a1a19; --page:#0d0d0d;
+      --ink-1:#ffffff; --ink-2:#c3c2b7; --ink-3:#898781;
+      --grid:#2c2c2a; --baseline:#383835; --ring:rgba(255,255,255,0.10);
+      --c-tau:#3987e5; --c-theta:#d95926; --c-lam:#9085e9; --c-ok:#199e70;
+      --c-bad:#e06c65; --c-live:#2ab5b5; --c-gold:#c9a83c;
+      --tau-fill:#20293a; --theta-fill:#3a2519;
+      --chip-bg:#26262a; --hi-ring:#ffffff;
+    }
+  }
+  *{box-sizing:border-box}
+  [hidden]{display:none !important}
+  html,body{margin:0;padding:0}
+  body{background:var(--page);color:var(--ink-1);
+    font-family:system-ui,-apple-system,"Segoe UI",sans-serif;font-size:14px;line-height:1.45}
+  header{padding:18px 22px 10px}
+  header h1{font-size:19px;margin:0 0 3px;font-weight:650;letter-spacing:-0.01em}
+  header p, section > p.lead{margin:0 0 4px;color:var(--ink-2);font-size:13px;max-width:980px}
+  .m{font-style:italic}
+  sub,sup{line-height:0}
+  section{margin-top:6px}
+  section h2.part{font-size:15px;font-weight:650;margin:18px 22px 4px;letter-spacing:-0.01em}
+  section h2.part .tag{display:inline-block;font-size:11px;font-weight:600;color:#fff;
+    border-radius:5px;padding:1px 8px;margin-right:8px;vertical-align:1px}
+  section > p.lead{padding:0 22px}
+  /* family switch */
+  .modebar{position:sticky;top:0;z-index:20;display:flex;align-items:center;gap:10px;flex-wrap:wrap;
+    margin:6px 12px 14px;padding:9px 12px;border:1px solid var(--grid);border-radius:11px;
+    background:var(--surface-1);box-shadow:0 1px 0 var(--ring),0 6px 18px -14px rgba(0,0,0,.45)}
+  .modelab{font-size:11px;letter-spacing:.09em;text-transform:uppercase;color:var(--ink-3)}
+  .modebtn{appearance:none;cursor:pointer;font:inherit;font-size:15px;line-height:1.1;
+    padding:7px 15px 6px;border-radius:8px;border:1px solid var(--grid);background:var(--page);
+    color:var(--ink-2);display:flex;flex-direction:column;align-items:flex-start;gap:2px}
+  .modebtn:hover{border-color:var(--baseline)}
+  .modebtn .sub2{font-size:10.5px;letter-spacing:.04em;color:var(--ink-3);text-transform:uppercase}
+  .modebtn.on{background:var(--ink-1);border-color:var(--ink-1);color:var(--surface-1)}
+  .modebtn.on .sub2{color:var(--surface-1);opacity:.72}
+  .modesep{width:1px;align-self:stretch;background:var(--grid);margin:0 4px}
+  .modenote{font-size:12.5px;color:var(--ink-3);margin-left:2px;max-width:520px}
+  .spacer{flex:1}
+  /* controls */
+  .controls{display:flex;flex-wrap:wrap;align-items:center;gap:8px;padding:10px 22px 8px}
+  .controls button, .seg button{font:inherit;font-size:13px;padding:5px 14px;border-radius:7px;
+    border:1px solid var(--ring);background:var(--surface-1);color:var(--ink-1);cursor:pointer}
+  .controls button:hover{border-color:var(--baseline)}
+  .controls button.primary{background:var(--c-tau);border-color:transparent;color:#fff}
+  .seg{display:inline-flex;border:1px solid var(--ring);border-radius:8px;overflow:hidden}
+  .seg button{border:none;border-radius:0;padding:5px 11px;background:var(--surface-1);color:var(--ink-2)}
+  .seg button+button{border-left:1px solid var(--ring)}
+  .seg button.on{background:var(--ink-1);color:var(--surface-1)}
+  .seglab{font-size:12px;color:var(--ink-3);margin-left:6px}
+  .counter{margin-left:6px;color:var(--ink-2);font-size:13px}
+  .counter b{color:var(--ink-1);font-variant-numeric:tabular-nums}
+  .legend{display:flex;flex-wrap:wrap;gap:4px 18px;padding:2px 22px 10px;font-size:12.5px;color:var(--ink-2);align-items:center}
+  .legend .item{display:inline-flex;align-items:center;gap:6px}
+  .legend svg{display:inline-block;vertical-align:middle}
+  /* part 1 layout */
+  .layout{display:flex;gap:0;align-items:flex-start;padding:0 12px 16px}
+  .graphwrap{flex:1 1 auto;min-width:0;overflow:auto;max-height:860px;
+    background:var(--surface-1);border:1px solid var(--ring);border-radius:12px;padding:6px 0}
+  .panel{flex:0 0 380px;margin-left:12px;padding:16px 18px;position:sticky;top:78px;
+    background:var(--surface-1);border:1px solid var(--ring);border-radius:12px;
+    font-size:13px;color:var(--ink-2);overflow:auto;max-height:860px}
+  .panel h2{font-size:14px;margin:0 0 8px;color:var(--ink-1);font-weight:650}
+  .panel h3{font-size:12px;margin:14px 0 5px;color:var(--ink-3);font-weight:600;text-transform:uppercase;letter-spacing:.04em}
+  .panel p{margin:8px 0}
+  .panel .big{font-size:16px;color:var(--ink-1);margin:4px 0 2px}
+  .panel .meta{font-size:12px;color:var(--ink-3)}
+  .fbox{display:block;margin:6px 0;padding:6px 10px;border-radius:7px;border-left:3px solid var(--c-tau);
+    background:var(--chip-bg);color:var(--ink-1);font-size:13px}
+  .fbox.th{border-color:var(--c-theta)} .fbox.lm{border-color:var(--c-lam)} .fbox.ok{border-color:var(--c-ok)}
+  .fbox small{display:block;color:var(--ink-3);font-size:11.5px;margin-top:2px}
+  .hint{font-size:12px;color:var(--ink-3);margin-top:12px}
+  .tau{color:var(--c-tau)} .theta{color:var(--c-theta)} .lamc{color:var(--c-lam)}
+  /* partition rows */
+  .prow{display:grid;grid-template-columns:230px 1fr;gap:10px;align-items:start;
+    padding:8px 14px;border-bottom:1px solid var(--grid);cursor:pointer;transition:opacity .35s}
+  .prow:last-child{border-bottom:none}
+  .prow:hover{background:color-mix(in srgb,var(--chip-bg) 55%,transparent)}
+  .prow.sel{background:var(--chip-bg)}
+  .prow.pending{opacity:.16}
+  .prow.pending .tiles{visibility:hidden}
+  .prow.fresh .tile{animation:pop .45s ease both}
+  @keyframes pop{from{opacity:0;transform:scale(.6)}to{opacity:1;transform:none}}
+  .plabel{font-size:14px;font-weight:650;color:var(--ink-1);font-variant-numeric:tabular-nums}
+  .pmeta{font-size:11.5px;color:var(--ink-3);margin-top:1px}
+  .coefchip{display:inline-block;font-size:11.5px;padding:0 7px;border-radius:5px;background:var(--chip-bg);color:var(--ink-1);margin-top:3px}
+  .lams{font-size:12.5px;color:var(--ink-2);margin-top:4px;line-height:1.6}
+  .grouphead{padding:8px 14px 4px;font-size:12px;color:var(--ink-3);
+    border-bottom:1px solid var(--grid);background:var(--page)}
+  .grouphead b{color:var(--ink-1);text-transform:none;letter-spacing:0;font-size:13px}
+  .tiles{display:flex;flex-wrap:wrap;gap:4px}
+  .tile{width:68px;border-radius:8px;border:1px solid var(--ring);background:var(--page);
+    display:flex;flex-direction:column;align-items:center;padding:2px 0 3px;cursor:pointer}
+  .tile:hover{border-color:var(--baseline)}
+  .tile.sel{outline:2px solid var(--hi-ring);outline-offset:0}
+  .tile .tc{font-size:11px;color:var(--ink-1);font-variant-numeric:tabular-nums;line-height:1.1}
+  .tile .tc .nn{color:var(--ink-3)}
+  /* screening view */
+  .sgroup{padding:8px 14px;border-bottom:1px solid var(--grid);transition:opacity .35s}
+  .sgroup.pending{opacity:.16}
+  .shead{font-size:12.5px;color:var(--ink-2);margin-bottom:5px}
+  .shead b{color:var(--ink-1)}
+  .perms{display:flex;flex-wrap:wrap;gap:3px}
+  .perm{font-size:11.5px;padding:1px 6px;border-radius:5px;border:1px solid var(--grid);
+    color:var(--ink-3);font-variant-numeric:tabular-nums;cursor:default;background:var(--page)}
+  .perm.rej{text-decoration:line-through;text-decoration-color:var(--c-bad);opacity:.55}
+  .perm.ok{border-color:var(--c-ok);background:var(--surface-1);color:var(--ink-1);cursor:pointer;font-weight:600}
+  .perm.ok:hover{outline:1.5px solid var(--hi-ring)}
+  .perm .bt{color:var(--c-tau)} .perm .bh{color:var(--c-theta)}
+  .perm.rej .bt,.perm.rej .bh{color:inherit}
+  .statline{display:flex;gap:28px;flex-wrap:wrap;padding:10px 14px 4px}
+  .stat .v{font-size:22px;font-weight:650;font-variant-numeric:tabular-nums;letter-spacing:-.01em}
+  .stat .l{font-size:11px;color:var(--ink-3);text-transform:uppercase;letter-spacing:.05em}
+  /* glyph svg */
+  .gv circle.v{fill:var(--surface-1);stroke:var(--ink-3);stroke-width:1}
+  .gv text.vl{font-size:8.5px;fill:var(--ink-1);text-anchor:middle;dominant-baseline:central;font-weight:600}
+  .gv .et{fill:none;stroke:var(--c-tau);stroke-width:1.8}
+  .gv .eh{fill:none;stroke:var(--c-theta);stroke-width:1.8}
+  .gv .el{fill:none;stroke:var(--c-lam);stroke-width:1.3;stroke-dasharray:3 2}
+  .gv .mu{fill:var(--c-lam)}
+  .gv .nb{font-size:10px;fill:var(--ink-3)}
+  /* live boxes (part 2) */
+  .livebox{overflow-x:auto;margin:0 22px 16px;padding:14px 18px;background:var(--surface-1);border:1px solid var(--ring);border-radius:12px}
+  .livebox h2{font-size:14px;margin:0 0 8px}
+  .liveform{display:flex;flex-wrap:wrap;gap:10px 20px;align-items:center;font-size:13px}
+  .liveform label{display:inline-flex;align-items:center;gap:6px;color:var(--ink-2);cursor:pointer}
+  .liveform input[type=text],.liveform input[type=number]{font:inherit;padding:3px 7px;border-radius:6px;
+    border:1px solid var(--ring);background:var(--page);color:var(--ink-1)}
+  .liveform input[type=number]{width:62px}
+  .liveform input[type=range]{accent-color:var(--c-live);width:150px}
+  .liveform button,.livebox button{font:inherit;font-size:13px;padding:4px 12px;border-radius:7px;
+    border:1px solid var(--ring);background:var(--surface-1);color:var(--ink-1);cursor:pointer}
+  .livebox button.primary{background:var(--c-live);border-color:transparent;color:#fff}
+  .livebox button:disabled{opacity:.45;cursor:default}
+  .presets{display:flex;gap:5px;flex-wrap:wrap;align-items:center;font-size:12px;color:var(--ink-3)}
+  .presets button{font-size:12px;padding:1px 8px}
+  .livenote{font-size:12px;color:var(--ink-3);margin-top:6px}
+  .livenote.warn{color:var(--c-theta)}
+  .livestatus{font-size:13px;color:var(--ink-2);margin:8px 0 0;min-height:18px}
+  .livestatus b{color:var(--ink-1);font-variant-numeric:tabular-nums}
+  .pass{color:var(--c-ok);font-weight:650} .fail{color:var(--c-bad);font-weight:650}
+  .progressbar{height:6px;border-radius:3px;background:var(--chip-bg);margin-top:8px;overflow:hidden}
+  .progressbar div{height:100%;width:0;background:var(--c-live);transition:width .2s}
+  .kpis{display:flex;flex-wrap:wrap;gap:10px 30px;margin-top:12px}
+  .kpi .v{font-size:24px;font-weight:650;font-variant-numeric:tabular-nums;letter-spacing:-.01em;line-height:1.15}
+  .kpi .l{font-size:11px;color:var(--ink-3);text-transform:uppercase;letter-spacing:.05em}
+  table.livetab{border-collapse:collapse;font-size:12.5px;margin-top:10px;font-variant-numeric:tabular-nums}
+  table.livetab th,table.livetab td{padding:3px 14px 3px 0;text-align:left;border-bottom:1px solid var(--grid);vertical-align:top}
+  table.livetab th{color:var(--ink-3);font-weight:600;font-size:11.5px}
+  table.livetab td.num,table.livetab th.num{text-align:right}
+  .termrow{display:flex;gap:10px;margin:3px 0;padding:3px 9px;border-radius:6px;border-left:3px solid var(--c-live);
+    background:var(--chip-bg);color:var(--ink-1);font-size:13px;align-items:baseline}
+  .termrow .ix{color:var(--ink-3);font-size:11px;min-width:52px;font-variant-numeric:tabular-nums}
+  .termrow .mx{color:var(--ink-3);font-size:12px;margin-left:auto;text-align:right}
+  #termList{max-height:560px;overflow:auto}
+  .pager{display:flex;gap:6px;align-items:center;margin-top:8px;font-size:12.5px;color:var(--ink-2);flex-wrap:wrap}
+  .pager button{font-size:12.5px;padding:2px 10px}
+  .rowtools{display:flex;gap:8px;flex-wrap:wrap;align-items:center;margin:8px 0}
+  .rowtools input[type=text]{font:inherit;font-size:12.5px;padding:3px 7px;border-radius:6px;border:1px solid var(--ring);background:var(--page);color:var(--ink-1);width:190px}
+  .evaltab td{padding:5px 14px 5px 0;border-bottom:1px solid var(--grid);font-size:13px;font-variant-numeric:tabular-nums}
+  .evaltab td.v{text-align:right;font-family:ui-monospace,SFMono-Regular,Consolas,monospace;font-size:12.5px;color:var(--ink-1)}
+  .evaltab td.d{text-align:right;font-size:12px}
+  .evaltab tr.warnrow td{background:color-mix(in srgb,var(--c-bad) 10%,transparent)}
+  details.mats{margin-top:10px;font-size:12px;color:var(--ink-2)}
+  details.mats pre{font-size:11.5px;max-height:240px;overflow:auto;background:var(--page);border:1px solid var(--grid);border-radius:8px;padding:8px}
+  .mcwrap{margin-top:12px}
+  .chartsvg text{font-size:11px;fill:var(--ink-3)}
+  .chartsvg .ax{stroke:var(--baseline);stroke-width:1}
+  .chartsvg .gl{stroke:var(--grid);stroke-width:1}
+  footer{padding:10px 22px 26px;color:var(--ink-3);font-size:12px;max-width:980px}
+  @media (max-width:1000px){
+    .layout{flex-direction:column}
+    .panel{flex:none;margin-left:0;margin-top:12px;max-height:none;position:static;width:100%}
+    .prow{grid-template-columns:1fr}
+  }
+  @media (max-width:560px){ .modebar{position:static} .livebox{margin:0 12px 16px;padding:12px} .modenote{flex-basis:100%} header,section > p.lead{padding-left:16px;padding-right:16px} }
+</style>
+</head>
+<body>
+<header>
+  <h1>Expectation of a product of quadratic forms — the explicit expression, live</h1>
+  <p>Kan &amp; Pan (JMVA) give an explicit formula for <span class="m">𝔼[∏<sub>i</sub> z′A<sub>i</sub>z]</span> with <span class="m">z ∼ N(μ, Σ)</span>, Σ only positive semidefinite, in which <b>no term is repeated</b> and every coefficient is a power of two. Every term is a product of two kinds of scalars,
+  <span class="theta">θ<sub>ν</sub> = μ′A<sub>ν₁</sub>ΣA<sub>ν₂</sub>Σ⋯ΣA<sub>ν<sub>p</sub></sub>μ</span> and
+  <span class="tau">τ<sub>ν</sub> = tr(A<sub>ν₁</sub>ΣA<sub>ν₂</sub>Σ⋯A<sub>ν<sub>p</sub></sub>Σ)</span>, indexed by canonical words: θ-words up to reversal, τ-words up to rotation and reversal (bracelets). Draw each τ-word as a <span class="tau">cycle</span> through its labels and each θ-word as a <span class="theta">path</span> capped by μ at both ends: every term of the expansion is then a cover of the labels {1,…,k} by disjoint cycles and paths, and every cover appears exactly once.</p>
+  <p>The same machinery gives Hermitian forms in complex normal vectors (the real part is taken <i>term by term</i>), products with repeated forms <span class="m">𝔼[∏(z′A<sub>i</sub>z)<sup>s<sub>i</sub></sup>]</span>, and the Wishart product moments <span class="m">𝔼[∏ tr(WA<sub>i</sub>)]</span>. Use the switch below to move between the quadratic-form and Wishart halves and between the real and complex cases.</p>
+</header>
+
+<div class="modebar" role="toolbar" aria-label="Family and field">
+  <span class="modelab">Family</span>
+  <button class="modebtn on" id="famZ">z′Az<span class="sub2">quadratic forms</span></button>
+  <button class="modebtn" id="famW">tr(A W)<span class="sub2">Wishart</span></button>
+  <span class="modesep"></span>
+  <span class="modelab">Field</span>
+  <button class="modebtn on" id="fldR">ℝ<span class="sub2">real</span></button>
+  <button class="modebtn" id="fldC">ℂ<span class="sub2">complex</span></button>
+  <span class="modenote" id="modeNote"></span>
+  <span class="spacer"></span>
+  <button class="modebtn" id="btnTheme" style="font-size:12.5px;padding:6px 12px">◐ Theme</button>
+</div>
+
+<!-- ======================= PART 1 ======================= -->
+<section id="part1">
+<h2 class="part"><span class="tag" style="background:var(--c-tau)">Part 1</span><span id="p1title">From set partitions to distinct terms</span></h2>
+<p class="lead" id="p1lead"></p>
+<div class="controls">
+  <span class="seglab">k</span>
+  <span class="seg" id="segK"></span>
+  <span class="seglab">mean</span>
+  <span class="seg" id="segMean"><button data-v="nc" class="on">noncentral</button><button data-v="c">central</button></span>
+  <span class="seglab">view</span>
+  <span class="seg" id="segView"><button data-v="sp" class="on">set partitions (Prop. 2)</button><button data-v="sc">permutation screening (Prop. 1)</button></span>
+</div>
+<div class="controls" style="padding-top:0">
+  <button id="btnPlay" class="primary">▶ Play</button>
+  <button id="btnStep">Step</button>
+  <button id="btnAll">Show all</button>
+  <button id="btnReset">Reset</button>
+  <span class="counter" id="counter"></span>
+</div>
+<div class="legend" id="legend"></div>
+<div class="layout">
+  <div class="graphwrap" id="wrap1"><div id="rows"></div></div>
+  <div class="panel" id="panel"></div>
+</div>
+</section>
+
+<!-- ======================= PART 2 ======================= -->
+<section id="part2">
+<h2 class="part"><span class="tag" style="background:var(--c-live)">Part 2</span><span id="p2title">Generate it yourself</span></h2>
+<p class="lead" id="p2lead"></p>
+<div class="livebox">
+  <div class="liveform">
+    <label>powers <span class="m">s</span> = (<input type="text" id="inS" value="1,1,1" size="14" aria-label="power vector s">)</label>
+    <span class="seg" id="segMean2"><button data-v="nc" class="on">noncentral</button><button data-v="c">central</button></span>
+    <button class="primary" id="btnRun">► Generate terms</button>
+    <button id="btnCancel" disabled>■ Cancel</button>
+  </div>
+  <div class="presets" style="margin-top:8px">presets:
+    <button data-s="1,1">(1,1)</button><button data-s="1,1,1">(1,1,1)</button><button data-s="1,2">(1,2)</button>
+    <button data-s="2,2">(2,2)</button><button data-s="1,1,1,1">(1,1,1,1)</button><button data-s="3">(3)</button>
+    <button data-s="10">(10)</button><button data-s="5,5">(5,5)</button><button data-s="1,1,1,1,1,1,1">1×7</button>
+    <button data-s="3,3,4">(3,3,4)</button><button data-s="2,2,2,2,2">(2,2,2,2,2)</button>
+  </div>
+  <div class="livenote" id="capNote"></div>
+  <div class="livestatus" id="genStatus">Idle. Enter a power vector and generate.</div>
+  <div class="progressbar"><div id="genBar"></div></div>
+  <div id="genKpis"></div>
+  <div id="genTable"></div>
+</div>
+
+<div class="livebox" id="termBox" hidden>
+  <h2>Browse the distinct terms</h2>
+  <div class="rowtools">
+    <input type="text" id="inFilter" placeholder="filter, e.g. θ(1,2) or a_1_2">
+    <span class="seg" id="segShow"><button data-v="sym" class="on">θ / τ</button><button data-v="mat">matrix form</button><button data-v="mat2">Matlab strings</button></span>
+    <span class="spacer"></span>
+    <button id="dlTxt">⬇ .txt</button><button id="dlCsv">⬇ .csv</button><button id="dlTex">⬇ LaTeX</button><button id="dlM">⬇ Matlab .m</button>
+  </div>
+  <div id="termList"></div>
+  <div class="pager" id="pager"></div>
+</div>
+
+<div class="livebox" id="evalBox">
+  <h2>Evaluate numerically — and check it three independent ways</h2>
+  <p class="livenote" id="evalLead" style="margin-top:0"></p>
+  <div class="liveform">
+    <label>m <input type="number" id="inM" min="1" max="6" value="3"></label>
+    <label id="lblN">n <input type="number" id="inN" min="1" max="40" value="4"></label>
+    <label>seed <input type="number" id="inSeed" min="1" max="99999" value="1"></label>
+    <label><input type="checkbox" id="inSing" checked> singular Σ (rank m−1)</label>
+    <label id="lblEnt" hidden>A<sub>i</sub> from entries <input type="text" id="inEnt" size="12" placeholder="e.g. 11,12,22"></label>
+    <button class="primary" id="btnEval">= Evaluate</button>
+    <label>MC draws <input type="range" id="inDraws" min="3" max="6" step="0.5" value="5"><span id="drawsVal">100,000</span></label>
+    <button id="btnMC">⟳ Monte Carlo</button>
+    <button id="btnMat" title="Copy Matlab code that reproduces this example with your package">⧉ copy as Matlab</button>
+  </div>
+  <div class="livestatus" id="evalStatus"></div>
+  <div id="evalOut"></div>
+  <div class="mcwrap" id="mcOut"></div>
+  <details class="mats"><summary>show the matrices used</summary><pre id="matDump"></pre></details>
+</div>
+</section>
+
+<!-- ======================= PART 3 ======================= -->
+<section id="part3">
+<h2 class="part"><span class="tag" style="background:var(--c-gold)">Part 3</span>How many terms? — the price of each route</h2>
+<p class="lead">Every count on this chart is computed live on this page from the closed forms in the paper (and, for the two “ours” series up to the sizes Part 2 can reach, confirmed by actually enumerating the terms). Hover to read values.</p>
+<div class="livebox">
+  <div id="countChart"></div>
+  <div class="liveform" style="margin-top:12px">
+    <label>distinct terms for powers <span class="m">s</span> = (<input type="text" id="inS3" value="5,5" size="14">)</label>
+    <button id="btnCount">Count</button>
+    <span class="livenote" id="countOut" style="margin:0"></span>
+  </div>
+  <div id="countTab"></div>
+</div>
+</section>
+
+<footer id="foot"></footer>
+
+<script id="qp-engine">
+/* ===QP-ENGINE-BEGIN===
+   Engine for E[prod_i (z'A_i z)^{s_i}] and E[prod_i tr(W A_i)^{s_i}]
+   (Kan & Pan, "An explicit expression for the expectation of a product of
+   quadratic forms in multivariate normal random variables", JMVA).
+   Pure functions; runs in the page and inside a Web Worker.
+*/
+var QP = (function () {
+  "use strict";
+
+  /* ---------------- small combinatorics ---------------- */
+  var FACT = [1];
+  for (var i = 1; i <= 30; i++) FACT[i] = FACT[i - 1] * i;
+  function fact(n) { return FACT[n]; }
+  function binom(n, r) { if (r < 0 || r > n) return 0; var v = 1; for (var i = 1; i <= r; i++) v = v * (n - r + i) / i; return Math.round(v); }
+  function gcd(a, b) { while (b) { var t = a % b; a = b; b = t; } return a; }
+  function totient(n) { var r = n, p, m = n; for (p = 2; p * p <= m; p++) if (m % p === 0) { while (m % p === 0) m /= p; r -= r / p; } if (m > 1) r -= r / m; return r; }
+
+  /* integer partitions of n, parts descending, in the paper's order ((n) first) */
+  function intPartitions(n) {
+    var out = [];
+    (function rec(rem, max, acc) {
+      if (rem === 0) { out.push(acc.slice()); return; }
+      for (var p = Math.min(rem, max); p >= 1; p--) { acc.push(p); rec(rem - p, p, acc); acc.pop(); }
+    })(n, n, []);
+    return out;
+  }
+  function freqOf(kappa, k) { var f = []; for (var i = 0; i <= k; i++) f[i] = 0; kappa.forEach(function (p) { f[p]++; }); return f; }
+
+  /* distinct-entry counts (Lemma 1) */
+  function nTheta(i) { return i === 1 ? 1 : fact(i) / 2; }
+  function nTau(i) { return i <= 2 ? 1 : fact(i - 1) / 2; }
+
+  /* closed-form counts from the paper */
+  function Mk(k) {           // eq (Mk), noncentral, distinct matrices
+    var tot = 0;
+    intPartitions(k).forEach(function (kap) {
+      var f = freqOf(kap, k), q = fact(k), pr = 1;
+      for (var i = 1; i <= k; i++) { q /= Math.pow(fact(i), f[i]) * fact(f[i]); pr *= Math.pow(nTheta(i) + nTau(i), f[i]); }
+      tot += q * pr;
+    });
+    return Math.round(tot);
+  }
+  function Nk(k) {           // Corollary 1 count, central
+    var tot = 0;
+    intPartitions(k).forEach(function (kap) {
+      var f = freqOf(kap, k), v = fact(k) * Math.pow(2, f[1] + (f[2] || 0));
+      for (var i = 1; i <= k; i++) v /= fact(f[i]) * Math.pow(2 * i, f[i]);
+      tot += v;
+    });
+    return Math.round(tot);
+  }
+  function mk(k) {           // single-matrix count m(k)
+    var tot = 0;
+    intPartitions(k).forEach(function (kap) { var f = freqOf(kap, k), p = 1; for (var i = 1; i <= k; i++) p *= 1 + f[i]; tot += p; });
+    return tot;
+  }
+  function bell(k) { var row = [1]; for (var i = 0; i < k; i++) { var nr = [row[row.length - 1]]; for (var j = 0; j < row.length; j++) nr.push(nr[j] + row[j]); row = nr; } return row[0]; }
+  function lmCount(k) { var t = 0; for (var i = 0; i <= k; i++) t += fact(i) * binom(k, i) * binom(k, i); return t; }
+
+  /* multiset counts (Lemmas 5-7) for a content vector n = (n_1..n_p) */
+  function multinom(n) { var s = 0, d = 1; n.forEach(function (x) { s += x; d *= fact(x); }); return Math.round(fact(s) / d); }
+  function palCount(n) {
+    var odd = n.filter(function (x) { return x % 2; }).length; if (odd > 1) return 0;
+    var s = 0, d = 1; n.forEach(function (x) { s += Math.floor(x / 2); d *= fact(Math.floor(x / 2)); });
+    return Math.round(fact(s) / d);
+  }
+  function nThetaMulti(n) { return (multinom(n) + palCount(n)) / 2; }
+  function necklaces(n) {
+    var tot = 0, N = 0, g = 0; n.forEach(function (x) { N += x; g = gcd(g, x); });
+    for (var j = 1; j <= g; j++) if (g % j === 0) {
+      var d = 1; n.forEach(function (x) { d *= fact(x / j); });
+      tot += totient(j) * fact(N / j) / d;
+    }
+    return Math.round(tot / N);
+  }
+  function bracelets(n) {
+    var N = 0, j = 0, d = 1; n.forEach(function (x) { N += x; if (x % 2) j++; d *= fact(Math.floor(x / 2)); });
+    var b = necklaces(n) / 2;
+    if (j <= 2) b += fact((N - j) / 2) / (2 * d);
+    return Math.round(b);
+  }
+
+  /* ---------------- words and canonical forms ---------------- */
+  function cmpWord(a, b) { for (var i = 0; i < a.length; i++) if (a[i] !== b[i]) return a[i] - b[i]; return 0; }
+  function nextPerm(a) {              // in place, lexicographic; false when done
+    var i = a.length - 2; while (i >= 0 && a[i] >= a[i + 1]) i--; if (i < 0) return false;
+    var j = a.length - 1; while (a[j] <= a[i]) j--; var t = a[i]; a[i] = a[j]; a[j] = t;
+    for (var l = i + 1, r = a.length - 1; l < r; l++, r--) { t = a[l]; a[l] = a[r]; a[r] = t; }
+    return true;
+  }
+  function dihedralOrbit(w) {          // distinct words among rotations and reversed rotations
+    var n = w.length, seen = {}, min = null, cnt = 0;
+    var rv = w.slice().reverse();
+    [w, rv].forEach(function (x) {
+      for (var r = 0; r < n; r++) {
+        var y = x.slice(r).concat(x.slice(0, r)), key = y.join(",");
+        if (!seen[key]) { seen[key] = 1; cnt++; if (!min || cmpWord(y, min) < 0) min = y; }
+      }
+    });
+    return { size: cnt, min: min };
+  }
+  function primitivePeriod(w) { var n = w.length; for (var p = 1; p <= n; p++) if (n % p === 0) { var ok = true; for (var i = p; i < n && ok; i++) if (w[i] !== w[i - p]) ok = false; if (ok) return p; } return n; }
+
+  /* block content (sorted word, e.g. [1,2,2]) -> canonical words with
+     multiplicities c_j, d_j of Lemma 8 (b! factors kept: integers). */
+  var blockCache = {};
+  function blockWords(content) {
+    var key = content.join(",");
+    if (blockCache[key]) return blockCache[key];
+    var L = content.length, bfac = 1, run = 1;
+    for (var i = 1; i <= L; i++) { if (i < L && content[i] === content[i - 1]) run++; else { bfac *= fact(run); run = 1; } }
+    var theta = [], tau = [], w = content.slice();
+    do {
+      var rv = w.slice().reverse(), c = cmpWord(w, rv);
+      if (c <= 0) {                                 // canonical theta-word
+        var pal = c === 0;
+        var mult = L === 1 ? 1 : (pal ? bfac / 2 : bfac);
+        theta.push({ w: w.slice(), c: mult, pal: pal });
+      }
+      var orb = dihedralOrbit(w);
+      if (cmpWord(orb.min, w) === 0) {                 // canonical tau-word (bracelet)
+        var lab = L === 1 ? 1 : (L === 2 ? 2 : 2 * L);
+        var rho = primitivePeriod(w);
+        // one necklace <=> reversal is a rotation <=> orbit size == rho
+        var oneNeck = orb.size === rho;
+        tau.push({ w: w.slice(), c: bfac * orb.size / lab, rho: rho, oneNeck: oneNeck });
+      }
+    } while (nextPerm(w));
+    var res = { key: key, len: L, bfac: bfac, theta: theta, tau: tau };
+    blockCache[key] = res;
+    return res;
+  }
+
+  /* ---------------- multiset partitions ----------------
+     s = [s_1..s_k]. Calls cb(blocks) with blocks = array of count vectors,
+     listed in non-increasing lexicographic order (so equal blocks are adjacent). */
+  function forEachMultisetPartition(s, cb) {
+    // Knuth, TAOCP 4A, Algorithm 7.2.1.5M (as in qprods.m). Parts come out in
+    // non-increasing lexicographic order, so equal blocks are adjacent.
+    var m = s.length, N = 0; s.forEach(function (x) { N += x; });
+    var sz = m * N + 2, c = new Int32Array(sz), u = new Int32Array(sz), v = new Int32Array(sz), f = new Int32Array(N + 2);
+    for (var j0 = 0; j0 < m; j0++) { c[j0] = j0; u[j0] = s[j0]; v[j0] = s[j0]; }
+    var a = 0, l = 0, b = m, j, k, x; f[0] = 0; f[1] = m;
+    var blocks = [];
+    for (;;) {
+      // M2
+      for (;;) {
+        j = a; k = b; x = 0;
+        while (j < b) {
+          u[k] = u[j] - v[j];
+          if (u[k] === 0) { x = 1; j++; }
+          else if (x === 0) { c[k] = c[j]; v[k] = Math.min(v[j], u[k]); x = u[k] < v[j] ? 1 : 0; k++; j++; }
+          else { c[k] = c[j]; v[k] = u[k]; k++; j++; }
+        }
+        // M3
+        if (k > b) { a = b; b = k; l++; f[l + 1] = b; } else break;
+      }
+      // M4 visit
+      blocks.length = l + 1;
+      for (var p = 0; p <= l; p++) {
+        var bv = new Array(m).fill(0);
+        for (var q = f[p]; q < f[p + 1]; q++) bv[c[q]] = v[q];
+        blocks[p] = bv;
+      }
+      cb(blocks);
+      // M5 / M6
+      for (;;) {
+        j = b - 1; while (v[j] === 0) j--;
+        if (j === a && v[j] === 1) {
+          if (l === 0) return;
+          l--; b = a; a = f[l];
+          continue;
+        }
+        v[j]--; for (var i = j + 1; i < b; i++) v[i] = u[i];
+        break;
+      }
+    }
+  }
+  function countMultisetPartitions(s) { var c = 0; forEachMultisetPartition(s, function () { c++; }); return c; }
+
+  function contentOf(b) { var w = []; for (var i = 0; i < b.length; i++) for (var j = 0; j < b[i]; j++) w.push(i + 1); return w; }
+  function contentVec(b) { return b.filter(function (x) { return x > 0; }); }
+
+  /* group adjacent equal blocks -> [{b, h}] */
+  function groupBlocks(blocks) {
+    var g = [];
+    blocks.forEach(function (b) {
+      var last = g[g.length - 1];
+      if (last && last.b.join(",") === b.join(",")) last.h++; else g.push({ b: b, h: 1 });
+    });
+    return g;
+  }
+  function blockSize(b) { var s = 0; for (var i = 0; i < b.length; i++) s += b[i]; return s; }
+
+  /* coefficient data for a multiset partition (Prop. 4) */
+  function partitionInfo(blocks, s, complex) {
+    var S = 0; s.forEach(function (x) { S += x; });
+    var f1 = 0, f2 = 0;
+    blocks.forEach(function (b) { var l = blockSize(b); if (l === 1) f1++; else if (l === 2) f2++; });
+    var e = (complex ? blocks.length : S) - f1 - f2;
+    var groups = groupBlocks(blocks);
+    var num = 1; s.forEach(function (x) { num *= fact(x); });
+    var den = 1;
+    groups.forEach(function (g) { den *= fact(g.h); });
+    blocks.forEach(function (b) { b.forEach(function (x) { den *= fact(x); }); });
+    return { pow2: e, cs: Math.round(num / den), groups: groups, f1: f1, f2: f2, r: blocks.length };
+  }
+
+  /* block sum lambda (eq. lambda1): list of {kind:'h'|'a', w, c} */
+  function lambdaList(b, central) {
+    var bw = blockWords(contentOf(b)), L = bw.len, out = [];
+    if (!central) bw.theta.forEach(function (t) { out.push({ kind: "h", w: t.w, c: (L === 2 ? 2 : 1) * t.c }); });
+    bw.tau.forEach(function (t) { out.push({ kind: "a", w: t.w, c: t.c }); });
+    return out;
+  }
+
+  /* ---------------- symbolic expansion ----------------
+     Returns array of {key, c} where key is "h_1_2*a_3" style (MATLAB
+     convention: a = tau, h = theta). Factor order: longer words first,
+     then theta before tau, then lexicographic. */
+  function factorKey(kind, w) { return kind + "_" + w.join("_"); }
+  function sortFactors(fs) {
+    return fs.slice().sort(function (x, y) {
+      if (x.w.length !== y.w.length) return y.w.length - x.w.length;
+      var c = cmpWord(x.w, y.w); if (c) return c;
+      if (x.kind !== y.kind) return x.kind === "h" ? -1 : 1;
+      return 0;
+    });
+  }
+  function termKey(fs) { return sortFactors(fs).map(function (f) { return factorKey(f.kind, f.w); }).join("*"); }
+
+  /* multisets of size h from list of n items -> arrays of indices (nondecreasing) */
+  function multisets(n, h, cb) {
+    var idx = new Array(h);
+    (function rec(pos, start) {
+      if (pos === h) { cb(idx); return; }
+      for (var i = start; i < n; i++) { idx[pos] = i; rec(pos + 1, i); }
+    })(0, 0);
+  }
+
+  function expand(s, opts, progress) {
+    var central = !!opts.central, complex = !!opts.complex;
+    var map = new Map(), perPartition = [], collisions = 0, nPart = 0;
+    forEachMultisetPartition(s, function (blocks) {
+      nPart++;
+      var info = partitionInfo(blocks, s, complex);
+      var base = Math.pow(2, info.pow2) * info.cs;
+      // for each group, list of (factors[], coefMultiplier) options
+      var groupOpts = info.groups.map(function (g) {
+        var lam = lambdaList(g.b, central), res = [];
+        multisets(lam.length, g.h, function (idx) {
+          var fs = [], c = 1, counts = {};
+          for (var t = 0; t < idx.length; t++) { var it = lam[idx[t]]; fs.push(it); c *= it.c; counts[idx[t]] = (counts[idx[t]] || 0) + 1; }
+          var mn = fact(g.h); for (var q in counts) mn /= fact(counts[q]);
+          // c_s already divides by h!; multinomial h!/prod(mult!) restores it
+          res.push({ fs: fs, c: c * mn });
+        });
+        return res;
+      });
+      // correct the factor: c_s(pi) includes 1/prod h!; groupOpts carry h!/prod mult!
+      var before = map.size, cnt = 0;
+      (function rec(gi, fs, c) {
+        if (gi === groupOpts.length) {
+          var key = termKey(fs), v = Math.round(base * c);
+          if (map.has(key)) { collisions++; map.set(key, map.get(key) + v); } else map.set(key, v);
+          cnt++;
+          return;
+        }
+        var opts2 = groupOpts[gi];
+        for (var j = 0; j < opts2.length; j++) rec(gi + 1, fs.concat(opts2[j].fs), c * opts2[j].c);
+      })(0, [], 1);
+      perPartition.push({ blocks: blocks.map(function (b) { return b.slice(); }), pow2: info.pow2, cs: info.cs, nterms: cnt });
+      if (progress && nPart % 2000 === 0) progress(nPart, map.size);
+    });
+    return { map: map, perPartition: perPartition, collisions: collisions, nPartitions: nPart };
+  }
+  /* NOTE on coefficients: for a group of h equal blocks the product lambda^h
+     expands into multisets with multinomial h!/prod(mult!). c_s(pi) carries
+     1/prod(h!) and prod b! in the denominator; lambda's c_j carry prod b!.
+     In expand() above: res.c = prod(c_j) * h!/prod(mult!) (the "/fact*fact"
+     is a no-op kept for clarity) and base = 2^e * c_s(pi). */
+
+  /* predicted number of distinct terms, eq. (Ms) */
+  function predictedCount(s, central) {
+    var tot = 0;
+    forEachMultisetPartition(s, function (blocks) {
+      var p = 1;
+      groupBlocks(blocks).forEach(function (g) {
+        var v = contentVec(g.b), n = bracelets(v) + (central ? 0 : nThetaMulti(v));
+        p *= binom(n + g.h - 1, g.h);
+      });
+      tot += p;
+    });
+    return tot;
+  }
+  /* fast estimate without enumerating partitions for distinct matrices */
+  function predictedCountDistinct(k, central) { return central ? Nk(k) : Mk(k); }
+
+  /* ---------------- complex matrix arithmetic ----------------
+     matrix = {re: Float64Array(m*m), im: Float64Array(m*m)}, row-major */
+  function cm(m) { return { re: new Float64Array(m * m), im: new Float64Array(m * m) }; }
+  function cmMul(A, B, m) {
+    var C = cm(m);
+    for (var i = 0; i < m; i++) for (var k = 0; k < m; k++) {
+      var ar = A.re[i * m + k], ai = A.im[i * m + k]; if (ar === 0 && ai === 0) continue;
+      for (var j = 0; j < m; j++) {
+        var br = B.re[k * m + j], bi = B.im[k * m + j];
+        C.re[i * m + j] += ar * br - ai * bi; C.im[i * m + j] += ar * bi + ai * br;
+      }
+    }
+    return C;
+  }
+  function cmAdd(A, B, m, sb) { var C = cm(m); for (var i = 0; i < m * m; i++) { C.re[i] = A.re[i] + sb * B.re[i]; C.im[i] = A.im[i] + sb * B.im[i]; } return C; }
+  function cmScale(A, s, m) { var C = cm(m); for (var i = 0; i < m * m; i++) { C.re[i] = A.re[i] * s; C.im[i] = A.im[i] * s; } return C; }
+  function cmTrMul(A, B, m) { // tr(A B) complex -> [re, im]
+    var r = 0, im = 0;
+    for (var i = 0; i < m; i++) for (var k = 0; k < m; k++) {
+      var ar = A.re[i * m + k], ai = A.im[i * m + k], br = B.re[k * m + i], bi = B.im[k * m + i];
+      r += ar * br - ai * bi; im += ar * bi + ai * br;
+    }
+    return [r, im];
+  }
+
+  /* problem = {m, A:[cm], Sigma: cm, Lambda: cm, n, complex}
+     For z ~ N(mu, Sigma): Lambda = mu mu^H, n = 1.
+     theta_nu = tr(A_nu1 S ... S A_nup Lambda); tau_nu = n tr(A_nu1 S ... A_nup S).
+     Returns [re, im] (the paper uses re; im kept to show the pitfall). */
+  function makeEvaluator(P) {
+    var m = P.m, AS = P.A.map(function (A) { return cmMul(A, P.Sigma, m); }), cache = {};
+    function prod(w) { // A_w1 S A_w2 S ... A_w(p-1) S A_wp
+      var key = w.join(",");
+      if (cache[key]) return cache[key];
+      var M;
+      if (w.length === 1) M = P.A[w[0] - 1];
+      else M = cmMul(withS(w.slice(0, -1)), P.A[w[w.length - 1] - 1], m);
+      cache[key] = M; return M;
+    }
+    var cacheS = {};
+    function withS(w) { // A_w1 S ... A_wp S
+      var key = w.join(",");
+      if (cacheS[key]) return cacheS[key];
+      var M = w.length === 1 ? AS[w[0] - 1] : cmMul(withS(w.slice(0, -1)), AS[w[w.length - 1] - 1], m);
+      cacheS[key] = M; return M;
+    }
+    return {
+      theta: function (w) { return cmTrMul(prod(w), P.Lambda, m); },
+      tau: function (w) { var M = withS(w), t = 0, ti = 0; for (var i = 0; i < m; i++) { t += M.re[i * m + i]; ti += M.im[i * m + i]; } return [P.n * t, P.n * ti]; }
+    };
+  }
+
+  /* complex scalar helpers */
+  function cmulS(a, b) { return [a[0] * b[0] - a[1] * b[1], a[0] * b[1] + a[1] * b[0]]; }
+  function cpow(a, h) { var r = [1, 0]; for (var i = 0; i < h; i++) r = cmulS(r, a); return r; }
+
+  /* numeric evaluation straight from Prop. 4 (no symbolic expansion),
+     exactly as qprods.m does it. Returns {termwise, naive}:
+       termwise = sum with Re taken on every theta/tau (the correct formula)
+       naive    = Re of the same sum with un-real-parted complex theta/tau */
+  function evaluate(s, P, opts, progress) {
+    var central = !!opts.central, complex = !!P.complex, m = P.m, mm = m * m;
+    // precompute A_i S, and A_i Lambda
+    var AS = P.A.map(function (A) { return cmMul(A, P.Sigma, m); });
+    var AL = P.A.map(function (A) { return cmMul(A, P.Lambda, m); });
+    function mulInto(X, Y, Z) { // Z = X*Y (flat complex), real fast path
+      var i, j, q;
+      for (i = 0; i < mm; i++) { Z.re[i] = 0; Z.im[i] = 0; }
+      for (i = 0; i < m; i++) for (q = 0; q < m; q++) {
+        var xr = X.re[i * m + q], xi = X.im[i * m + q];
+        if (xr === 0 && xi === 0) continue;
+        var o = i * m, p = q * m;
+        if (complex) for (j = 0; j < m; j++) { var yr = Y.re[p + j], yi = Y.im[p + j]; Z.re[o + j] += xr * yr - xi * yi; Z.im[o + j] += xr * yi + xi * yr; }
+        else for (j = 0; j < m; j++) Z.re[o + j] += xr * Y.re[p + j];
+      }
+    }
+    function trProd(X, Y) { // tr(X Y) -> [re, im]
+      var r = 0, im = 0;
+      for (var i = 0; i < m; i++) for (var q = 0; q < m; q++) {
+        var xr = X.re[i * m + q], xi = X.im[i * m + q], yr = Y.re[q * m + i], yi = Y.im[q * m + i];
+        r += xr * yr - xi * yi; im += xr * yi + xi * yr;
+      }
+      return [r, im];
+    }
+    var I = cm(m); for (var d = 0; d < m; d++) I.re[d * m + d] = 1;
+    var lamCache = {};
+    function lam(bv) {
+      var key = bv.join(",");
+      if (lamCache[key]) return lamCache[key];
+      var content = contentOf(bv), L = content.length, cnt = bv.slice(), distinct = true, bfac = 1;
+      bv.forEach(function (x) { if (x > 1) distinct = false; bfac *= fact(x); });
+      var stack = []; for (var t = 0; t <= L; t++) stack.push(cm(m));
+      var w = new Array(L), re = 0, nv = [0, 0], minv = content[0];
+      var lab = L === 1 ? 1 : (L === 2 ? 2 : 2 * L);
+      function leaf(Pm) {
+        var last = w[L - 1] - 1;
+        // theta
+        if (!central) {
+          var cmp = 0; for (var i = 0; i < L; i++) { if (w[i] !== w[L - 1 - i]) { cmp = w[i] - w[L - 1 - i]; break; } }
+          if (cmp <= 0) {
+            var wt = L === 1 ? 1 : (cmp === 0 ? bfac / 2 : bfac); if (L === 2) wt *= 2;
+            var th = trProd(Pm, AL[last]); re += wt * th[0]; nv[0] += wt * th[0]; nv[1] += wt * th[1];
+          }
+        }
+        // tau
+        var wt2 = 0;
+        if (distinct) {
+          if (L === 1) wt2 = 1; else if (L === 2) wt2 = w[0] < w[1] ? 1 : 0;
+          else wt2 = (w[0] === minv && w[1] < w[L - 1]) ? 1 : 0;
+        } else if (w[0] === minv) {
+          var orb = dihedralOrbit(w.slice());
+          if (cmpWord(orb.min, w) === 0) wt2 = bfac * orb.size / lab;
+        }
+        if (wt2) { var ta = trProd(Pm, AS[last]); re += wt2 * P.n * ta[0]; nv[0] += wt2 * P.n * ta[0]; nv[1] += wt2 * P.n * ta[1]; }
+      }
+      (function dfs(depth, Pm) {
+        if (depth === L - 1) { for (var v = 0; v < cnt.length; v++) if (cnt[v]) { w[depth] = v + 1; leaf(Pm); } return; }
+        for (var v2 = 0; v2 < cnt.length; v2++) if (cnt[v2]) {
+          cnt[v2]--; w[depth] = v2 + 1;
+          var Z = stack[depth + 1]; mulInto(Pm, AS[v2], Z);
+          dfs(depth + 1, Z);
+          cnt[v2]++;
+        }
+      })(0, I);
+      return (lamCache[key] = { re: re, c: nv });
+    }
+    var sum = 0, sumN = [0, 0], count = 0;
+    forEachMultisetPartition(s, function (blocks) {
+      count++;
+      var info = partitionInfo(blocks, s, complex), c = Math.pow(2, info.pow2) * info.cs;
+      var v = c, vn = [c, 0];
+      info.groups.forEach(function (g) { var Lm = lam(g.b); v *= Math.pow(Lm.re, g.h); vn = cmulS(vn, cpow(Lm.c, g.h)); });
+      sum += v; sumN[0] += vn[0]; sumN[1] += vn[1];
+      if (progress && count % 20000 === 0) progress(count);
+    });
+    return { termwise: sum, naive: sumN[0], naiveIm: sumN[1], nPartitions: count };
+  }
+
+  /* evaluate a symbolic term list (checks the expansion itself) */
+  function evaluateTerms(map, P) {
+    var E = makeEvaluator(P), tot = 0, cache = {};
+    function fval(f) {
+      if (cache[f] !== undefined) return cache[f];
+      var parts = f.split("_"), w = parts.slice(1).map(Number);
+      var v = parts[0] === "h" ? E.theta(w) : E.tau(w);
+      return (cache[f] = v[0]);
+    }
+    map.forEach(function (c, key) {
+      var p = c; key.split("*").forEach(function (f) { p *= fval(f); }); tot += p;
+    });
+    return tot;
+  }
+
+  /* ---------------- independent exact check ----------------
+     Polarization with +/- signs:  k! 2^k x_1...x_k = sum_eps (prod eps)(sum eps_i x_i)^k,
+     grouped by the number u_j of minus signs among the s_j copies of A_j.
+     Moments of a single form from its cumulants (Lemma 2):
+       real:    psi_j = 2^{j-1}(j-1)! ( n tr((B S)^j) + j tr((B S)^{j-1} B Lambda) )
+       complex: psi_j =        (j-1)! ( same )                                     */
+  function singleMoment(B, P, K) {
+    var m = P.m, BS = cmMul(B, P.Sigma, m), pw = null, psi = [0];
+    var BL = cmMul(B, P.Lambda, m); // (BS)^{j-1} B Lambda
+    var cur = null;
+    for (var j = 1; j <= K; j++) {
+      // cur = (BS)^{j-1}
+      var trA, trT;
+      if (j === 1) { trA = cmTrace(BS, m); trT = cmTrace(BL, m); cur = BS; }
+      else { var t1 = cmTrMul(cur, BS, m)[0]; trA = t1; trT = cmTrMul(cur, BL, m)[0]; cur = cmMul(cur, BS, m); }
+      var c = (P.complex ? 1 : Math.pow(2, j - 1)) * fact(j - 1);
+      psi[j] = c * (P.n * trA + j * trT);
+    }
+    var mom = [1];
+    for (var kk = 1; kk <= K; kk++) { var v = 0; for (var i = 1; i <= kk; i++) v += binom(kk - 1, i - 1) * psi[i] * mom[kk - i]; mom[kk] = v; }
+    return mom[K];
+  }
+  function cmTrace(A, m) { var t = 0; for (var i = 0; i < m; i++) t += A.re[i * m + i]; return t; }
+  function polarizationCheck(s, P) {
+    var k = s.length, S = 0; s.forEach(function (x) { S += x; });
+    var u = new Array(k).fill(0), tot = 0;
+    (function rec(j) {
+      if (j === k) {
+        var B = cm(P.m), sign = 1, mult = 1;
+        for (var i = 0; i < k; i++) { B = cmAdd(B, P.A[i], P.m, s[i] - 2 * u[i]); if (u[i] % 2) sign = -sign; mult *= binom(s[i], u[i]); }
+        tot += sign * mult * singleMoment(B, P, S);
+        return;
+      }
+      for (var v = 0; v <= s[j]; v++) { u[j] = v; rec(j + 1); }
+    })(0);
+    return tot / (fact(S) * Math.pow(2, S));
+  }
+
+  /* ---------------- random problem + Monte Carlo ---------------- */
+  function rng(seed) { // mulberry32
+    var a = seed >>> 0;
+    return function () { a |= 0; a = (a + 0x6D2B79F5) | 0; var t = Math.imul(a ^ (a >>> 15), 1 | a); t = (t + Math.imul(t ^ (t >>> 7), 61 | t)) ^ t; return ((t ^ (t >>> 14)) >>> 0) / 4294967296; };
+  }
+  function gauss(r) { var u = 0, v = 0; while (u === 0) u = r(); v = r(); return Math.sqrt(-2 * Math.log(u)) * Math.cos(2 * Math.PI * v); }
+
+  /* Build a random problem.
+     kind: "z" (quadratic forms) or "W" (Wishart). rank of Sigma = m-1 if singular.
+     Returns P plus the sampling factors (L: Sigma = L L^H, M: means m x n). */
+  function randomProblem(o) {
+    var r = rng(o.seed || 1), m = o.m, k = o.k, cx = !!o.complex;
+    function randHerm(scale) {
+      var X = cm(m);
+      for (var i = 0; i < m; i++) for (var j = i; j < m; j++) {
+        var a = gauss(r) * scale, b = (cx && i !== j) ? gauss(r) * scale : 0;
+        X.re[i * m + j] = a; X.re[j * m + i] = a; X.im[i * m + j] = b; X.im[j * m + i] = -b;
+        if (i === j) X.re[i * m + i] = a + scale; // mild positive shift
+      }
+      return X;
+    }
+    var A = []; for (var i = 0; i < k; i++) A.push(randHerm(1 / Math.sqrt(m)));
+    var rk = o.singular ? m - 1 : m, L = cm(m); // m x rk stored in m x m
+    for (var i2 = 0; i2 < m; i2++) for (var j2 = 0; j2 < rk; j2++) { L.re[i2 * m + j2] = gauss(r) / Math.sqrt(m); if (cx) L.im[i2 * m + j2] = gauss(r) / Math.sqrt(m); }
+    var LH = cm(m); for (var i3 = 0; i3 < m; i3++) for (var j3 = 0; j3 < m; j3++) { LH.re[i3 * m + j3] = L.re[j3 * m + i3]; LH.im[i3 * m + j3] = -L.im[j3 * m + i3]; }
+    var Sigma = cmMul(L, LH, m);
+    var n = o.kind === "W" ? o.n : 1, Mre = [], Mim = [];
+    var Lambda = cm(m);
+    for (var t = 0; t < n; t++) {
+      var mr = [], mi = [];
+      for (var i4 = 0; i4 < m; i4++) { mr.push(o.central ? 0 : gauss(r) * o.meanScale); mi.push(o.central || !cx ? 0 : gauss(r) * o.meanScale); }
+      Mre.push(mr); Mim.push(mi);
+      for (var a = 0; a < m; a++) for (var b = 0; b < m; b++) { // mu mu^H
+        Lambda.re[a * m + b] += mr[a] * mr[b] + mi[a] * mi[b];
+        Lambda.im[a * m + b] += mi[a] * mr[b] - mr[a] * mi[b];
+      }
+    }
+    return { m: m, A: A, Sigma: Sigma, Lambda: Lambda, n: n, complex: cx, L: L, Mre: Mre, Mim: Mim, kind: o.kind };
+  }
+
+  /* Monte Carlo: returns running summaries in chunks. For complex,
+     z = mu + L (x + i y)/sqrt(2) so that E[(z-mu)(z-mu)^H] = L L^H. */
+  function monteCarlo(s, P, draws, seed, onChunk) {
+    var r = rng(seed || 7), m = P.m, k = s.length, cx = P.complex, n = P.n;
+    var sum = 0, sum2 = 0, done = 0, chunk = Math.max(1, Math.floor(draws / 60));
+    var zr = new Float64Array(m), zi = new Float64Array(m), gr = new Float64Array(m), gi = new Float64Array(m);
+    var q = new Float64Array(k);
+    while (done < draws) {
+      var lim = Math.min(draws, done + chunk);
+      for (; done < lim; done++) {
+        for (var i = 0; i < k; i++) q[i] = 0;
+        for (var t = 0; t < n; t++) {
+          for (var a = 0; a < m; a++) { gr[a] = gauss(r); gi[a] = cx ? gauss(r) : 0; }
+          var sc = cx ? Math.SQRT1_2 : 1;
+          for (var a2 = 0; a2 < m; a2++) {
+            var vr = P.Mre[t][a2], vi = P.Mim[t][a2];
+            for (var b = 0; b < m; b++) {
+              var lr = P.L.re[a2 * m + b], li = P.L.im[a2 * m + b];
+              vr += sc * (lr * gr[b] - li * gi[b]); vi += sc * (lr * gi[b] + li * gr[b]);
+            }
+            zr[a2] = vr; zi[a2] = vi;
+          }
+          for (var j = 0; j < k; j++) { // z^H A z (real)
+            var A = P.A[j], acc = 0;
+            for (var a3 = 0; a3 < m; a3++) {
+              var yr = 0, yi = 0;
+              for (var b3 = 0; b3 < m; b3++) { var ar = A.re[a3 * m + b3], ai = A.im[a3 * m + b3]; yr += ar * zr[b3] - ai * zi[b3]; yi += ar * zi[b3] + ai * zr[b3]; }
+              acc += zr[a3] * yr + zi[a3] * yi;
+            }
+            q[j] += acc;
+          }
+        }
+        var prod = 1; for (var j2 = 0; j2 < k; j2++) prod *= Math.pow(q[j2], s[j2]);
+        sum += prod; sum2 += prod * prod;
+      }
+      var mean = sum / done, se = Math.sqrt(Math.max(0, sum2 / done - mean * mean) / done);
+      if (onChunk && onChunk(done, mean, se) === false) break;
+    }
+    var mean2 = sum / done;
+    return { mean: mean2, se: Math.sqrt(Math.max(0, sum2 / done - mean2 * mean2) / done), draws: done };
+  }
+
+  /* ---------------- set partitions + Prop 1 screening (for Part 1) ---------------- */
+  function setPartitions(k) { // blocks as arrays of labels; blocks sorted by size then first element
+    var out = [];
+    (function rec(i, blocks) {
+      if (i > k) {
+        var bs = blocks.map(function (b) { return b.slice(); }).sort(function (x, y) { return x.length - y.length || x[0] - y[0]; });
+        out.push(bs); return;
+      }
+      for (var j = 0; j < blocks.length; j++) { blocks[j].push(i); rec(i + 1, blocks); blocks[j].pop(); }
+      blocks.push([i]); rec(i + 1, blocks); blocks.pop();
+    })(1, []);
+    // order: most blocks first (paper's tables list (1)(2)(3) first, (1,2,3) last)
+    out.sort(function (a, b) { if (a.length !== b.length) return b.length - a.length; var A = a.map(String).join("|"), B = b.map(String).join("|"); return A < B ? -1 : A > B ? 1 : 0; });
+    return out;
+  }
+  /* canonical words formed from a set of distinct labels */
+  function thetaWordsOf(labels) { var w = labels.slice().sort(function (a, b) { return a - b; }), out = []; do { if (w.length === 1 || w[0] < w[w.length - 1]) out.push(w.slice()); } while (nextPerm(w)); return out; }
+  function tauWordsOf(labels) { var w = labels.slice().sort(function (a, b) { return a - b; }), out = []; do { var ok = w.length < 3 ? (w.length < 2 || w[0] < w[1]) : (w[0] === Math.min.apply(null, w) && w[1] < w[w.length - 1]); if (ok && (w.length !== 2 || true)) out.push(w.slice()); } while (nextPerm(w)); if (labels.length === 2) out = [out[0]]; return out; }
+
+  /* Prop 1: screen all k! permutations for each (f, g). Returns groups. */
+  function screening(k, central) {
+    var perms = [], w = []; for (var i = 1; i <= k; i++) w.push(i);
+    do { perms.push(w.slice()); } while (nextPerm(w));
+    var groups = [];
+    intPartitions(k).forEach(function (kap) {
+      var f = freqOf(kap, k), sizes = kap.slice().sort(function (a, b) { return a - b; });
+      // all g with 0<=g<=f
+      var gs = [[]];
+      for (var i = 1; i <= k; i++) { var ng = []; gs.forEach(function (g) { for (var v = 0; v <= (central ? 0 : f[i]); v++) ng.push(g.concat([v])); }); gs = ng; }
+      gs.forEach(function (g) {
+        g = [0].concat(g); // g[i] for block length i
+        var rows = [];
+        perms.forEach(function (p) {
+          var blocks = [], pos = 0; sizes.forEach(function (sz) { blocks.push(p.slice(pos, pos + sz)); pos += sz; });
+          // designation: within blocks of length i, first g_i are theta
+          var seen = {}, desig = blocks.map(function (b) { var L = b.length; seen[L] = (seen[L] || 0) + 1; return seen[L] <= g[L] ? "h" : "a"; });
+          var ok = true, reason = "";
+          blocks.forEach(function (b, bi) {
+            if (!ok) return;
+            if (desig[bi] === "h") { if (b.length >= 2 && b[0] > b[b.length - 1]) { ok = false; reason = "θ-block not canonical"; } }
+            else {
+              if (b[0] !== Math.min.apply(null, b)) { ok = false; reason = "τ-block does not start at its minimum"; }
+              else if (b.length >= 3 && b[1] > b[b.length - 1]) { ok = false; reason = "τ-block: 2nd > last"; }
+            }
+          });
+          if (ok) { // ascending first elements among same length & designation
+            for (var a = 0; a < blocks.length && ok; a++) for (var c = a + 1; c < blocks.length && ok; c++)
+              if (blocks[a].length === blocks[c].length && desig[a] === desig[c] && blocks[a][0] > blocks[c][0]) { ok = false; reason = "equal blocks out of order"; }
+          }
+          rows.push({ blocks: blocks, desig: desig, ok: ok, reason: reason });
+        });
+        var S = 0; for (var i2 = 1; i2 <= k; i2++) S += 0;
+        groups.push({ kappa: kap, f: f.slice(1), g: g.slice(1), pow2: k - f[1] - (f[2] || 0) + (g[2] || 0), rows: rows });
+      });
+    });
+    return groups;
+  }
+
+  return {
+    fact: fact, binom: binom, bell: bell, Mk: Mk, Nk: Nk, mk: mk, lmCount: lmCount, nTheta: nTheta, nTau: nTau,
+    intPartitions: intPartitions, freqOf: freqOf,
+    nThetaMulti: nThetaMulti, bracelets: bracelets, necklaces: necklaces,
+    blockWords: blockWords, lambdaList: lambdaList, forEachMultisetPartition: forEachMultisetPartition,
+    countMultisetPartitions: countMultisetPartitions, partitionInfo: partitionInfo, groupBlocks: groupBlocks,
+    contentOf: contentOf, blockSize: blockSize, expand: expand, predictedCount: predictedCount,
+    predictedCountDistinct: predictedCountDistinct, sortFactors: sortFactors, termKey: termKey,
+    cm: cm, cmMul: cmMul, makeEvaluator: makeEvaluator, evaluate: evaluate, evaluateTerms: evaluateTerms,
+    polarizationCheck: polarizationCheck, randomProblem: randomProblem, monteCarlo: monteCarlo, rng: rng,
+    setPartitions: setPartitions, thetaWordsOf: thetaWordsOf, tauWordsOf: tauWordsOf, screening: screening
+  };
+})();
+if (typeof module !== "undefined") module.exports = QP;
+/* ===QP-ENGINE-END=== */
+
+</script>
+<script>
+(function () {
+"use strict";
+/* ============================ helpers ============================ */
+var $ = function (id) { return document.getElementById(id); };
+function h(spec) {
+  var parts = spec.split("."), n = document.createElement(parts[0] || "div");
+  if (parts.length > 1) n.className = parts.slice(1).join(" ");
+  for (var i = 1; i < arguments.length; i++) add(n, arguments[i]);
+  return n;
+}
+function add(n, c) {
+  if (c == null || c === false) return;
+  if (Array.isArray(c)) { c.forEach(function (x) { add(n, x); }); return; }
+  n.appendChild(typeof c === "object" && c.nodeType ? c : document.createTextNode(String(c)));
+}
+function setKids(n) { n.textContent = ""; for (var i = 1; i < arguments.length; i++) add(n, arguments[i]); return n; }
+function html(n, s) { n.innerHTML = s; return n; }
+var fmtInt = function (x) { return Math.round(x).toLocaleString("en-CA"); };
+var SUBD = "₀₁₂₃₄₅₆₇₈₉", SUPD = "⁰¹²³⁴⁵⁶⁷⁸⁹";
+function subNum(x) { return String(x).split("").map(function (c) { return SUBD[+c] || c; }).join(""); }
+function supNum(x) { return String(x).split("").map(function (c) { return SUPD[+c] || c; }).join(""); }
+function esc(s) { return String(s).replace(/[&<>]/g, function (c) { return { "&": "&amp;", "<": "&lt;", ">": "&gt;" }[c]; }); }
+function fmtNum(x) {
+  if (!isFinite(x)) return String(x);
+  var a = Math.abs(x);
+  if (a !== 0 && (a >= 1e12 || a < 1e-4)) return x.toExponential(12);
+  return x.toPrecision(15).replace(/(\.\d*?)0+$/, "$1").replace(/\.$/, "");
+}
+function relDiff(a, b) { var d = Math.abs(a - b), s = Math.max(Math.abs(a), Math.abs(b), 1e-300); return d / s; }
+function fmtRel(r) { return r === 0 ? "0" : r.toExponential(1); }
+
+/* ============================ global state ============================ */
+var FAM = "z", FLD = "R";
+var isW = function () { return FAM === "W"; };
+var isC = function () { return FLD === "C"; };
+
+/* ---------- notation ---------- */
+// word -> "(1,3,2)" subscript, singletons -> "1"
+function wsub(w) { return w.length === 1 ? String(w[0]) : "(" + w.join(",") + ")"; }
+function symHTML(kind, w, pow) {
+  var cls = kind === "h" ? "theta" : "tau", ch = kind === "h" ? "θ" : "τ";
+  return '<span class="' + cls + '">' + ch + "<sub>" + wsub(w) + "</sub>" + (pow > 1 ? "<sup>" + pow + "</sup>" : "") + "</span>";
+}
+function symText(kind, w) { return (kind === "h" ? "θ" : "τ") + (w.length === 1 ? subNum(w[0]) : "(" + w.join(",") + ")"); }
+function Asub(i) { return "A<sub>" + i + "</sub>"; }
+function chainHTML(w, endS) { // A_w1 Σ A_w2 Σ ... A_wp [Σ]
+  var s = w.map(function (i) { return Asub(i); }).join("Σ");
+  return s + (endS ? "Σ" : "");
+}
+function matHTML(kind, w) {
+  var cx = isC(), W = isW(), out;
+  if (kind === "h") {
+    out = W ? "tr(" + chainHTML(w, false) + "Λ)" : (cx ? "μ*" : "μ′") + chainHTML(w, false) + "μ";
+    if (cx && w.length >= 2) out = W ? "Re " + out : "Re(" + out + ")";
+  } else {
+    out = "tr(" + chainHTML(w, true) + ")";
+    if (cx && w.length >= 3) out = "Re " + out;
+    if (W) out = "n·" + out;
+  }
+  return '<span class="' + (kind === "h" ? "theta" : "tau") + '">' + out + "</span>";
+}
+function defsHTML() {
+  var cx = isC(), W = isW();
+  var th = W ? "tr(A<sub>ν₁</sub>ΣA<sub>ν₂</sub>Σ⋯ΣA<sub>ν<sub>p</sub></sub>Λ)" : (cx ? "μ*" : "μ′") + "A<sub>ν₁</sub>ΣA<sub>ν₂</sub>Σ⋯ΣA<sub>ν<sub>p</sub></sub>μ";
+  var ta = (W ? "n·" : "") + "tr(A<sub>ν₁</sub>ΣA<sub>ν₂</sub>Σ⋯A<sub>ν<sub>p</sub></sub>Σ)";
+  if (cx) { th = "Re " + th; ta = W ? "n·Re tr(A<sub>ν₁</sub>Σ⋯A<sub>ν<sub>p</sub></sub>Σ)" : "Re " + ta; }
+  return '<span class="theta">θ<sub>ν</sub> = ' + th + '</span><br><span class="tau">τ<sub>ν</sub> = ' + ta + "</span>";
+}
+/* term (list of factors {kind,w}) -> HTML with repeated factors as powers */
+function factorsHTML(fs, mode) {
+  var groups = [];
+  fs.forEach(function (f) {
+    var key = f.kind + f.w.join(","), last = groups[groups.length - 1];
+    if (last && last.key === key) last.p++; else groups.push({ key: key, f: f, p: 1 });
+  });
+  if (mode === "mat") return groups.map(function (g) { var s = matHTML(g.f.kind, g.f.w); return g.p > 1 ? "[" + s + "]<sup>" + g.p + "</sup>" : s; }).join(" · ");
+  return groups.map(function (g) { return symHTML(g.f.kind, g.f.w, g.p); }).join("");
+}
+function parseKey(key) { return key.split("*").map(function (f) { var p = f.split("_"); return { kind: p[0], w: p.slice(1).map(Number) }; }); }
+
+/* ============================ theme + family switch ============================ */
+$("btnTheme").onclick = function () {
+  var r = document.documentElement, dark = r.getAttribute("data-theme") === "dark" ||
+    (!r.getAttribute("data-theme") && window.matchMedia && matchMedia("(prefers-color-scheme: dark)").matches);
+  r.setAttribute("data-theme", dark ? "light" : "dark");
+};
+function setOn(a, b) { a.classList.add("on"); b.classList.remove("on"); }
+$("famZ").onclick = function () { if (FAM !== "z") { FAM = "z"; setOn($("famZ"), $("famW")); onModeChange(); } };
+$("famW").onclick = function () { if (FAM !== "W") { FAM = "W"; setOn($("famW"), $("famZ")); onModeChange(); } };
+$("fldR").onclick = function () { if (FLD !== "R") { FLD = "R"; setOn($("fldR"), $("fldC")); onModeChange(); } };
+$("fldC").onclick = function () { if (FLD !== "C") { FLD = "C"; setOn($("fldC"), $("fldR")); onModeChange(); } };
+function modeNote() {
+  var z = !isW(), c = isC();
+  var obj = z ? (c ? "𝔼[∏ z*A<sub>i</sub>z], z ∼ CN(μ, Σ), A<sub>i</sub> Hermitian" : "𝔼[∏ z′A<sub>i</sub>z], z ∼ N(μ, Σ), A<sub>i</sub> symmetric")
+    : (c ? "𝔼[∏ tr(WA<sub>i</sub>)], W ∼ CW<sub>m</sub>(n, Σ, Λ)" : "𝔼[∏ tr(WA<sub>i</sub>)], W ∼ W<sub>m</sub>(n, Σ, Λ)");
+  var coef = c ? "coefficient 2<sup>ℓ(π)−f₁−f₂</sup>, real part taken term by term" : "coefficient 2<sup>k−f₁−f₂</sup>";
+  html($("modeNote"), obj + " — " + coef);
+}
+function onModeChange() {
+  modeNote();
+  p1Rebuild();
+  p2ModeChanged();
+}
+
+/* ============================ PART 1 ============================ */
+var P1 = { K: 3, central: false, view: "sp", shown: 0, timer: null, sel: null, data: null };
+(function () {
+  var seg = $("segK");
+  [1, 2, 3, 4, 5].forEach(function (k) {
+    var b = h("button", String(k)); b.dataset.v = k; if (k === 3) b.className = "on";
+    seg.appendChild(b);
+  });
+})();
+function wireSeg(id, fn) {
+  var seg = $(id);
+  seg.addEventListener("click", function (e) {
+    var b = e.target.closest("button"); if (!b) return;
+    Array.prototype.forEach.call(seg.children, function (x) { x.classList.toggle("on", x === b); });
+    fn(b.dataset.v);
+  });
+}
+function segSet(id, v) { Array.prototype.forEach.call($(id).children, function (x) { x.classList.toggle("on", x.dataset.v === String(v)); }); }
+wireSeg("segK", function (v) { P1.K = +v; p1Rebuild(); });
+wireSeg("segMean", function (v) { P1.central = v === "c"; p1Rebuild(); });
+wireSeg("segView", function (v) { P1.view = v; p1Rebuild(); });
+
+/* ---- glyph: labels 1..k on a circle; tau = cycle, theta = path with mu caps
+        (z family) or closed by a dashed Lambda edge (Wishart family) ---- */
+var NS = "http://www.w3.org/2000/svg";
+function sv(name, attrs, parent) {
+  var n = document.createElementNS(NS, name);
+  for (var a in attrs) n.setAttribute(a, attrs[a]);
+  if (parent) parent.appendChild(n);
+  return n;
+}
+function vpos(k, W, H) {
+  var cx = W / 2, cy = H / 2 + 1, R = k <= 2 ? 15 : 18, out = [];
+  for (var i = 0; i < k; i++) {
+    var ang = k === 1 ? -Math.PI / 2 : (k === 2 ? (i === 0 ? Math.PI : 0) : -Math.PI / 2 + 2 * Math.PI * i / k);
+    var x = k === 1 ? cx : cx + R * Math.cos(ang), y = k === 1 ? cy : cy + R * Math.sin(ang);
+    out.push({ x: x, y: y, ox: Math.cos(ang), oy: Math.sin(ang) });
+  }
+  return { pts: out, cx: cx, cy: cy };
+}
+function glyph(k, factors, opts) {
+  opts = opts || {};
+  var W = 76, H = 70, dw = opts.dw || 62;
+  var svg = sv("svg", { width: dw, height: Math.round(dw * H / W), viewBox: "0 0 " + W + " " + H, class: "gv", "aria-hidden": "true" });
+  var geo = vpos(k, W, H), P = geo.pts, gE = sv("g", {}, svg), gV = sv("g", {}, svg);
+  var wish = isW();
+  function pt(i) { return P[i - 1]; }
+  function cap(x, y, dx, dy) { // mu cap: stub + square
+    var ex = x + dx * 10, ey = y + dy * 10;
+    sv("line", { x1: x + dx * 5, y1: y + dy * 5, x2: ex, y2: ey, class: "eh" }, gE);
+    sv("rect", { x: ex - 2.3, y: ey - 2.3, width: 4.6, height: 4.6, class: "mu" }, gE);
+  }
+  function rot(dx, dy, a) { return [dx * Math.cos(a) - dy * Math.sin(a), dx * Math.sin(a) + dy * Math.cos(a)]; }
+  factors.forEach(function (f) {
+    var w = f.w, L = w.length;
+    if (f.kind === "a") {
+      if (L === 1) { var p = pt(w[0]); sv("circle", { cx: p.x + p.ox * 10, cy: p.y + p.oy * 10, r: 5, class: "et" }, gE); }
+      else if (L === 2) {
+        var a = pt(w[0]), b = pt(w[1]), mx = (a.x + b.x) / 2, my = (a.y + b.y) / 2, dx = b.x - a.x, dy = b.y - a.y, len = Math.hypot(dx, dy), nx = -dy / len * 6, ny = dx / len * 6;
+        sv("path", { d: "M" + a.x + "," + a.y + " Q" + (mx + nx) + "," + (my + ny) + " " + b.x + "," + b.y + " Q" + (mx - nx) + "," + (my - ny) + " " + a.x + "," + a.y, class: "et" }, gE);
+      } else {
+        sv("path", { d: w.map(function (i, j) { var q = pt(i); return (j ? "L" : "M") + q.x + "," + q.y; }).join(" ") + " Z", class: "et" }, gE);
+      }
+    } else {
+      if (L >= 2) sv("path", { d: w.map(function (i, j) { var q = pt(i); return (j ? "L" : "M") + q.x + "," + q.y; }).join(" "), class: "eh" }, gE);
+      var s = pt(w[0]), e = pt(w[L - 1]);
+      if (!wish) {
+        if (L === 1) { var r1 = rot(s.ox, s.oy, -0.6), r2 = rot(s.ox, s.oy, 0.6); cap(s.x, s.y, r1[0], r1[1]); cap(s.x, s.y, r2[0], r2[1]); }
+        else { cap(s.x, s.y, s.ox, s.oy); cap(e.x, e.y, e.ox, e.oy); }
+      } else {
+        if (L === 1) {
+          var c0x = s.x + s.ox * 10, c0y = s.y + s.oy * 10;
+          sv("circle", { cx: c0x, cy: c0y, r: 5, class: "el" }, gE);
+          sv("rect", { x: c0x + s.ox * 5 - 2.3, y: c0y + s.oy * 5 - 2.3, width: 4.6, height: 4.6, class: "mu" }, gE);
+        } else {
+          var mx2 = (s.x + e.x) / 2, my2 = (s.y + e.y) / 2, ox = mx2 - geo.cx, oy = mx2 === geo.cx && my2 === geo.cy ? 1 : my2 - geo.cy, ol = Math.hypot(ox, oy) || 1;
+          if (Math.hypot(mx2 - geo.cx, my2 - geo.cy) < 2) { ox = -(e.y - s.y); oy = e.x - s.x; ol = Math.hypot(ox, oy); }
+          var cxp = mx2 + ox / ol * 22, cyp = my2 + oy / ol * 22;
+          sv("path", { d: "M" + e.x + "," + e.y + " Q" + cxp + "," + cyp + " " + s.x + "," + s.y, class: "el" }, gE);
+          var qx = 0.25 * e.x + 0.5 * cxp + 0.25 * s.x, qy = 0.25 * e.y + 0.5 * cyp + 0.25 * s.y;
+          sv("rect", { x: qx - 2.3, y: qy - 2.3, width: 4.6, height: 4.6, class: "mu" }, gE);
+        }
+      }
+    }
+  });
+  P.forEach(function (p, i) {
+    sv("circle", { cx: p.x, cy: p.y, r: 5.2, class: "v" }, gV);
+    sv("text", { x: p.x, y: p.y + 0.3, class: "vl" }, gV).textContent = i + 1;
+  });
+  if (wish && opts.nbadge) {
+    var nt = factors.filter(function (f) { return f.kind === "a"; }).length;
+    if (nt) sv("text", { x: W - 3, y: 9, "text-anchor": "end", class: "nb" }, svg).textContent = "n" + (nt > 1 ? supNum(nt) : "");
+  }
+  return svg;
+}
+
+/* ---- data for the set-partition view ---- */
+function p1Data() {
+  var k = P1.K, central = P1.central, cx = isC();
+  var parts = QP.setPartitions(k).map(function (blocks, idx) {
+    var f1 = 0, f2 = 0; blocks.forEach(function (b) { if (b.length === 1) f1++; else if (b.length === 2) f2++; });
+    var e = (cx ? blocks.length : k) - f1 - f2;
+    var lams = blocks.map(function (b) {
+      var list = [];
+      if (!central) QP.thetaWordsOf(b).forEach(function (w) { list.push({ kind: "h", w: w, c: b.length === 2 ? 2 : 1 }); });
+      QP.tauWordsOf(b).forEach(function (w) { list.push({ kind: "a", w: w, c: 1 }); });
+      return list;
+    });
+    var terms = [];
+    (function rec(i, fs, c) {
+      if (i === lams.length) { terms.push({ fs: fs, coef: Math.pow(2, e) * c, pid: idx }); return; }
+      lams[i].forEach(function (it) { rec(i + 1, fs.concat([it]), c * it.c); });
+    })(0, [], 1);
+    return { idx: idx, blocks: blocks, f1: f1, f2: f2, e: e, lams: lams, terms: terms };
+  });
+  return parts;
+}
+function partLabel(blocks) { return blocks.map(function (b) { return "(" + b.join(",") + ")"; }).join(""); }
+function lamHTML(list, blk) {
+  var L = blk.length, th = list.filter(function (x) { return x.kind === "h"; }), ta = list.filter(function (x) { return x.kind === "a"; });
+  if (list.length > 6) {
+    return (th.length ? '<span class="theta">Σ ' + th.length + " θ-words</span> + " : "") + '<span class="tau">Σ ' + ta.length + " τ-words</span>";
+  }
+  var parts = [];
+  if (th.length) parts.push((L === 2 ? "2" : "") + th.map(function (x) { return symHTML("h", x.w); }).join("+"));
+  parts.push(ta.map(function (x) { return symHTML("a", x.w); }).join("+"));
+  return parts.join("+");
+}
+
+var rowsEl = $("rows"), panel = $("panel");
+function p1Rebuild() {
+  p1Stop();
+  P1.sel = null; P1.shown = 0;
+  if (P1.view === "sc") return buildScreening();
+  var data = P1.data = p1Data();
+  rowsEl.textContent = "";
+  var lastR = -1, wishCentral = isW();
+  data.forEach(function (p, i) {
+    if (wishCentral && p.blocks.length !== lastR) {
+      lastR = p.blocks.length;
+      var nparts = data.filter(function (q) { return q.blocks.length === lastR; }).length;
+      var hd = h("div.grouphead");
+      html(hd, "<b>" + lastR + " block" + (lastR > 1 ? "s" : "") + "</b> · " + nparts + " set partition" + (nparts > 1 ? "s" : "") +
+        (P1.central ? " · every term carries n<sup>" + lastR + "</sup>" : " · τ-cycles carry n, θ-paths closed by Λ do not"));
+      rowsEl.appendChild(hd);
+    }
+    var row = h("div.prow.pending"); row.dataset.i = i;
+    var left = h("div");
+    left.appendChild(h("div.plabel", partLabel(p.blocks)));
+    var cf = h("span.coefchip");
+    html(cf, "2<sup>" + (isC() ? "ℓ" : "k") + "−f₁−f₂</sup> = 2<sup>" + p.e + "</sup> = " + Math.pow(2, p.e));
+    left.appendChild(cf);
+    left.appendChild(html(h("div.pmeta"), "f₁ = " + p.f1 + ", f₂ = " + p.f2 + " · " + p.terms.length + " term" + (p.terms.length > 1 ? "s" : "")));
+    left.appendChild(html(h("div.lams"), p.lams.map(function (l, j) { return "λ<sub>" + p.blocks[j].join("") + "</sub> = " + lamHTML(l, p.blocks[j]); }).join("<br>")));
+    var tiles = h("div.tiles");
+    p.terms.forEach(function (t, j) {
+      var tile = h("div.tile"); tile.dataset.j = j;
+      var fsSorted = QP.sortFactors(t.fs);
+      tile.appendChild(glyph(P1.K, t.fs, {}));
+      var tt = document.createElementNS(NS, "title");
+      tt.textContent = t.coef + " " + fsSorted.map(function (f) { return symText(f.kind, f.w); }).join(" ");
+      tile.firstChild.appendChild(tt);
+      var ntau = t.fs.filter(function (f) { return f.kind === "a"; }).length;
+      tile.appendChild(html(h("div.tc"), (isW() && ntau && t.coef === 1 ? "" : String(t.coef)) + (isW() && ntau ? (t.coef === 1 ? '<span class="nn">n' : '<span class="nn">·n') + (ntau > 1 ? "<sup>" + ntau + "</sup>" : "") + "</span>" : "")));
+      tile.addEventListener("click", function (ev) { ev.stopPropagation(); selectTerm(i, j, tile); });
+      tiles.appendChild(tile);
+    });
+    row.appendChild(left); row.appendChild(tiles);
+    row.addEventListener("click", function () { selectRow(i, row); });
+    rowsEl.appendChild(row);
+  });
+  updateLegend();
+  p1Counter();
+  defaultPanel();
+}
+function rowEls() { return rowsEl.querySelectorAll(P1.view === "sc" ? ".sgroup" : ".prow"); }
+function setShown(n) {
+  var els = rowEls(), tot = els.length;
+  P1.shown = Math.max(0, Math.min(tot, n));
+  Array.prototype.forEach.call(els, function (e, i) {
+    var was = e.classList.contains("pending");
+    e.classList.toggle("pending", i >= P1.shown);
+    e.classList.toggle("fresh", was && i < P1.shown);
+  });
+  var last = els[P1.shown - 1];
+  if (last && P1.timer) { var wrap = $("wrap1"); var top = last.offsetTop - wrap.clientHeight / 2; wrap.scrollTo({ top: Math.max(0, top), behavior: "smooth" }); }
+  p1Counter();
+}
+function p1Counter() {
+  var c = $("counter"), k = P1.K;
+  if (P1.view === "sc") {
+    var groups = P1.sdata || [], ex = 0, kept = 0;
+    groups.slice(0, P1.shown).forEach(function (g) { ex += g.examined; kept += g.kept; });
+    var totEx = 0, totK = 0; groups.forEach(function (g) { totEx += g.examined; totK += g.kept; });
+    html(c, "groups (κ, g): <b>" + P1.shown + "</b> / " + groups.length + " · permutations examined <b>" + fmtInt(ex) + "</b> / " + fmtInt(totEx) + " · kept <b>" + fmtInt(kept) + "</b> / " + fmtInt(totK));
+    return;
+  }
+  var d = P1.data || [], t = 0, T = 0;
+  d.forEach(function (p, i) { T += p.terms.length; if (i < P1.shown) t += p.terms.length; });
+  html(c, "set partitions: <b>" + P1.shown + "</b> / B<sub>" + k + "</sub> = " + d.length + " · distinct terms: <b>" + fmtInt(t) + "</b> / " +
+    (P1.central ? "N(" + k + ")" : "M(" + k + ")") + " = " + fmtInt(T) + " · nothing rejected");
+}
+function p1Stop() { if (P1.timer) { clearInterval(P1.timer); P1.timer = null; } $("btnPlay").textContent = "▶ Play"; }
+$("btnPlay").onclick = function () {
+  if (P1.timer) return p1Stop();
+  var n = rowEls().length; if (P1.shown >= n) setShown(0);
+  $("btnPlay").textContent = "❚❚ Pause";
+  var dt = P1.view === "sc" ? 650 : Math.max(260, Math.min(900, 7000 / n));
+  P1.timer = setInterval(function () { setShown(P1.shown + 1); if (P1.shown >= rowEls().length) p1Stop(); }, dt);
+  setShown(P1.shown + 1);
+};
+$("btnStep").onclick = function () { p1Stop(); setShown(P1.shown + 1); };
+$("btnAll").onclick = function () { p1Stop(); setShown(rowEls().length); };
+$("btnReset").onclick = function () { p1Stop(); setShown(0); };
+
+function updateLegend() {
+  var L = $("legend"); L.textContent = "";
+  function item(factors, label, k) {
+    var s = h("span.item"); s.appendChild(glyph(k || 2, factors, { dw: 46 })); add(s, html(h("span"), label)); L.appendChild(s);
+  }
+  item([{ kind: "a", w: [1, 2] }], '<span class="tau">τ-cycle</span> = trace term (bracelet)', 2);
+  item([{ kind: "h", w: [1, 2] }], isW() ? '<span class="theta">θ-path</span> closed by <span class="lamc">Λ</span> (dashed)' : '<span class="theta">θ-path</span> capped by <span class="lamc">μ</span> at both ends', 2);
+  item([{ kind: "a", w: [1] }], "singleton τ<sub>i</sub> (loop)", 1);
+  item([{ kind: "h", w: [1] }], "singleton θ<sub>i</sub>", 1);
+  if (isW()) add(L, html(h("span.item"), 'tile label <b>2·n²</b> = coefficient and the power of n the term carries (one n per τ-cycle)'));
+}
+
+function defaultPanel() {
+  var k = P1.K, cx = isC(), W = isW(), cen = P1.central;
+  var coef = cx ? "2<sup>ℓ(π)−f₁−f₂</sup>" : "2<sup>k−f₁−f₂</sup>";
+  var lhs = W ? "𝔼[∏<sub>i=1</sub><sup>k</sup> tr(WA<sub>i</sub>)]" : (cx ? "𝔼[∏<sub>i=1</sub><sup>k</sup> z*A<sub>i</sub>z]" : "𝔼[∏<sub>i=1</sub><sup>k</sup> z′A<sub>i</sub>z]");
+  var s = "";
+  if (P1.view === "sp") {
+    s += "<h2>" + (cx ? "Proposition 3 (eq. 17)" : "Proposition 2") + (W ? " + " + (cx ? "Corollary 3" : "Corollary 2") : "") + "</h2>";
+    s += '<div class="fbox">' + lhs + " = Σ<sub>π ∈ 𝓑<sub>k</sub></sub> " + coef + " ∏<sub>i</sub> λ<sub>π<sub>i</sub></sub></div>";
+    s += '<div class="fbox th">λ<sub>ν</sub> = 2<sup>𝟙{ℓ(ν)=2}</sup> Σ<sub>j</sub> θ<sub>p<sub>j</sub>(ν)</sub> + Σ<sub>j</sub> τ<sub>q<sub>j</sub>(ν)</sub><small>p<sub>j</sub>: canonical θ-words (ν<sub>1</sub> &lt; ν<sub>p</sub>), q<sub>j</sub>: bracelets (start at the minimum, ν<sub>2</sub> &lt; ν<sub>p</sub>) formed from the block</small></div>';
+    s += '<div class="fbox lm">' + defsHTML() + "</div>";
+    s += "<p>Each row is one set partition π of {1,…," + k + "}; its blocks are expanded independently, so the terms of a row are all ways to turn every block into one <span class='tau'>cycle</span> or one <span class='theta'>path</span>. " +
+      "The per-block coefficients are 1 for singletons, 2 for a τ-pair, 4 for a θ-pair, 2<sup>i</sup> for longer blocks" + (cx ? " — in the complex case each block contributes one factor 2 less per element beyond the first, which is where 2<sup>ℓ(π)</sup> replaces 2<sup>k</sup>." : ".") + "</p>";
+    s += "<p>Totals for k = " + k + ": <b>" + QP.bell(k) + "</b> set partitions → <b>" + fmtInt(cen ? QP.Nk(k) : QP.Mk(k)) + "</b> distinct terms (" + (cen ? "N" : "M") + "(" + k + ")), with no term ever produced twice.</p>";
+    if (W) s += "<p><b>Wishart.</b> tr(WA<sub>i</sub>) = vec(Z)′(I<sub>n</sub>⊗A<sub>i</sub>)vec(Z) is a quadratic form of dimension mn. The Kronecker structure collapses every term to m×m algebra: a cycle picks up tr(I<sub>n</sub>) = n, and the path μ′⋯μ becomes Σ<sub>t</sub> μ<sub>t</sub>′⋯μ<sub>t</sub> = tr(⋯Λ), i.e. the path is closed by Λ." +
+      (cen ? " In the central case every block is a τ-cycle, so a partition with r blocks contributes exactly n<sup>r</sup>: the rows grouped by block count are the coefficients of the polynomial in n." : "") + "</p>";
+    if (W && cen && k <= 4 && P1.data) {
+      var byR = {};
+      P1.data.forEach(function (p) { var r = p.blocks.length; (byR[r] = byR[r] || []).push.apply(byR[r], p.terms); });
+      var poly = Object.keys(byR).sort(function (a, b) { return b - a; }).map(function (r) {
+        var ts = byR[r].map(function (t) { return (t.coef > 1 ? t.coef + "·" : "") + QP.sortFactors(t.fs).map(function (f) { return (isC() && f.w.length >= 3 ? "Re " : "") + "tr(" + chainHTML(f.w, true) + ")"; }).join(""); });
+        return "n" + (r > 1 ? "<sup>" + r + "</sup>" : "") + (ts.length > 1 ? "[" + ts.join(" + ") + "]" : "·" + ts[0]);
+      }).join(" + ");
+      s += '<div class="fbox ok">' + lhs + " = " + poly + "<small>central " + (isC() ? "complex " : "") + "Wishart as a polynomial in n (" + fmtInt(QP.Nk(k)) + " terms)" + (isC() ? "; traces of length ≥ 3 enter through their real parts" : "") + "</small></div>";
+    }
+    if (cen) s += "<p><b>Central case.</b> θ vanishes (μ = 0 / Λ = 0), only cycles remain, and N(k) counts the covers of k labelled vertices by undirected cycles (OEIS A002135) — this is Don (1979)" + (W ? " and, for Wishart, the n-polynomial of Graczyk–Letac–Massam with N(k) rather than k! terms" : "") + ".</p>";
+    s += '<p class="hint">Press <b>Play</b> to process the partitions one by one. Click a row for its block sums, or a tile for the term, its matrix form, and the admissible permutation that produces it in Proposition 1.</p>';
+  } else {
+    s += "<h2>" + (cx ? "Proposition 3 (eq. 16)" : "Proposition 1") + " — permutation screening</h2>";
+    s += '<div class="fbox">' + lhs + " = Σ<sub>κ⊢k</sub> Σ<sub>0≤g≤f</sub> " + (cx ? "2<sup>ℓ(κ)−f₁−f₂+g₂</sup>" : "2<sup>k−f₁−f₂+g₂</sup>") + " Σ<sub>π∈𝒮<sub>f,g</sub></sub> η<sub>f,g,π</sub></div>";
+    s += "<p>For each partition κ of k (frequencies f) and each designation g (the first g<sub>i</sub> blocks of length i are <span class='theta'>θ</span>-blocks, the rest <span class='tau'>τ</span>-blocks), <b>all k! permutations</b> are cut into blocks and screened. A permutation is <b>admissible</b> if every θ-block is a canonical θ-word, every τ-block is a bracelet, and blocks of equal length and designation are in ascending order of their first elements.</p>";
+    s += '<p>Kept permutations are shown <span style="color:var(--c-ok);font-weight:650">outlined</span> with <span class="theta">θ-blocks</span> and <span class="tau">τ-blocks</span> coloured; rejected ones are struck through (hover for the reason). The same ' + fmtInt(cen ? QP.Nk(k) : QP.Mk(k)) + " terms come out as in the set-partition view — but only after examining " + fmtInt((cen ? QP.intPartitions(k).length : QP.mk(k)) * QP.fact(k)) + " permutations.</p>";
+    s += '<p class="hint">Click a kept permutation to see its term.</p>';
+  }
+  html(panel, s);
+}
+
+function termPanel(k, fs, coef, blocksOfPartition, e) {
+  var cx = isC(), W = isW(), sorted = QP.sortFactors(fs);
+  var s = "<h2>Term</h2>";
+  var nt = fs.filter(function (f) { return f.kind === "a"; }).length;
+  s += '<div class="big">' + coef + " " + factorsHTML(sorted) + "</div>";
+  var g2 = fs.filter(function (f) { return f.kind === "h" && f.w.length === 2; }).length;
+  s += '<div class="meta">coefficient = 2<sup>' + e + "</sup> (partition) × 2<sup>" + g2 + "</sup> (θ-pairs) = " + coef + (W ? " · carries n<sup>" + nt + "</sup> through its τ-cycles" : "") + "</div>";
+  var gl = h("div"); gl.appendChild(glyph(k, fs, { dw: 190 }));
+  s += '<div style="margin:6px 0">' + gl.innerHTML + "</div>";
+  s += "<h3>Matrix form</h3>";
+  s += '<div class="fbox lm">' + coef + " · " + factorsHTML(sorted, "mat") + "</div>";
+  // Prop 1 identification
+  var lens = sorted.map(function (f) { return f.w.length; });
+  var kap = lens.slice().sort(function (a, b) { return b - a; });
+  var fr = QP.freqOf(kap, k).slice(1), g = []; for (var i = 1; i <= k; i++) g.push(fs.filter(function (f) { return f.kind === "h" && f.w.length === i; }).length);
+  var order = fs.slice().sort(function (a, b) {
+    if (a.w.length !== b.w.length) return a.w.length - b.w.length;
+    if (a.kind !== b.kind) return a.kind === "h" ? -1 : 1;
+    return a.w[0] - b.w[0];
+  });
+  var perm = order.map(function (f) { return '<span class="' + (f.kind === "h" ? "theta" : "tau") + '">(' + f.w.join(",") + ")</span>"; }).join("");
+  s += "<h3>In Proposition " + (cx ? "3 (eq. 16)" : "1") + "</h3>";
+  s += '<div class="fbox ok">κ = (' + kap.join(",") + "), f = (" + fr.join(",") + "), g = (" + g.join(",") + ")<small>admissible permutation " + perm + " — the unique member of 𝒮<sub>f,g</sub> producing this term</small></div>";
+  if (blocksOfPartition) s += "<h3>In Proposition " + (cx ? "3 (eq. 17)" : "2") + "</h3><div class='fbox'>set partition π = " + partLabel(blocksOfPartition) + "<small>one canonical word per block</small></div>";
+  html(panel, s);
+}
+function selectRow(i, row) {
+  Array.prototype.forEach.call(rowsEl.querySelectorAll(".prow.sel,.tile.sel"), function (e) { e.classList.remove("sel"); });
+  row.classList.add("sel");
+  var p = P1.data[i], k = P1.K, cx = isC();
+  var s = "<h2>Set partition " + partLabel(p.blocks) + "</h2>";
+  s += '<div class="meta">ℓ(π) = ' + p.blocks.length + ", f₁ = " + p.f1 + ", f₂ = " + p.f2 + " → coefficient 2<sup>" + (cx ? p.blocks.length : k) + "−" + p.f1 + "−" + p.f2 + "</sup> = " + Math.pow(2, p.e) + "</div>";
+  p.blocks.forEach(function (b, j) {
+    var L = b.length, nth = P1.central ? 0 : QP.nTheta(L), nta = QP.nTau(L);
+    s += '<div class="fbox' + (P1.central ? "" : " th") + '">λ<sub>' + b.join("") + "</sub> = " + (p.lams[j].length > 14 ? lamHTML(p.lams[j], b) :
+      (P1.central ? "" : (L === 2 ? "2" : "") + p.lams[j].filter(function (x) { return x.kind === "h"; }).map(function (x) { return symHTML("h", x.w); }).join("+") + "+") +
+      p.lams[j].filter(function (x) { return x.kind === "a"; }).map(function (x) { return symHTML("a", x.w); }).join("+")) +
+      "<small>" + (P1.central ? "" : "n<sub>θ</sub>(" + L + ") = " + nth + " canonical θ-words" + (L === 2 ? " (weight 2)" : "") + ", ") + "n<sub>τ</sub>(" + L + ") = " + nta + " bracelet" + (nta > 1 ? "s" : "") + "</small></div>";
+  });
+  s += "<p>Expanding the product gives " + p.lams.map(function (l) { return l.length; }).join(" × ") + " = <b>" + p.terms.length + "</b> term" + (p.terms.length > 1 ? "s" : "") + ", each a different cover of {1,…," + k + "}.</p>";
+  s += '<p class="hint">Click a tile in the row for the individual term.</p>';
+  html(panel, s);
+}
+function selectTerm(i, j, tile) {
+  Array.prototype.forEach.call(rowsEl.querySelectorAll(".prow.sel,.tile.sel"), function (e) { e.classList.remove("sel"); });
+  tile.classList.add("sel");
+  var p = P1.data[i], t = p.terms[j];
+  termPanel(P1.K, t.fs, t.coef, p.blocks, p.e);
+}
+
+/* ---- screening view ---- */
+function buildScreening() {
+  var k = P1.K, cx = isC();
+  rowsEl.textContent = "";
+  var groups = QP.screening(k, P1.central);
+  P1.sdata = groups.map(function (g) {
+    var kept = g.rows.filter(function (r) { return r.ok; }).length;
+    return { g: g, examined: g.rows.length, kept: kept };
+  });
+  var show = k <= 4;
+  var tot = P1.sdata.reduce(function (a, x) { return a + x.examined; }, 0);
+  var stat = h("div.statline");
+  html(stat, '<div class="stat"><div class="v">' + fmtInt(tot) + '</div><div class="l">permutations examined (' + P1.sdata.length + " groups × " + k + "!)</div></div>" +
+    '<div class="stat"><div class="v" style="color:var(--c-ok)">' + fmtInt(P1.sdata.reduce(function (a, x) { return a + x.kept; }, 0)) + '</div><div class="l">kept = distinct terms</div></div>' +
+    '<div class="stat"><div class="v" style="color:var(--c-live)">' + QP.bell(k) + '</div><div class="l">set partitions in Prop. 2 — nothing to reject</div></div>');
+  rowsEl.appendChild(stat);
+  P1.sdata.forEach(function (sg, gi) {
+    var g = sg.g, row = h("div.sgroup.pending");
+    var e = (cx ? g.kappa.length : k) - g.f[0] - (g.f[1] || 0) + (g.g[1] || 0);
+    html(row, '<div class="shead">κ = <b>(' + g.kappa.join(",") + ")</b> · f = (" + g.f.join(",") + ") · g = (" + g.g.join(",") + ") · coefficient 2<sup>" + e + "</sup> = <b>" + Math.pow(2, e) + "</b> · kept <b>" + sg.kept + "</b> of " + sg.examined + "</div>");
+    if (show) {
+      var perms = h("div.perms");
+      g.rows.forEach(function (r) {
+        var chip = h("span.perm." + (r.ok ? "ok" : "rej"));
+        chip.innerHTML = r.blocks.map(function (b, bi) { return '<span class="' + (r.desig[bi] === "h" ? "bh" : "bt") + '">(' + b.join(",") + ")</span>"; }).join("");
+        chip.title = r.ok ? "admissible — click for the term" : "rejected: " + r.reason;
+        if (r.ok) chip.addEventListener("click", function () {
+          Array.prototype.forEach.call(rowsEl.querySelectorAll(".perm.sel"), function (x) { x.classList.remove("sel"); });
+          var fs = r.blocks.map(function (b, bi) { return { kind: r.desig[bi], w: b }; });
+          var gcount = fs.filter(function (f) { return f.kind === "h" && f.w.length === 2; }).length;
+          termPanel(k, fs, Math.pow(2, e), null, e - gcount);
+        });
+        perms.appendChild(chip);
+      });
+      row.appendChild(perms);
+    }
+    rowsEl.appendChild(row);
+  });
+  if (!show) rowsEl.appendChild(html(h("div.livenote", ""), "<div style='padding:6px 14px'>k = 5: " + fmtInt(tot) + " permutation chips would not fit — only the counts per group are shown. Switch to the set-partition view to see all terms.</div>"));
+  updateLegend();
+  p1Counter();
+  defaultPanel();
+}
+
+/* ============================ PART 2 ============================ */
+var engineSrc = $("qp-engine").textContent;
+var WORKER_MAIN = function () {
+  var entries = null, meta = null;
+  function norm(q) { return q.replace(/θ/g, "h_").replace(/τ/g, "a_").replace(/\s+/g, "").replace(/,/g, "_").replace(/[()]/g, "").replace(/__+/g, "_"); }
+  self.onmessage = function (ev) {
+    var msg = ev.data;
+    try {
+      if (msg.type === "gen") {
+        var t0 = performance.now();
+        var r = QP.expand(msg.s, { central: msg.central, complex: msg.complex }, function (np, nt) { self.postMessage({ type: "progress", np: np, nt: nt }); });
+        entries = Array.from(r.map.entries());
+        entries.sort(function (a, b) {
+          var fa = a[0].split("*").length, fb = b[0].split("*").length; if (fa !== fb) return fa - fb;
+          return a[0] < b[0] ? -1 : a[0] > b[0] ? 1 : 0;
+        });
+        meta = { s: msg.s, central: msg.central, complex: msg.complex };
+        self.postMessage({ type: "gen", count: entries.length, collisions: r.collisions, nPartitions: r.nPartitions, ms: performance.now() - t0 });
+      } else if (msg.type === "page") {
+        var list = entries;
+        if (msg.filter) { var q = norm(msg.filter); list = entries.filter(function (e) { return e[0].indexOf(q) >= 0; }); }
+        self.postMessage({ type: "page", total: list.length, page: msg.page, rows: list.slice(msg.page * msg.size, (msg.page + 1) * msg.size), start: msg.page * msg.size });
+      } else if (msg.type === "export") {
+        self.postMessage({ type: "export", fmt: msg.fmt, entries: entries, meta: meta });
+      } else if (msg.type === "evalTerms") {
+        var t1 = performance.now(), v = QP.evaluateTerms(new Map(entries), msg.P);
+        self.postMessage({ type: "evalTerms", value: v, ms: performance.now() - t1 });
+      } else if (msg.type === "evaluate") {
+        var t2 = performance.now(), e = QP.evaluate(msg.s, msg.P, { central: msg.central });
+        var t3 = performance.now(), pol = QP.polarizationCheck(msg.s, msg.P);
+        self.postMessage({ type: "evaluate", res: e, ms: t3 - t2, pol: pol, pms: performance.now() - t3 });
+      } else if (msg.type === "mc") {
+        var r2 = QP.monteCarlo(msg.s, msg.P, msg.draws, msg.seed, function (d, mean, se) { self.postMessage({ type: "mcchunk", d: d, mean: mean, se: se }); });
+        self.postMessage({ type: "mcdone", res: r2 });
+      }
+    } catch (err) { self.postMessage({ type: "error", message: String(err && err.message || err) }); }
+  };
+};
+function makeWorker(onmsg) {
+  var src = engineSrc + "\n(" + WORKER_MAIN.toString() + ")();";
+  var w = new Worker(URL.createObjectURL(new Blob([src], { type: "text/javascript" })));
+  w.onmessage = function (e) { onmsg(e.data); };
+  w.onerror = function (e) { onmsg({ type: "error", message: e.message }); };
+  return w;
+}
+
+var P2 = { central: false, genWorker: null, gen: null, page: 0, filter: "", show: "sym", evalWorker: null, mcWorker: null, lastEval: null, P: null };
+wireSeg("segMean2", function (v) { P2.central = v === "c"; capNote(); });
+wireSeg("segShow", function (v) { P2.show = v; requestPage(); });
+Array.prototype.forEach.call(document.querySelectorAll(".presets button"), function (b) { b.onclick = function () { $("inS").value = b.dataset.s; capNote(); }; });
+$("inS").addEventListener("input", capNote);
+
+function parseS(str) {
+  var s = String(str).split(/[\s,;]+/).filter(Boolean).map(Number);
+  if (!s.length || s.some(function (x) { return !(x >= 1 && x === Math.floor(x)); })) return null;
+  return s;
+}
+var GEN_CAP = 700000, EVAL_CAP = 4e6;
+function multinomS(s) { var t = 0, d = 1; s.forEach(function (x) { t += x; d *= QP.fact(x); }); return QP.fact(t) / d; }
+function capInfo(s) {
+  var S = s.reduce(function (a, b) { return a + b; }, 0);
+  if (S > 14) return { S: S, pred: null, canGen: false, canEval: false };
+  var pred = S <= 12 ? QP.predictedCount(s, P2.central) : null;
+  return { S: S, pred: pred, canGen: pred !== null && pred <= GEN_CAP, canEval: multinomS(s) <= EVAL_CAP };
+}
+function capNote() {
+  var s = parseS($("inS").value), n = $("capNote");
+  if (!s) { n.className = "livenote warn"; n.textContent = "Enter positive integers, e.g. 1,1,1 or 2,2."; return; }
+  var c = capInfo(s);
+  var what = (isW() ? "𝔼[" + s.map(function (x, i) { return "tr(WA" + subNum(i + 1) + ")" + (x > 1 ? supNum(x) : ""); }).join("") + "]" : "𝔼[" + s.map(function (x, i) { return "Q" + subNum(i + 1) + (x > 1 ? supNum(x) : ""); }).join("") + "]");
+  var txt = what + ": |s| = " + c.S + (c.pred !== null ? " · predicted distinct terms M(s) = " + fmtInt(c.pred) + " (closed form, eq. 27)" : "");
+  if (!c.canGen) txt += " · too many terms to list in the browser (cap " + fmtInt(GEN_CAP) + ")" + (c.canEval ? " — you can still Evaluate numerically below" : "");
+  n.className = "livenote" + (c.canGen ? "" : " warn");
+  n.textContent = txt;
+}
+
+$("btnRun").onclick = function () {
+  var s = parseS($("inS").value); if (!s) return capNote();
+  var c = capInfo(s);
+  if (!c.canGen) { capNote(); return; }
+  if (P2.genWorker) P2.genWorker.terminate();
+  $("btnRun").disabled = true; $("btnCancel").disabled = false;
+  $("genBar").style.width = "5%";
+  setKids($("genKpis")); setKids($("genTable")); $("termBox").hidden = true;
+  var t0 = performance.now();
+  P2.gen = { s: s, central: P2.central, complex: isC(), fam: FAM, pred: c.pred, pending: true };
+  html($("genStatus"), "Enumerating multiset partitions (Knuth's Algorithm M) and expanding block sums…");
+  P2.genWorker = makeWorker(function (m) {
+    if (m.type === "progress") { $("genBar").style.width = Math.min(95, 5 + 90 * m.nt / c.pred) + "%"; html($("genStatus"), "partitions visited <b>" + fmtInt(m.np) + "</b> · terms <b>" + fmtInt(m.nt) + "</b>"); }
+    else if (m.type === "gen") {
+      $("btnRun").disabled = false; $("btnCancel").disabled = true; $("genBar").style.width = "100%";
+      P2.gen.pending = false; P2.gen.count = m.count;
+      var ok = m.count === c.pred && m.collisions === 0;
+      html($("genStatus"), '<span class="' + (ok ? "pass" : "fail") + '">' + (ok ? "✓" : "✗") + "</span> generated <b>" + fmtInt(m.count) + "</b> distinct terms from <b>" + fmtInt(m.nPartitions) + "</b> multiset partitions in <b>" + (m.ms / 1000).toFixed(2) + " s</b>; " +
+        (m.collisions === 0 ? "no term was produced twice" : m.collisions + " collisions") + "; count " + (m.count === c.pred ? "matches" : "differs from") + " the closed form M(s) = " + fmtInt(c.pred) + ".");
+      kpis(m, c, s);
+      constructionTable(s);
+      P2.page = 0; $("termBox").hidden = false; requestPage();
+    } else if (m.type === "page") renderPage(m);
+    else if (m.type === "export") doExport(m);
+    else if (m.type === "evalTerms") onEvalTerms(m);
+    else if (m.type === "error") { html($("genStatus"), '<span class="fail">Error:</span> ' + esc(m.message)); $("btnRun").disabled = false; $("btnCancel").disabled = true; }
+  });
+  P2.genWorker.postMessage({ type: "gen", s: s, central: P2.central, complex: isC() });
+};
+$("btnCancel").onclick = function () {
+  if (P2.genWorker) { P2.genWorker.terminate(); P2.genWorker = null; }
+  P2.gen = null; $("btnRun").disabled = false; $("btnCancel").disabled = true; $("genBar").style.width = "0";
+  html($("genStatus"), "Cancelled.");
+};
+function kpis(m, c, s) {
+  var S = s.reduce(function (a, b) { return a + b; }, 0);
+  var dist = P2.central ? QP.Nk(S) : QP.Mk(S);
+  var el = $("genKpis"); el.className = "kpis";
+  html(el, '<div class="kpi"><div class="v">' + fmtInt(m.nPartitions) + '</div><div class="l">multiset partitions |𝓑<sub>s</sub>|</div></div>' +
+    '<div class="kpi"><div class="v" style="color:var(--c-live)">' + fmtInt(m.count) + '</div><div class="l">distinct terms</div></div>' +
+    '<div class="kpi"><div class="v" style="color:var(--ink-3)">' + fmtInt(dist) + '</div><div class="l">if all ' + S + " matrices were distinct (" + (P2.central ? "N" : "M") + "(" + S + "))</div></div>" +
+    '<div class="kpi"><div class="v" style="color:var(--ink-3)">' + fmtInt(QP.fact(S)) + '</div><div class="l">' + S + "! (GLM-type expansion)</div></div>");
+}
+function constructionTable(s) {
+  var cx = isC(), rows = [], S = s.reduce(function (a, b) { return a + b; }, 0);
+  var n = 0; QP.forEachMultisetPartition(s, function (bl) { n++; if (n <= 60) rows.push(bl.map(function (b) { return b.slice(); })); });
+  var el = $("genTable");
+  if (n > 60) { html(el, '<p class="livenote">The construction table (as in the paper’s Tables 3, 5 and 7) is shown when |𝓑<sub>s</sub>| ≤ 60; here |𝓑<sub>s</sub>| = ' + fmtInt(n) + ".</p>"); return; }
+  var t = '<table class="livetab"><tr><th>π ∈ 𝓑<sub>s</sub></th><th class="num">' + (cx ? "2<sup>ℓ(π)−f₁−f₂</sup>" : "2<sup>|s|−f₁−f₂</sup>") + '</th><th class="num">c<sub>s</sub>(π)</th><th>block sums λ</th><th class="num">terms</th></tr>';
+  rows.forEach(function (bl) {
+    var info = QP.partitionInfo(bl, s, cx), lamTxt = [], nterm = 1;
+    info.groups.forEach(function (g) {
+      var list = QP.lambdaList(g.b, P2.central), content = QP.contentOf(g.b);
+      var byKind = function (k) { return list.filter(function (x) { return x.kind === k; }); };
+      var pieces = list.length > 8 ? [(byKind("h").length ? '<span class="theta">Σ ' + byKind("h").length + " θ</span>" : ""), '<span class="tau">Σ ' + byKind("a").length + " τ</span>"].filter(Boolean).join(" + ")
+        : list.map(function (x) { return (x.c > 1 ? x.c : "") + symHTML(x.kind, x.w); }).join("+");
+      var one = list.length === 1 && list[0].c === 1 ? pieces : "[" + pieces + "]";
+      lamTxt.push(one + (g.h > 1 ? "<sup>" + g.h + "</sup>" : ""));
+      nterm *= QP.binom(list.length + g.h - 1, g.h);
+    });
+    t += "<tr><td>" + bl.map(function (b) { return "(" + QP.contentOf(b).join(",") + ")"; }).join("") + '</td><td class="num">' + Math.pow(2, info.pow2) + '</td><td class="num">' + info.cs + "</td><td>" + lamTxt.join(" ") + '</td><td class="num">' + nterm + "</td></tr>";
+  });
+  html(el, t + "</table><p class='livenote'>Rows are Algorithm M's order. c<sub>s</sub>(π) counts the set partitions of {1,…," + S + "} that collapse to π (Lemma 5); the weights inside λ are c<sub>j</sub>, d<sub>j</sub> of Lemma 8 (palindromes and one-necklace bracelets are halved). Repeated blocks are raised to their multiplicity h; since c<sub>s</sub>(π) already divides by h!, expanding [λ]<sup>h</sup> as a multiset product produces each term once.</p>");
+}
+function requestPage() {
+  if (!P2.genWorker || !P2.gen || P2.gen.pending) return;
+  P2.genWorker.postMessage({ type: "page", page: P2.page, size: 50, filter: $("inFilter").value.trim() });
+}
+$("inFilter").addEventListener("input", function () { P2.page = 0; requestPage(); });
+function renderPage(m) {
+  var list = $("termList"); list.textContent = "";
+  m.rows.forEach(function (r, i) {
+    var fs = parseKey(r[0]), row = h("div.termrow");
+    add(row, h("span.ix", "#" + fmtInt(m.start + i + 1)));
+    var body = h("span");
+    if (P2.show === "mat2") body.textContent = (r[1] === 1 ? "" : r[1] + "*") + r[0];
+    else html(body, "<b>" + (r[1] === 1 ? "" : r[1]) + "</b> " + factorsHTML(fs, P2.show === "mat" ? "mat" : "sym"));
+    row.appendChild(body);
+    if (P2.show === "sym") html(row.appendChild(h("span.mx")), factorsHTML(fs, "mat"));
+    list.appendChild(row);
+  });
+  if (!m.rows.length) list.appendChild(h("div.livenote", "No term matches the filter."));
+  var pg = $("pager"); pg.textContent = "";
+  var pages = Math.max(1, Math.ceil(m.total / 50));
+  var prev = h("button", "‹ prev"), next = h("button", "next ›");
+  prev.disabled = m.page <= 0; next.disabled = m.page >= pages - 1;
+  prev.onclick = function () { P2.page--; requestPage(); }; next.onclick = function () { P2.page++; requestPage(); };
+  add(pg, [prev, " page " + (m.page + 1) + " of " + fmtInt(pages) + " · " + fmtInt(m.total) + " term" + (m.total === 1 ? "" : "s") + " ", next]);
+}
+
+/* ---- downloads ---- */
+["Txt", "Csv", "Tex", "M"].forEach(function (f) { $("dl" + f).onclick = function () { if (P2.genWorker && P2.gen && !P2.gen.pending) P2.genWorker.postMessage({ type: "export", fmt: f }); }; });
+function save(name, text, type) {
+  var a = document.createElement("a");
+  a.href = URL.createObjectURL(new Blob([text], { type: type || "text/plain" }));
+  a.download = name; document.body.appendChild(a); a.click(); setTimeout(function () { URL.revokeObjectURL(a.href); a.remove(); }, 500);
+}
+function objTitle(meta, fam) {
+  var s = meta.s, cx = meta.complex;
+  if (fam === "W") return "E[" + s.map(function (x, i) { return "tr(W*A" + (i + 1) + ")" + (x > 1 ? "^" + x : ""); }).join("*") + "], W ~ " + (cx ? "CW" : "W") + "_m(n,S," + (meta.central ? "0" : "Lambda") + ")";
+  return "E[" + s.map(function (x, i) { return "(z'*A" + (i + 1) + "*z)" + (x > 1 ? "^" + x : ""); }).join("*") + "], z ~ " + (cx ? "CN" : "N") + "(" + (meta.central ? "0" : "mu") + ",S)";
+}
+function texFactor(f) { return (f.kind === "h" ? "\\theta" : "\\tau") + "_{" + (f.w.length === 1 ? f.w[0] : "(" + f.w.join(",") + ")") + "}"; }
+function texTerm(key, c) {
+  var fs = parseKey(key), g = [];
+  fs.forEach(function (f) { var k = f.kind + f.w.join(","), l = g[g.length - 1]; if (l && l.k === k) l.p++; else g.push({ k: k, f: f, p: 1 }); });
+  return (c === 1 ? "" : c) + g.map(function (x) { return texFactor(x.f) + (x.p > 1 ? "^{" + x.p + "}" : ""); }).join("");
+}
+function doExport(m) {
+  var meta = m.meta, fam = P2.gen.fam, e = m.entries, name = "qprod_" + (fam === "W" ? "wishart_" : "") + (meta.complex ? "complex_" : "") + (meta.central ? "central_" : "") + "s" + meta.s.join("-");
+  var head = objTitle(meta, fam), defs = fam === "W"
+    ? "theta_nu = " + (meta.complex ? "Re " : "") + "tr(A_nu1*S*A_nu2*S*...*S*A_nup*Lambda),  tau_nu = n*" + (meta.complex ? "Re " : "") + "tr(A_nu1*S*...*A_nup*S)"
+    : "theta_nu = " + (meta.complex ? "Re(" : "") + "mu'*A_nu1*S*A_nu2*S*...*S*A_nup*mu" + (meta.complex ? ")" : "") + ",  tau_nu = " + (meta.complex ? "Re " : "") + "tr(A_nu1*S*...*A_nup*S)";
+  if (m.fmt === "Txt") {
+    var t = "% " + head + "\n% " + e.length + " distinct terms (Kan & Pan, JMVA). a = tau, h = theta (as in qprodastr.m)\n% " + defs + "\n";
+    t += e.map(function (x) { return (x[1] === 1 ? "" : x[1] + "*") + x[0]; }).join("\n") + "\n";
+    save(name + ".txt", t);
+  } else if (m.fmt === "Csv") {
+    var c = "coefficient,term,factors\n" + e.map(function (x) { return x[1] + "," + x[0] + "," + parseKey(x[0]).length; }).join("\n") + "\n";
+    save(name + ".csv", c, "text/csv");
+  } else if (m.fmt === "Tex") {
+    var lines = [], per = 4;
+    for (var i = 0; i < e.length; i += per) lines.push(e.slice(i, i + per).map(function (x) { return texTerm(x[0], x[1]); }).join(" + "));
+    var tex = "% " + head + " -- " + e.length + " distinct terms\n% " + defs + "\n\\begin{align*}\n& " + lines.join(" \\\\\n& + ") + "\n\\end{align*}\n";
+    save(name + ".tex", tex);
+  } else {
+    var fn = name.replace(/[^A-Za-z0-9_]/g, "_");
+    var args = fam === "W" ? "A,S,Lam,n" : (meta.central ? "A,S" : "A,S,mu");
+    var src = "function y = " + fn + "(" + args + ")\n%  " + head + "\n%  " + e.length + " distinct terms, generated by qprod.html (Kan & Pan, JMVA).\n%  A is m x m x " + meta.s.length + ".\n";
+    if (fam !== "W" && !meta.central) src += "Lam = mu*mu';\n";
+    if (fam !== "W") src += "n = 1;\n";
+    if (meta.central) src += "Lam = zeros(size(S));\n";
+    src += "y = 0;\n";
+    var chunks = e.map(function (x) {
+      return "y = y + " + x[1] + "*" + parseKey(x[0]).map(function (f) { return (f.kind === "h" ? "th" : "ta") + "([" + f.w.join(" ") + "])"; }).join("*") + ";";
+    });
+    src += chunks.join("\n") + "\n";
+    src += "   function v = ta(w)\n      M = eye(size(S));\n      for j = 1:numel(w), M = M*A(:,:,w(j))*S; end\n      v = real(n*trace(M));\n   end\n";
+    src += "   function v = th(w)\n      M = eye(size(S));\n      for j = 1:numel(w)-1, M = M*A(:,:,w(j))*S; end\n      v = real(trace(M*A(:,:,w(end))*Lam));\n   end\nend\n";
+    save(fn + ".m", src);
+  }
+}
+
+/* ---- evaluation ---- */
+function p2ModeChanged() {
+  var W = isW();
+  $("p2title").textContent = W ? "Generate it yourself — 𝔼[∏ tr(WA_i)^{s_i}] in your browser" : "Generate it yourself — 𝔼[∏ (z′A_i z)^{s_i}] in your browser";
+  $("p2title").textContent = W ? "Generate it yourself — Wishart product moments in your browser" : "Generate it yourself — products of powers of quadratic forms in your browser";
+  html($("p2lead"), W
+    ? "Proposition 4 with Corollary " + (isC() ? "3" : "2") + ": for W ∼ " + (isC() ? "CW" : "W") + "<sub>m</sub>(n, Σ, Λ), <span class='m'>𝔼[∏<sub>i</sub> tr(WA<sub>i</sub>)<sup>s<sub>i</sub></sup>]</span> is the quadratic-form expression with <span class='theta'>θ<sub>ν</sub> = tr(A<sub>ν₁</sub>Σ⋯ΣA<sub>ν<sub>p</sub></sub>Λ)</span> and <span class='tau'>τ<sub>ν</sub> = n·tr(A<sub>ν₁</sub>Σ⋯A<sub>ν<sub>p</sub></sub>Σ)</span>" + (isC() ? " (real parts)" : "") + ". Choosing A<sub>i</sub> = (e<sub>a</sub>e<sub>b</sub>′ + e<sub>b</sub>e<sub>a</sub>′)/2 gives tr(WA<sub>i</sub>) = w<sub>ab</sub>, so product moments of the entries of W are included — type the entries below (e.g. 11,12,22 with s = 1,1,1 for 𝔼[w₁₁w₁₂w₂₂]). Everything runs in a background Web Worker; the enumeration is Knuth's Algorithm M over the multiset partitions 𝓑<sub>s</sub>, as in <code>qprods" + (isC() ? "_comp" : "") + ".m</code>."
+    : "Proposition 4: <span class='m'>𝔼[∏<sub>i</sub> (z′A<sub>i</sub>z)<sup>s<sub>i</sub></sup>]</span> = Σ<sub>π∈𝓑<sub>s</sub></sub> " + (isC() ? "2<sup>ℓ(π)−f₁−f₂</sup>" : "2<sup>|s|−f₁−f₂</sup>") + " c<sub>s</sub>(π) ∏ λ<sub>π<sub>i</sub></sub>, summed over the partitions of the multiset {1<sup>s₁</sup>,…,k<sup>s<sub>k</sub></sup>}. Repeated forms collapse many terms: 𝔼[Q₁⁵Q₂⁵] has 15,310 distinct terms against 63,673,506 for ten distinct forms. Everything runs in a background Web Worker, with Knuth's Algorithm M and bracelets with fixed content exactly as in <code>qprods" + (isC() ? "_comp" : "") + ".m</code>; Generate lists the terms, Evaluate computes the number.");
+  html($("evalLead"), "Random " + (isC() ? "Hermitian" : "symmetric") + " A<sub>i</sub>, a positive semidefinite Σ (singular by default, which the paper allows), " + (isW() ? "means μ<sub>1</sub>,…,μ<sub>n</sub> with Λ = Σ<sub>t</sub>μ<sub>t</sub>μ<sub>t</sub>" + (isC() ? "*" : "′") : "a mean μ") + " (zero when central). The value from the explicit formula is compared with (i) the sum of the generated term list, (ii) an <b>independent</b> exact route — polarization ±A<sub>i</sub> combined with the cumulants of a single form (Lemma 2), which never touches bracelets or partitions — and (iii) Monte Carlo." + (isC() ? " In the complex case the page also evaluates the formula with the real part taken only once, at the end: this is the error the paper points out in the literature, and it shows up for |s| ≥ 4 (noncentral) or |s| ≥ 6 (central)." : ""));
+  $("lblN").hidden = !W; $("lblEnt").hidden = !W;
+  capNote();
+  if (P2.gen) {
+    if (P2.genWorker) P2.genWorker.terminate(); P2.genWorker = null; P2.gen = null;
+    $("termBox").hidden = true; setKids($("genKpis")); setKids($("genTable")); $("genBar").style.width = "0";
+    html($("genStatus"), "Family or field changed — generate again (the terms themselves are the same up to the coefficient rule; their meaning changes).");
+  }
+  setKids($("evalOut")); setKids($("mcOut")); html($("evalStatus"), ""); P2.lastEval = null;
+}
+$("inDraws").addEventListener("input", function () { $("drawsVal").textContent = fmtInt(Math.pow(10, +$("inDraws").value)); });
+
+function buildProblem(s) {
+  var m = Math.max(1, Math.min(6, +$("inM").value || 3)), n = Math.max(1, Math.min(40, Math.round(+$("inN").value || 4)));
+  var P = QP.randomProblem({ seed: +$("inSeed").value || 1, m: m, k: s.length, complex: isC(), kind: isW() ? "W" : "z", n: n, central: P2.central, meanScale: isW() ? 0.6 : 0.8, singular: $("inSing").checked && m > 1 });
+  if (isW() && $("inEnt").value.trim()) {
+    var ents = $("inEnt").value.split(/[\s,;]+/).filter(Boolean);
+    if (ents.length !== s.length) throw new Error("give one entry per matrix (" + s.length + " entries for s = (" + s.join(",") + "))");
+    P.A = ents.map(function (e) {
+      var a = +e[0], b = +e[1];
+      if (!(a >= 1 && b >= 1 && a <= m && b <= m) || e.length !== 2) throw new Error("entry '" + e + "' must be two digits between 1 and m = " + m);
+      var A = QP.cm(m); A.re[(a - 1) * m + (b - 1)] += 0.5; A.re[(b - 1) * m + (a - 1)] += 0.5; return A;
+    });
+  }
+  return P;
+}
+$("btnEval").onclick = function () {
+  var s = parseS($("inS").value); if (!s) return capNote();
+  var c = capInfo(s), P;
+  if (!c.canEval) { html($("evalStatus"), '<span class="fail">Too large:</span> the single-block λ alone needs ' + fmtInt(multinomS(s)) + " words; the page caps the explicit evaluation at " + fmtInt(EVAL_CAP) + "."); return; }
+  try { P = buildProblem(s); } catch (e) { html($("evalStatus"), '<span class="fail">Input:</span> ' + esc(e.message)); return; }
+  P2.P = P; P2.lastEval = { s: s, central: P2.central, complex: isC(), P: P, rows: {} };
+  dumpMats(P, s);
+  if (P2.evalWorker) P2.evalWorker.terminate();
+  html($("evalStatus"), "Evaluating in a background worker…"); setKids($("evalOut")); setKids($("mcOut"));
+  P2.evalWorker = makeWorker(function (m) {
+    if (m.type === "evaluate") {
+      var L = P2.lastEval; L.rows.formula = { v: m.res.termwise, ms: m.ms, np: m.res.nPartitions }; L.rows.pol = { v: m.pol, ms: m.pms };
+      if (isC()) L.rows.naive = { v: m.res.naive, im: m.res.naiveIm };
+      renderEval(); html($("evalStatus"), "Done. " + fmtInt(m.res.nPartitions) + " multiset partitions summed.");
+      var g = P2.gen;
+      if (g && !g.pending && P2.genWorker && g.s.join() === s.join() && g.central === P2.central && g.complex === isC() && g.fam === FAM) P2.genWorker.postMessage({ type: "evalTerms", P: P });
+    } else if (m.type === "error") html($("evalStatus"), '<span class="fail">Error:</span> ' + esc(m.message));
+  });
+  P2.evalWorker.postMessage({ type: "evaluate", s: s, P: P, central: P2.central });
+};
+function onEvalTerms(m) { if (!P2.lastEval) return; P2.lastEval.rows.terms = { v: m.value, ms: m.ms, n: P2.gen.count }; renderEval(); }
+function renderEval() {
+  var L = P2.lastEval, R = L.rows, ref = R.formula ? R.formula.v : null;
+  var S = L.s.reduce(function (a, b) { return a + b; }, 0);
+  var t = '<table class="evaltab"><tr><td></td><td class="v" style="color:var(--ink-3)">value</td><td class="d" style="color:var(--ink-3)">rel. diff. vs formula</td><td class="d" style="color:var(--ink-3)">time</td></tr>';
+  function row(label, v, extra, time, cls) {
+    t += "<tr" + (cls ? ' class="' + cls + '"' : "") + "><td>" + label + '</td><td class="v">' + (v == null ? "—" : fmtNum(v)) + '</td><td class="d">' + (extra || "") + '</td><td class="d">' + (time || "") + "</td></tr>";
+  }
+  var tol = 1e-9 * Math.pow(4, Math.max(0, S - 6));
+  function verdict(v) { var r = relDiff(v, ref); return '<span class="' + (r < Math.max(tol, 1e-9) ? "pass" : "fail") + '">' + fmtRel(r) + "</span>"; }
+  if (R.formula) row("<b>Explicit formula</b> — Prop. 4, block sums over " + fmtInt(R.formula.np) + " partitions of 𝓑<sub>s</sub> (as qprods" + (isC() ? "_comp" : "") + ".m)", R.formula.v, "reference", (R.formula.ms).toFixed(0) + " ms");
+  if (R.terms) row("Sum of the " + fmtInt(R.terms.n) + " generated distinct terms", R.terms.v, verdict(R.terms.v), R.terms.ms.toFixed(0) + " ms");
+  else row('<span style="color:var(--ink-3)">Sum of the generated terms — press “Generate terms” above for the same s first</span>', null, "", "");
+  if (R.pol) row("Independent: polarization over ±A<sub>i</sub> + single-form cumulants (Lemma 2)", R.pol.v, verdict(R.pol.v), R.pol.ms.toFixed(0) + " ms");
+  if (R.naive) {
+    var r = relDiff(R.naive.v, ref), bad = r > Math.max(tol, 1e-9);
+    row("Complex, <b>real part taken once at the end</b> (the published mistake)", R.naive.v, '<span class="' + (bad ? "fail" : "pass") + '">' + fmtRel(r) + "</span>" + (bad ? " ✗ wrong" : " (harmless here)"), "", bad ? "warnrow" : "");
+  }
+  if (R.mc) {
+    var zsc = (R.mc.mean - ref) / R.mc.se;
+    row("Monte Carlo, " + fmtInt(R.mc.draws) + " draws of " + (isW() ? "W" : "z") + " (± 1 s.e. " + fmtNum(+R.mc.se.toPrecision(3)) + ")", R.mc.mean, '<span class="' + (Math.abs(zsc) < 3 ? "pass" : "fail") + '">' + zsc.toFixed(2) + " s.e.</span>", R.mc.ms ? (R.mc.ms / 1000).toFixed(1) + " s" : "");
+  }
+  html($("evalOut"), t + "</table>");
+}
+$("btnMC").onclick = function () {
+  if (!P2.lastEval || !P2.lastEval.rows.formula) { html($("evalStatus"), "Press Evaluate first — Monte Carlo is compared with the exact value."); return; }
+  var L = P2.lastEval, draws = Math.round(Math.pow(10, +$("inDraws").value));
+  if (P2.mcWorker) P2.mcWorker.terminate();
+  var pts = [], t0 = performance.now();
+  html($("evalStatus"), "Monte Carlo running…");
+  P2.mcWorker = makeWorker(function (m) {
+    if (m.type === "mcchunk") { pts.push(m); drawMC(pts, L.rows.formula.v, draws); }
+    else if (m.type === "mcdone") { L.rows.mc = { mean: m.res.mean, se: m.res.se, draws: m.res.draws, ms: performance.now() - t0 }; renderEval(); html($("evalStatus"), "Monte Carlo done."); }
+    else if (m.type === "error") html($("evalStatus"), '<span class="fail">Error:</span> ' + esc(m.message));
+  });
+  P2.mcWorker.postMessage({ type: "mc", s: L.s, P: L.P, draws: draws, seed: 1000 + (+$("inSeed").value || 1) });
+};
+function drawMC(pts, exact, draws) {
+  var W = Math.min(760, $("mcOut").clientWidth || 760), H = 220, ml = 84, mr = 16, mt = 14, mb = 34;
+  var x0 = Math.log10(pts[0].d), x1 = Math.log10(draws);
+  if (x1 - x0 < 0.5) x0 = x1 - 0.5;
+  var lo = exact, hi = exact;
+  pts.forEach(function (p) { var s2 = isFinite(p.se) ? 2 * p.se : 0; lo = Math.min(lo, p.mean - s2); hi = Math.max(hi, p.mean + s2); });
+  var span = hi - lo || Math.abs(exact) * 0.1 || 1; lo -= span * 0.08; hi += span * 0.08;
+  var X = function (d) { return ml + (Math.log10(d) - x0) / (x1 - x0) * (W - ml - mr); };
+  var Y = function (v) { return mt + (hi - v) / (hi - lo) * (H - mt - mb); };
+  var s = '<svg class="chartsvg" width="' + W + '" height="' + H + '" role="img" aria-label="Monte Carlo running mean converging to the exact value">';
+  for (var e = Math.ceil(x0); e <= Math.floor(x1); e++) { var xx = X(Math.pow(10, e)); s += '<line class="gl" x1="' + xx + '" x2="' + xx + '" y1="' + mt + '" y2="' + (H - mb) + '"/><text x="' + xx + '" y="' + (H - mb + 15) + '" text-anchor="middle">10' + supNum(e) + "</text>"; }
+  [lo + (hi - lo) * 0.1, (lo + hi) / 2, hi - (hi - lo) * 0.1].forEach(function (v) { s += '<text x="' + (ml - 6) + '" y="' + (Y(v) + 4) + '" text-anchor="end">' + (+v.toPrecision(4)).toLocaleString("en-CA") + "</text>"; });
+  var band = pts.filter(function (p) { return isFinite(p.se); });
+  if (band.length > 1) {
+    var up = band.map(function (p) { return X(p.d) + "," + Y(p.mean + 2 * p.se); }), dn = band.slice().reverse().map(function (p) { return X(p.d) + "," + Y(p.mean - 2 * p.se); });
+    s += '<polygon points="' + up.concat(dn).join(" ") + '" fill="var(--c-live)" opacity="0.14"/>';
+  }
+  s += '<line x1="' + ml + '" x2="' + (W - mr) + '" y1="' + Y(exact) + '" y2="' + Y(exact) + '" stroke="var(--c-theta)" stroke-width="1.6" stroke-dasharray="5 4"/>';
+  s += '<text x="' + (ml + 6) + '" y="' + (Y(exact) - 6) + '" text-anchor="start" style="fill:var(--c-theta)">explicit formula = ' + fmtNum(+exact.toPrecision(8)) + '</text>';
+  s += '<polyline fill="none" stroke="var(--c-live)" stroke-width="2" points="' + pts.map(function (p) { return X(p.d) + "," + Y(p.mean); }).join(" ") + '"/>';
+  s += '<line class="ax" x1="' + ml + '" x2="' + (W - mr) + '" y1="' + (H - mb) + '" y2="' + (H - mb) + '"/>';
+  s += '<text x="' + ((ml + W - mr) / 2) + '" y="' + (H - 4) + '" text-anchor="middle">draws (log scale) — running mean with ±2 s.e. band</text></svg>';
+  html($("mcOut"), s);
+}
+function fmtMat(A, m, cx) {
+  var rows = [];
+  for (var i = 0; i < m; i++) {
+    var r = [];
+    for (var j = 0; j < m; j++) { var re = A.re[i * m + j], im = A.im[i * m + j]; r.push(cx ? re.toFixed(4) + (im >= 0 ? "+" : "-") + Math.abs(im).toFixed(4) + "i" : re.toFixed(4)); }
+    rows.push("  " + r.join("  "));
+  }
+  return rows.join("\n");
+}
+function dumpMats(P, s) {
+  var m = P.m, t = "";
+  P.A.forEach(function (A, i) { t += "A" + (i + 1) + " =\n" + fmtMat(A, m, P.complex) + "\n"; });
+  t += "Sigma =\n" + fmtMat(P.Sigma, m, P.complex) + "\n";
+  if (isW()) t += "Lambda =\n" + fmtMat(P.Lambda, m, P.complex) + "\nn = " + P.n + "\n";
+  else t += "mu' = " + P.Mre[0].map(function (x, i) { return P.complex ? x.toFixed(4) + (P.Mim[0][i] >= 0 ? "+" : "-") + Math.abs(P.Mim[0][i]).toFixed(4) + "i" : x.toFixed(4); }).join("  ") + "\n";
+  $("matDump").textContent = t;
+}
+function matlabMat(A, m, cx) {
+  var r = [];
+  for (var i = 0; i < m; i++) { var row = []; for (var j = 0; j < m; j++) row.push(A.re[i * m + j].toPrecision(17)); r.push(row.join(" ")); }
+  var s = "[" + r.join("; ") + "]";
+  if (cx) { var q = []; for (var i2 = 0; i2 < m; i2++) { var row2 = []; for (var j2 = 0; j2 < m; j2++) row2.push(A.im[i2 * m + j2].toPrecision(17)); q.push(row2.join(" ")); } s += " + 1i*[" + q.join("; ") + "]"; }
+  return s;
+}
+$("btnMat").onclick = function () {
+  var L = P2.lastEval; if (!L) { html($("evalStatus"), "Press Evaluate first."); return; }
+  var P = L.P, m = P.m, k = L.s.length, cx = P.complex, suf = cx ? "_comp" : "";
+  var code = "% Reproduces the example on qprod.html with the Matlab package (program/public)\nm = " + m + "; k = " + k + "; s = [" + L.s.join(" ") + "];\nA = zeros(m,m,k);\n";
+  P.A.forEach(function (A, i) { code += "A(:,:," + (i + 1) + ") = " + matlabMat(A, m, cx) + ";\n"; });
+  code += "S = " + matlabMat(P.Sigma, m, cx) + ";\n";
+  if (!isW()) {
+    code += "mu = [" + P.Mre[0].map(function (x, i) { return x.toPrecision(17) + (cx ? (P.Mim[0][i] >= 0 ? "+" : "") + P.Mim[0][i].toPrecision(17) + "i" : ""); }).join("; ") + "];\n";
+    code += L.central ? "y = qprodsc" + suf + "(A,S,s)\n" : "y = qprods" + suf + "(A,S,mu,s)\n";
+  } else {
+    code += "n = " + P.n + ";\nM = zeros(m,n);   % column t = mean of z_t\n";
+    P.Mre.forEach(function (col, t) { code += "M(:," + (t + 1) + ") = [" + col.map(function (x, i) { return x.toPrecision(17) + (cx ? (P.Mim[t][i] >= 0 ? "+" : "") + P.Mim[t][i].toPrecision(17) + "i" : ""); }).join("; ") + "];\n"; });
+    code += "% tr(W*A_i) = vec(Z)'*kron(I_n,A_i)*vec(Z), vec(Z) ~ " + (cx ? "CN" : "N") + "(vec(M), kron(I_n,S))\nAt = zeros(m*n,m*n,k);\nfor i=1:k, At(:,:,i) = kron(eye(n),A(:,:,i)); end\n";
+    code += L.central ? "y = qprodsc" + suf + "(At,kron(eye(n),S),s)\n" : "y = qprods" + suf + "(At,kron(eye(n),S),M(:),s)\n";
+  }
+  if (L.rows.formula) code += "% value on the page: " + L.rows.formula.v.toPrecision(16) + "\n";
+  $("matDump").textContent = code; $("matDump").parentNode.open = true;
+  if (navigator.clipboard) navigator.clipboard.writeText(code).then(function () { html($("evalStatus"), "Matlab code copied to the clipboard (also shown below)."); }, function () { html($("evalStatus"), "Matlab code shown below."); });
+  else html($("evalStatus"), "Matlab code shown below.");
+};
+
+/* ============================ PART 3 ============================ */
+function countChart() {
+  var K = 10, series = [
+    { name: "m(k)·k! permutations screened (Prop. 1)", f: function (k) { return QP.mk(k) * QP.fact(k); }, col: "var(--c-lam)", dash: "5 3" },
+    { name: "Letac–Massam, noncentral", f: QP.lmCount, col: "var(--c-bad)", dash: "2 3" },
+    { name: "k! (Graczyk–Letac–Massam, central)", f: QP.fact, col: "var(--ink-3)", dash: "6 4" },
+    { name: "M(k) — ours, noncentral", f: QP.Mk, col: "var(--c-theta)" },
+    { name: "N(k) — ours, central", f: QP.Nk, col: "var(--c-tau)" },
+    { name: "B(k) set partitions (Prop. 2 loop)", f: QP.bell, col: "var(--c-live)" }
+  ];
+  series.forEach(function (s) { s.v = []; for (var k = 1; k <= K; k++) s.v.push(s.f(k)); });
+  var el = $("countChart"), W = Math.max(340, Math.min(980, el.clientWidth || 900)), H = 330, ml = 56, mr = W < 600 ? 20 : 270, mt = 12, mb = 36;
+  var ymax = 10;
+  var X = function (k) { return ml + (k - 1) / (K - 1) * (W - ml - mr); }, Y = function (v) { return mt + (1 - Math.log10(Math.max(v, 1)) / ymax) * (H - mt - mb); };
+  var s = '<svg class="chartsvg" width="' + W + '" height="' + H + '" role="img" aria-label="Number of terms by k, log scale">';
+  for (var e = 0; e <= ymax; e += 2) s += '<line class="gl" x1="' + ml + '" x2="' + (W - mr) + '" y1="' + Y(Math.pow(10, e)) + '" y2="' + Y(Math.pow(10, e)) + '"/><text x="' + (ml - 6) + '" y="' + (Y(Math.pow(10, e)) + 4) + '" text-anchor="end">10' + supNum(e) + "</text>";
+  for (var k = 1; k <= K; k++) s += '<text x="' + X(k) + '" y="' + (H - mb + 16) + '" text-anchor="middle">' + k + "</text>";
+  s += '<text x="' + ((ml + W - mr) / 2) + '" y="' + (H - 3) + '" text-anchor="middle">k (number of quadratic forms)</text>';
+  var labels = [];
+  series.forEach(function (sr) {
+    s += '<polyline fill="none" stroke="' + sr.col + '" stroke-width="2"' + (sr.dash ? ' stroke-dasharray="' + sr.dash + '"' : "") + ' points="' + sr.v.map(function (v, i) { return X(i + 1) + "," + Y(v); }).join(" ") + '"/>';
+    sr.v.forEach(function (v, i) { s += '<circle cx="' + X(i + 1) + '" cy="' + Y(v) + '" r="2.6" fill="' + sr.col + '"/>'; });
+    labels.push({ y: Y(sr.v[K - 1]), sr: sr });
+  });
+  if (mr > 100) {
+    labels.sort(function (a, b) { return a.y - b.y; });
+    for (var i = 1; i < labels.length; i++) if (labels[i].y - labels[i - 1].y < 13) labels[i].y = labels[i - 1].y + 13;
+    labels.forEach(function (l) { s += '<text x="' + (W - mr + 8) + '" y="' + (l.y + 4) + '" style="fill:' + l.sr.col + ';font-weight:600">' + l.sr.name + "</text>"; });
+  }
+  s += '<line id="hoverLine" class="ax" x1="0" x2="0" y1="' + mt + '" y2="' + (H - mb) + '" style="display:none"/>';
+  s += '<rect x="' + ml + '" y="' + mt + '" width="' + (W - ml - mr) + '" height="' + (H - mt - mb) + '" fill="transparent" id="hoverRect"/></svg>';
+  s += '<div class="livenote" id="hoverOut">Hover the chart to read the counts at each k.</div>';
+  if (mr <= 100) s += '<div class="livenote">' + series.map(function (sr) { return '<span style="color:' + sr.col + ';font-weight:600">■</span> ' + sr.name; }).join(" · ") + "</div>";
+  html(el, s);
+  $("hoverRect").addEventListener("mousemove", function (ev) {
+    var r = ev.currentTarget.getBoundingClientRect(), k = Math.round(1 + (ev.clientX - r.left) / r.width * (K - 1));
+    k = Math.max(1, Math.min(K, k));
+    var ln = $("hoverLine"); ln.style.display = ""; ln.setAttribute("x1", X(k)); ln.setAttribute("x2", X(k));
+    html($("hoverOut"), "<b>k = " + k + "</b>: " + series.map(function (sr) { return '<span style="color:' + sr.col + ';font-weight:600">' + fmtInt(sr.v[k - 1]) + "</span> " + sr.name.split(" (")[0].split(" — ")[0]; }).join(" · "));
+  });
+}
+$("btnCount").onclick = function () {
+  var s = parseS($("inS3").value);
+  if (!s) { $("countOut").textContent = "Enter positive integers."; return; }
+  var S = s.reduce(function (a, b) { return a + b; }, 0);
+  if (S > 13) { $("countOut").textContent = "|s| ≤ 13 here (the partition count explodes beyond that)."; return; }
+  var t0 = performance.now(), nb = QP.countMultisetPartitions(s), c = QP.predictedCount(s, true), nc = QP.predictedCount(s, false);
+  html($("countOut"), "|𝓑<sub>s</sub>| = <b>" + fmtInt(nb) + "</b> · central <b>" + fmtInt(c) + "</b> · noncentral <b>" + fmtInt(nc) + "</b> distinct terms (vs " + fmtInt(QP.Nk(S)) + " / " + fmtInt(QP.Mk(S)) + " for " + S + " distinct forms) · " + (performance.now() - t0).toFixed(0) + " ms");
+};
+function countTable() {
+  var rows = [[10], [5, 5], [3, 3, 4], [2, 2, 3, 3], [2, 2, 2, 2, 2], [1, 1, 1, 1, 1, 1, 1, 1, 1, 1]];
+  var t = '<table class="livetab"><tr><th>s (|s| = 10), recomputed live — Table 6 of the paper</th><th class="num">|𝓑<sub>s</sub>|</th><th class="num">μ = 0</th><th class="num">μ ≠ 0</th></tr>';
+  rows.forEach(function (s) {
+    t += "<tr><td>(" + s.join(",") + ')</td><td class="num">' + fmtInt(QP.countMultisetPartitions(s)) + '</td><td class="num">' + fmtInt(QP.predictedCount(s, true)) + '</td><td class="num">' + fmtInt(QP.predictedCount(s, false)) + "</td></tr>";
+  });
+  html($("countTab"), t + "</table>");
+}
+
+/* ============================ init ============================ */
+function p1Lead() {
+  html($("p1lead"), isW()
+    ? "The Wishart product moment 𝔼[∏ tr(WA<sub>i</sub>)] has exactly the same terms as the quadratic-form product — only their meaning changes: a <span class='tau'>τ-cycle</span> now carries a factor n, and a <span class='theta'>θ-path</span> is closed into a cycle by the noncentrality matrix <span class='lamc'>Λ</span> (dashed). Rows are grouped by the number of blocks, which in the central case is the power of n."
+    : "Each row is a set partition π of {1,…,k}. A block of size i becomes any of its n<sub>θ</sub>(i) canonical <span class='theta'>θ-paths</span> or n<sub>τ</sub>(i) <span class='tau'>τ-cycles</span>, so the row yields ∏(n<sub>θ</sub> + n<sub>τ</sub>) distinct terms and the rows together give every term exactly once. Switch the view to see the k! permutation screening of Proposition 1 that this replaces.");
+  $("p1title").textContent = isW() ? "From set partitions to distinct terms — the Wishart collapse" : "From set partitions to distinct terms";
+}
+var _p1Rebuild = p1Rebuild;
+p1Rebuild = function () { p1Lead(); _p1Rebuild(); };
+html($("foot"), "Formulas: R. Kan and J. Pan, “An explicit expression for the expectation of a product of quadratic forms in multivariate normal random variables,” manuscript for the <i>Journal of Multivariate Analysis</i>. Matlab programs: program/public (qprods.m, qprodsc.m, qprods_comp.m, qprodsc_comp.m, qprodastr.m, qprodsstr*.m). " +
+  "Engine: multiset partitions by Knuth’s Algorithm 7.2.1.5M; canonical θ-words and bracelets with fixed content by enumeration of multiset permutations, weighted by Lemma 8; counts by Lemmas 1, 6, 7 (necklaces via Pólya, bracelets via Hadjicostas). All arithmetic is IEEE double; term coefficients are exact integers. " +
+  "Independent check: k!2<sup>k</sup>x<sub>1</sub>⋯x<sub>k</sub> = Σ<sub>ε∈{±1}<sup>k</sup></sub>(∏ε<sub>i</sub>)(Σε<sub>i</sub>x<sub>i</sub>)<sup>k</sup>, grouped by the number of minus signs per repeated matrix, with 𝔼[(z′Bz)<sup>K</sup>] from the cumulants of Lemma 2 (complex: drop the 2<sup>j−1</sup>; Wishart: n·tr((BΣ)<sup>j</sup>) and tr((BΣ)<sup>j−1</sup>BΛ)).");
+modeNote();
+p1Rebuild();
+p2ModeChanged();
+countChart();
+setTimeout(countTable, 60);
+window.addEventListener("resize", function () { clearTimeout(window.__rz); window.__rz = setTimeout(countChart, 200); });
+})();
+
+</script>
+</body>
+</html>
