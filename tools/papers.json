@@ -1,6 +1,22 @@
 [
  {
   "sec": "pub",
+  "title": "An Explicit Expression for the Expectation of a Product of Quadratic Forms in Multivariate Normal Random Variables",
+  "url": "papers/qprod.pdf",
+  "extras": [
+   [
+    "Matlab Programs",
+    "papers/qprod.zip"
+   ],
+   [
+    "Visual Demo",
+    "papers/qprod.html"
+   ]
+  ],
+  "info": "with Jiening Pan, in <i>Journal of Multivariate Analysis</i>, forthcoming."
+ },
+ {
+  "sec": "pub",
   "title": "Optimal Portfolio Choice with Fat Tails and Parameter Uncertainty",
   "url": "papers/elliptical.pdf",
   "extras": [
@@ -560,21 +576,5 @@
    ]
   ],
   "info": "2011."
- },
- {
-  "sec": "wp",
-  "title": "An Explicit Expression for the Expectation of a Product of Quadratic Forms in Multivariate Normal Random Variables",
-  "url": "papers/qprod.pdf",
-  "extras": [
-   [
-    "Matlab Programs",
-    "papers/qprod.zip"
-   ],
-   [
-    "Visual Demo",
-    "papers/qprod.html"
-   ]
-  ],
-  "info": "with Jiening Pan, 2026."
  }
 ]
