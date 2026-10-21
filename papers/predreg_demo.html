@@ -99,7 +99,8 @@ figure figcaption .read { font-family: var(--font-mono); font-variant-numeric: t
 svg.chart { width: 100%; height: auto; display: block; overflow: visible; }
 svg.chart text { font-family: var(--font-mono); font-size: 12.5px; fill: var(--muted); }
 svg.chart foreignObject { overflow: visible; }
-svg.chart .fo { font-family: var(--font-mono); font-size: 12.5px; color: var(--muted); line-height: 1.2; white-space: nowrap; }
+svg.chart .fo { font-family: var(--font-mono); font-size: 12.5px; color: var(--muted); line-height: 1.2; white-space: nowrap; display: block; }
+svg.chart .fo .katex { white-space: nowrap; }
 svg.chart .fo .katex { font-size: 1em; }
 svg.chart .fo.fo-pop { color: var(--cdf); }
 svg.chart .grid line { stroke: var(--grid); stroke-width: 1; }
@@ -1762,7 +1763,7 @@ if (typeof globalThis !== 'undefined') globalThis.PREDREG = module.exports;
     el('path', { d: path.join(' '), class: 'curve ' + spec.kind }, cg);
     if (spec.points) for (let i = 0; i < xs.length; i++) { if (ys[i] <= yhi * 1.02 && (!ylog || ys[i] > 0)) el('circle', { cx: sx(xs[i]), cy: sy(ys[i]), r: 2.2, class: 'pt ' + spec.kind }, svg); }
     if (Number.isFinite(spec.mean) && spec.mean > xlo && spec.mean < xhi) { el('line', { x1: sx(spec.mean), x2: sx(spec.mean), y1: mt, y2: mt + ph, class: 'mean' }, svg); el('text', { x: sx(spec.mean) + 4, y: mt + ph - 20, class: 'note' }, svg).textContent = 'mean'; }
-    if (Number.isFinite(spec.pop) && spec.pop > xlo && spec.pop < xhi) { el('line', { x1: sx(spec.pop), x2: sx(spec.pop), y1: mt, y2: mt + ph, class: 'pop' }, svg); texLabel(svg, sx(spec.pop) + 4, mt + ph - 4, 'population ' + tex('R^2'), 'start', 120).firstChild.classList.add('fo-pop'); }
+    if (Number.isFinite(spec.pop) && spec.pop > xlo && spec.pop < xhi) { el('line', { x1: sx(spec.pop), x2: sx(spec.pop), y1: mt, y2: mt + ph, class: 'pop' }, svg); texLabel(svg, sx(spec.pop) + 4, mt + ph - 4, tex('\\text{population } R^2'), 'start', 140).firstChild.classList.add('fo-pop'); }
     if (spec.singular) texLabel(svg, ml + pw - 6, mt + 14, spec.singular, 'end', 320);
     // hover layer
     const hover = el('g', { style: 'display:none' }, svg);
