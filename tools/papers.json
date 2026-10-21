@@ -576,5 +576,21 @@
    ]
   ],
   "info": "2011."
+ },
+ {
+  "sec": "wp",
+  "title": "Computing the Exact Distribution of Predictive Regression",
+  "url": "papers/predreg_num.pdf",
+  "extras": [
+   [
+    "Online Appendix",
+    "papers/predreg_num_oa.pdf"
+   ],
+   [
+    "Visual Demo",
+    "papers/predreg_demo.html"
+   ]
+  ],
+  "info": "with Jiening Pan and Shengzhe Tang, 2026."
  }
 ]
