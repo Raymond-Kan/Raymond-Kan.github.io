@@ -1676,7 +1676,7 @@ if (typeof globalThis !== 'undefined') globalThis.PREDREG = module.exports;
     if (run.bhat) $('stats-b').innerHTML = 'mean <b>' + fmt(run.bhat.mean) + '</b> sd <b>' + fmt(run.bhat.sd) + '</b> bias ' + tex('E[\\hat\\beta]-\\beta') + ' <b>' + fmt(run.bhat.mean - p.beta) + '</b>';
     if (m) {
       $('stats-t').innerHTML = 'mean <b>' + fmt(m.tMean) + '</b> sd <b>' + fmt(m.tSd) + '</b>';
-      $('stats-r').innerHTML = 'mean <b>' + fmt(m.rMean) + '</b> sd <b>' + fmt(m.rSd) + '</b> population ' + tex('R^2') + ' <b>' + fmt(p.bt * p.bt / (1 - p.phi * p.phi + p.bt * p.bt)) + '</b>' + (run.r.A !== null ? ' near 0: ' + tex('f(z)\\approx A\\,z^{-1/2}') + ' with ' + tex('A') + ' = <b>' + fmt(run.r.A) + '</b>' : '');
+      $('stats-r').innerHTML = 'mean <b>' + fmt(m.rMean) + '</b> sd <b>' + fmt(m.rSd) + '</b>' + (run.r.A !== null ? ' near 0: ' + tex('f(z)\\approx A\\,z^{-1/2}') + ' with ' + tex('A') + ' = <b>' + fmt(run.r.A) + '</b>' : '');
     }
   }
 
@@ -1827,9 +1827,8 @@ if (typeof globalThis !== 'undefined') globalThis.PREDREG = module.exports;
     const rxs = inR.map(i => r.xs[i]), rpdf = inR.map(i => r.pdf[i]), rcdf = inR.map(i => r.cdf[i]);
     // the density is unbounded at 0: scale the axis to the body of the curve (points beyond the first 6% of the range)
     let ymax; if (rxs.length > 3) { const body = rpdf.filter((v, i) => rxs[i] > 0.03 * rxs[rxs.length - 1]); ymax = Math.max(...body) * 1.12; }
-    const pop = run.p.bt * run.p.bt / (1 - run.p.phi * run.p.phi + run.p.bt * run.p.bt);
-    drawChart({ svg: $('ch-r-pdf'), readEl: $('read-r-pdf'), xs: rxs, ys: rpdf, kind: 'pdf', mean: m && m.rMean, pop, ymax, ylog: $('log-r-pdf').checked, xlabel: tex('R^2'), xname: 'R^2', points: !rr, singular: rxs.length > 3 ? tex('f(z)\\to\\infty \\text{ as } z\\to 0,\\ f(z)\\approx A\\,z^{-1/2}') : '' });
-    drawChart({ svg: $('ch-r-cdf'), readEl: $('read-r-cdf'), xs: rxs, ys: rcdf, kind: 'cdf', mean: m && m.rMean, pop, xlabel: tex('R^2'), xname: 'R^2', points: !rr });
+    drawChart({ svg: $('ch-r-pdf'), readEl: $('read-r-pdf'), xs: rxs, ys: rpdf, kind: 'pdf', mean: m && m.rMean, ymax, ylog: $('log-r-pdf').checked, xlabel: tex('R^2'), xname: 'R^2', points: !rr, singular: rxs.length > 3 ? tex('f(z)\\to\\infty \\text{ as } z\\to 0,\\ f(z)\\approx A\\,z^{-1/2}') : '' });
+    drawChart({ svg: $('ch-r-cdf'), readEl: $('read-r-cdf'), xs: rxs, ys: rcdf, kind: 'cdf', mean: m && m.rMean, xlabel: tex('R^2'), xname: 'R^2', points: !rr });
     updateTiles();
   }
   $('log-r-pdf').addEventListener('change', draw);
