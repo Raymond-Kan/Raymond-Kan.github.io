@@ -1611,9 +1611,13 @@ if (typeof globalThis !== 'undefined') globalThis.PREDREG = module.exports;
   }
   function launchCoarse(R) {
     const p = R.p, s = R.t.seed;
-    // t: 9 points at mean +- 4 sd; R^2: 9 points, quadratic spacing up to mean + 4 sd
+    // t: 9 points at mean +- 4 sd.  R^2: 9 points over mean +- 4.5 sd when that stays clear of 0,
+    // otherwise quadratic spacing on (0, mean + 4 sd] so the z^{-1/2} spike at the origin is resolved
     const txs = []; for (let k = -4; k <= 4; k++) txs.push(s.tMean + k * s.tSd);
-    const zhi = Math.min(0.999, s.rMean + 4 * s.rSd); const rxs = []; for (let i = 1; i <= 9; i++) rxs.push(zhi * (i / 9) * (i / 9));
+    const rxs = []; let zhi;
+    const zlo0 = s.rMean - 4.5 * s.rSd;
+    if (zlo0 > 0) { zhi = Math.min(0.999, s.rMean + 4.5 * s.rSd); for (let i = 0; i < 9; i++) rxs.push(zlo0 + (zhi - zlo0) * i / 8); }
+    else { zhi = Math.min(0.999, s.rMean + 4 * s.rSd); for (let i = 1; i <= 9; i++) rxs.push(zhi * (i / 9) * (i / 9)); }
     R.r.zhi0 = zhi;
     R.t.coarseTasks = txs.length; R.r.coarseTasks = rxs.length;
     const tasks = [];
@@ -1640,9 +1644,16 @@ if (typeof globalThis !== 'undefined') globalThis.PREDREG = module.exports;
       const a = [...side.pts.entries()].sort((u, v) => u[0] - v[0]);
       let hi = quantileFrom(side.pts, 0.999, a[a.length - 1][1].cdf < 0.999 ? Math.min(0.999, R.r.zhi0 * 1.6) : a[a.length - 1][0]);
       hi = Math.min(0.999, hi);
-      side.range = [0, hi];
-      xs = []; for (let k = 8; k >= 1; k--) xs.push(hi * Math.pow(10, -k / 2));   // towards the z^{-1/2} singularity
-      for (let i = 1; i <= n; i++) xs.push(hi * i / n);
+      let lo = quantileFrom(side.pts, 0.001, a[0][1].cdf > 0.001 ? Math.max(0, a[0][0] - 2 * s.rSd) : a[0][0]);
+      if (!(lo > 0.25 * hi)) lo = 0;        // mass near the origin: plot from 0 to show the spike
+      side.range = [lo, hi];
+      xs = [];
+      if (lo === 0) {
+        for (let k = 8; k >= 1; k--) xs.push(hi * Math.pow(10, -k / 2));   // towards the z^{-1/2} singularity
+        for (let i = 1; i <= n; i++) xs.push(hi * i / n);
+      } else {
+        for (let i = 0; i < n; i++) xs.push(lo + (hi - lo) * i / (n - 1));
+      }
     }
     // interleave the order so the curve fills in evenly (centre first, then halves, quarters ...)
     const N = xs.length, order = []; const used = new Set();
@@ -1767,7 +1778,7 @@ if (typeof globalThis !== 'undefined') globalThis.PREDREG = module.exports;
     for (const v of yt) el('line', { x1: ml, x2: ml + pw, y1: sy(v), y2: sy(v) }, g);
     const ax = el('g', { class: 'axis' }, svg);
     el('line', { x1: ml, x2: ml + pw, y1: mt + ph, y2: mt + ph }, ax);
-    for (const v of xt) { if (v < xlo - 1e-9 || v > xhi + 1e-9) continue; el('line', { x1: sx(v), x2: sx(v), y1: mt + ph, y2: mt + ph + 4 }, ax); el('text', { x: sx(v), y: mt + ph + 16, 'text-anchor': 'middle' }, svg).textContent = fmtTick(v, xt); }
+    for (const v of xt) { if (v < xlo - 1e-9 || v > xhi + 1e-9) continue; el('line', { x1: sx(v), x2: sx(v), y1: mt + ph, y2: mt + ph + 4 }, ax); if (sx(v) > ml + pw - 22) continue; el('text', { x: sx(v), y: mt + ph + 16, 'text-anchor': 'middle' }, svg).textContent = fmtTick(v, xt); }
     for (const v of yt) el('text', { x: ml - 6, y: sy(v) + 4, 'text-anchor': 'end' }, svg).textContent = ylog ? (v >= 1 ? String(v) : v.toExponential(0).replace('e-', 'e−')) : fmtTick(v, yt);
     texLabel(svg, ml + pw, H - 6, spec.xlabel, 'end', 300);
     // curve through the points (dense sampling of the monotone spline)
@@ -1823,12 +1834,13 @@ if (typeof globalThis !== 'undefined') globalThis.PREDREG = module.exports;
     const txs = inT.map(i => t.xs[i]), tpdf = inT.map(i => t.pdf[i]), tcdf = inT.map(i => t.cdf[i]);
     drawChart({ svg: $('ch-t-pdf'), readEl: $('read-t-pdf'), xs: txs, ys: tpdf, kind: 'pdf', mean: m && (m.tMean), xlabel: tex('t(\\hat\\beta)'), xname: 't', points: !tr });
     drawChart({ svg: $('ch-t-cdf'), readEl: $('read-t-cdf'), xs: txs, ys: tcdf, kind: 'cdf', mean: m && (m.tMean), xlabel: tex('t(\\hat\\beta)'), xname: 't', points: !tr });
-    const inR = rr ? r.xs.map((x, i) => i).filter(i => r.xs[i] <= rr[1] + 1e-12) : r.xs.map((x, i) => i);
+    const inR = rr ? r.xs.map((x, i) => i).filter(i => r.xs[i] >= rr[0] - 1e-12 && r.xs[i] <= rr[1] + 1e-12) : r.xs.map((x, i) => i);
     const rxs = inR.map(i => r.xs[i]), rpdf = inR.map(i => r.pdf[i]), rcdf = inR.map(i => r.cdf[i]);
     // the density is unbounded at 0: scale the axis to the body of the curve (points beyond the first 6% of the range)
     let ymax; if (rxs.length > 3) { const body = rpdf.filter((v, i) => rxs[i] > 0.03 * rxs[rxs.length - 1]); ymax = Math.max(...body) * 1.12; }
-    drawChart({ svg: $('ch-r-pdf'), readEl: $('read-r-pdf'), xs: rxs, ys: rpdf, kind: 'pdf', mean: m && m.rMean, ymax, ylog: $('log-r-pdf').checked, xlabel: tex('R^2'), xname: 'R^2', points: !rr, singular: rxs.length > 3 ? tex('f(z)\\to\\infty \\text{ as } z\\to 0,\\ f(z)\\approx A\\,z^{-1/2}') : '' });
-    drawChart({ svg: $('ch-r-cdf'), readEl: $('read-r-cdf'), xs: rxs, ys: rcdf, kind: 'cdf', mean: m && m.rMean, xlabel: tex('R^2'), xname: 'R^2', points: !rr });
+    const pop = run.p.bt * run.p.bt / (1 - run.p.phi * run.p.phi + run.p.bt * run.p.bt);
+    drawChart({ svg: $('ch-r-pdf'), readEl: $('read-r-pdf'), xs: rxs, ys: rpdf, kind: 'pdf', mean: m && m.rMean, pop, ymax, ylog: $('log-r-pdf').checked, xlabel: tex('R^2'), xname: 'R^2', points: !rr, singular: (rxs.length > 3 && (!rr || rr[0] === 0)) ? tex('f(z)\\to\\infty \\text{ as } z\\to 0,\\ f(z)\\approx A\\,z^{-1/2}') : '' });
+    drawChart({ svg: $('ch-r-cdf'), readEl: $('read-r-cdf'), xs: rxs, ys: rcdf, kind: 'cdf', mean: m && m.rMean, pop, xlabel: tex('R^2'), xname: 'R^2', points: !rr });
     updateTiles();
   }
   $('log-r-pdf').addEventListener('change', draw);
