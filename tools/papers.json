@@ -616,5 +616,29 @@
    ]
   ],
   "info": "with <a href=\"http://web.ics.purdue.edu/~ybao/\">Yong Bao</a>, 2026."
+ },
+ {
+  "sec": "wp",
+  "title": "Uniform Saddlepoint Expansions for Multivariate Tail Probabilities",
+  "url": "papers/spa_paper.pdf",
+  "extras": [
+   [
+    "Supplement",
+    "papers/spa_supp.pdf"
+   ],
+   [
+    "Matlab Programs",
+    "papers/spa_programs.zip"
+   ],
+   [
+    "Visual Demo: Multivariate",
+    "papers/multivariate-saddlepoint-explorer.html"
+   ],
+   [
+    "Visual Demo: Ratio",
+    "papers/ratio-saddlepoint-explorer.html"
+   ]
+  ],
+  "info": "with <a href=\"https://www.hslu.ch/de-ch/hochschule-luzern/ueber-uns/personensuche/profile/?pid=4728\">Simon Broda</a>, 2026."
  }
 ]
