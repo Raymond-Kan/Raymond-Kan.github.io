@@ -1,0 +1,1662 @@
+<!doctype html>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<title>Ratio Saddlepoint Explorer</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500&family=IBM+Plex+Sans:wght@400;500;600&family=Source+Serif+4:opsz,wght@8..60,400;8..60,600;8..60,700&display=swap">
+<style>
+/* Layout: a working paper's appendix turned into an instrument (same family as the paper 2 demo);
+   a reading column for the text, full-width panels for controls, chart, tables and formulas. */
+:root {
+  --bg: #f2f4f6; --surface: #ffffff; --surface-2: #eaeef2; --ink: #14202b; --ink-2: #42505d; --muted: #67747f;
+  --rule: #d3dae1; --accent: #1b5d87; --accent-ink: #ffffff; --accent-soft: #dde9f2;
+  --s1: #2a78d6; --s2: #eb6834; --warn-bg: #fbf1dc; --warn-ink: #6a4a05;
+  --serif: "Source Serif 4", "Source Serif Pro", Georgia, "Times New Roman", serif;
+  --sans: "IBM Plex Sans", "Segoe UI", system-ui, -apple-system, sans-serif;
+  --mono: "IBM Plex Mono", ui-monospace, "SFMono-Regular", Consolas, monospace;
+}
+@media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) {
+  --bg: #0d1318; --surface: #141c23; --surface-2: #1b252e; --ink: #e3e9ee; --ink-2: #b4c0ca; --muted: #8a98a4;
+  --rule: #26323d; --accent: #73b5e0; --accent-ink: #0b1620; --accent-soft: #17293a;
+  --s1: #3987e5; --s2: #d95926; --warn-bg: #2e2510; --warn-ink: #f0d39a; color-scheme: dark; } }
+:root[data-theme="dark"] {
+  --bg: #0d1318; --surface: #141c23; --surface-2: #1b252e; --ink: #e3e9ee; --ink-2: #b4c0ca; --muted: #8a98a4;
+  --rule: #26323d; --accent: #73b5e0; --accent-ink: #0b1620; --accent-soft: #17293a;
+  --s1: #3987e5; --s2: #d95926; --warn-bg: #2e2510; --warn-ink: #f0d39a; color-scheme: dark; }
+:root[data-theme="light"] { color-scheme: light; }
+
+html { -webkit-text-size-adjust: 100%; }
+body { background: var(--bg); color: var(--ink); font-family: var(--serif); font-size: 17px; line-height: 1.55; }
+.wrap { max-width: 1080px; margin: 0 auto; padding-left: max(16px, env(safe-area-inset-left, 0px)); padding-right: max(16px, env(safe-area-inset-right, 0px)); padding-block: 28px 64px; display: grid; gap: 40px; }
+h1, h2, h3 { font-family: var(--serif); text-wrap: balance; line-height: 1.2; margin: 0; }
+h1 { font-size: clamp(28px, 4.2vw, 40px); font-weight: 700; letter-spacing: -0.01em; }
+h2 { font-size: 26px; font-weight: 600; }
+h3 { font-size: 18px; font-weight: 600; }
+p { margin: 0; max-width: 68ch; }
+a { color: var(--accent); }
+.eyebrow { font-family: var(--sans); font-size: 12px; letter-spacing: 0.08em; text-transform: uppercase; color: var(--muted); font-weight: 500; }
+.muted { color: var(--muted); }
+.small { font-size: 14px; }
+.stack { display: grid; gap: 14px; }
+.stack-lg { display: grid; gap: 22px; }
+
+/* header */
+header.top { display: flex; flex-wrap: wrap; gap: 18px 28px; align-items: flex-start; justify-content: space-between; }
+header.top .ttl { display: grid; gap: 10px; min-width: 0; flex: 1 1 520px; }
+.cite { font-size: 15px; color: var(--ink-2); }
+.cite i { font-style: italic; }
+
+/* segmented controls */
+.seg { display: inline-flex; border: 1px solid var(--rule); border-radius: 8px; overflow: hidden; background: var(--surface); font-family: var(--sans); font-size: 13px; }
+.seg button { appearance: none; border: 0; background: transparent; color: var(--ink-2); padding: 7px 12px; cursor: pointer; font: inherit; min-width: 36px; }
+.seg button + button { border-left: 1px solid var(--rule); }
+.seg button[aria-pressed="true"] { background: var(--accent); color: var(--accent-ink); }
+.seg button:focus-visible, input:focus-visible, summary:focus-visible, .copy:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+.theme { display: grid; gap: 6px; justify-items: end; }
+
+/* panels */
+section.block { display: grid; gap: 18px; }
+section.block > header { display: grid; gap: 8px; border-top: 2px solid var(--ink); padding-top: 14px; }
+.panel { background: var(--surface); border: 1px solid var(--rule); border-radius: 10px; padding: 18px; display: grid; gap: 16px; min-width: 0; }
+.defs { display: grid; gap: 4px; overflow-x: auto; }
+.controls { display: flex; flex-wrap: wrap; gap: 14px 26px; align-items: end; font-family: var(--sans); font-size: 13px; }
+.ctl { display: grid; gap: 6px; min-width: 0; }
+.ctl label, .ctl .lab { color: var(--ink-2); font-weight: 500; }
+.ctl label { display: flex; justify-content: space-between; align-items: baseline; gap: 10px; }
+.ctl output { font-family: var(--mono); color: var(--ink); font-variant-numeric: tabular-nums; }
+.ctl input[type=range] { width: 170px; max-width: 100%; accent-color: var(--accent); }
+.setting { font-size: 16px; color: var(--ink-2); overflow-x: auto; min-width: 0; }
+.busy { font-family: var(--sans); font-size: 12px; color: var(--muted); }
+.ctl input[type=number] { width: 64px; font-family: var(--mono); font-size: 13px; padding: 3px 6px; border: 1px solid var(--rule); border-radius: 6px; background: var(--surface); color: var(--ink); }
+.tabletex mjx-container[display="true"] { margin: 4px 0 !important; text-align: left !important; }
+.note { font-family: var(--sans); font-size: 13px; color: var(--muted); max-width: none; }
+.warn { font-family: var(--sans); font-size: 13px; background: var(--warn-bg); color: var(--warn-ink); padding: 8px 12px; border-radius: 6px; }
+
+/* results grid */
+.results { display: grid; grid-template-columns: minmax(0, 1fr); gap: 18px; }
+.chartbox { max-width: 760px; }
+.chartbox { position: relative; min-width: 0; }
+.legend { display: flex; flex-wrap: wrap; gap: 6px 16px; font-family: var(--sans); font-size: 13px; color: var(--ink-2); align-items: center; }
+.sw { display: inline-block; width: 18px; height: 3px; border-radius: 2px; vertical-align: middle; margin-right: 6px; }
+.mk { display: inline-block; width: 9px; height: 9px; border-radius: 50%; border: 2px solid var(--ink-2); vertical-align: middle; margin-right: 5px; }
+.mk.fill { background: var(--ink-2); }
+svg.chart { width: 100%; height: auto; display: block; }
+svg.chart text { font-family: var(--sans); font-size: 12px; fill: var(--muted); }
+svg.chart .grid { stroke: var(--rule); stroke-width: 1; }
+svg.chart .axis { stroke: var(--ink-2); stroke-width: 1; }
+svg.chart .lbl { font-size: 12.5px; fill: var(--ink-2); font-weight: 500; }
+.tip { position: absolute; pointer-events: none; background: var(--surface); border: 1px solid var(--rule); border-radius: 6px; padding: 7px 10px; font-family: var(--sans); font-size: 12.5px; color: var(--ink); box-shadow: 0 4px 14px rgba(0,0,0,.12); white-space: nowrap; z-index: 2; }
+.tip b { font-weight: 600; }
+.tablebox { overflow-x: auto; min-width: 0; }
+table.num { border-collapse: collapse; width: 100%; font-family: var(--sans); font-size: 13px; font-variant-numeric: tabular-nums; }
+table.num th, table.num td { padding: 6px 8px; text-align: right; border-bottom: 1px solid var(--rule); white-space: nowrap; }
+table.num th { color: var(--muted); font-weight: 500; font-size: 12px; vertical-align: bottom; }
+table.num td:first-child, table.num th:first-child { text-align: center; }
+table.num td.mono { font-family: var(--mono); font-size: 12.5px; }
+table.num tr.exact td { border-bottom: 0; color: var(--ink); font-weight: 600; }
+table.num .grp { border-left: 1px solid var(--rule); }
+
+/* expression list */
+.exprs { display: grid; gap: 8px; }
+details.expr { border: 1px solid var(--rule); border-radius: 8px; background: var(--surface); min-width: 0; }
+details.expr > summary { cursor: pointer; list-style: none; display: flex; align-items: center; gap: 12px; padding: 9px 14px; font-family: var(--sans); font-size: 14px; color: var(--ink-2); }
+details.expr > summary::-webkit-details-marker { display: none; }
+details.expr > summary::before { content: ""; width: 7px; height: 7px; border-right: 2px solid var(--muted); border-bottom: 2px solid var(--muted); transform: rotate(-45deg); transition: transform .15s; flex: none; }
+details.expr[open] > summary::before { transform: rotate(45deg); }
+details.expr > summary .nm { font-family: var(--serif); font-size: 17px; color: var(--ink); font-style: italic; }
+details.expr > summary .cnt { margin-left: auto; font-size: 12px; color: var(--muted); }
+.copy { appearance: none; border: 1px solid var(--rule); background: var(--surface-2); color: var(--ink-2); font-family: var(--sans); font-size: 12px; border-radius: 6px; padding: 3px 9px; cursor: pointer; }
+.mathbody { overflow-x: auto; padding: 4px 14px 12px; min-width: 0; }
+.mathbody mjx-container[display="true"] { margin: 6px 0 !important; text-align: left !important; }
+.cols { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: 18px; align-items: start; }
+@media (max-width: 860px) { .cols { grid-template-columns: minmax(0, 1fr); } }
+.kappas { overflow-x: auto; min-width: 0; }
+.kappas mjx-container[display="true"] { text-align: left !important; margin: 6px 0 !important; }
+.raw { font-family: var(--mono); font-size: 12px; white-space: pre-wrap; color: var(--ink-2); }
+footer { font-family: var(--sans); font-size: 13px; color: var(--muted); border-top: 1px solid var(--rule); padding-top: 14px; display: grid; gap: 6px; }
+@media (max-width: 520px) { body { font-size: 16px; } .ctl input[type=range] { width: 140px; } }
+@media (prefers-reduced-motion: reduce) { * { transition: none !important; } }
+
+.copyrow { display: flex; justify-content: flex-end; padding-top: 8px; }
+.status { font-family: var(--sans); font-size: 13px; color: var(--muted); display: flex; gap: 10px; align-items: center; min-height: 20px; }
+.status .bar { width: 120px; height: 4px; background: var(--surface-2); border-radius: 2px; overflow: hidden; }
+.status .bar > i { display: block; height: 100%; width: 0; background: var(--accent); }
+.terms { display: grid; gap: 6px; overflow-x: auto; min-width: 0; }
+.terms mjx-container[display="true"] { text-align: left !important; margin: 4px 0 !important; }
+.ctlgroup { display: flex; flex-wrap: wrap; gap: 14px 26px; align-items: end; }
+.steps { margin: 0; padding-left: 22px; display: grid; gap: 8px; max-width: 76ch; }
+.steps li { padding-left: 4px; }
+
+[hidden] { display: none !important; }
+</style>
+<script>
+window.MathJax = { tex: { inlineMath: [['\\(', '\\)']], displayMath: [['\\[', '\\]']] }, svg: { fontCache: 'global' }, startup: { typeset: true } };
+</script>
+<script defer src="https://cdn.jsdelivr.net/npm/mathjax@3.2.2/es5/tex-svg.js"></script>
+<div class="wrap">
+<header class="top">
+  <div class="ttl">
+    <div class="eyebrow">Companion demo</div>
+    <h1>Ratio Saddlepoint Explorer</h1>
+    <p class="cite">Joint densities and distribution functions of \(d\) ratios to any order, from Appendix A of S.&nbsp;A. Broda and R. Kan, <i>Uniform saddlepoint expansions for multivariate tail probabilities</i>.</p>
+  </div>
+  <div class="theme">
+    <span class="eyebrow" id="themeLab">Theme</span>
+    <div class="seg" role="group" aria-labelledby="themeLab" id="themeSeg">
+      <button type="button" data-v="auto" id="th-auto">Auto</button><button type="button" data-v="light" id="th-light">Light</button><button type="button" data-v="dark" id="th-dark">Dark</button>
+    </div>
+  </div>
+</header>
+
+<section class="block" id="general">
+  <header>
+    <div class="eyebrow">Appendix A of the paper</div>
+    <h2>The expansions for any \(d\) and order \(M\)</h2>
+    <p>Let \(R_j=X_j/Y_j\), \(j=1,\ldots,d\), with \(Y_j>0\) and joint cumulant generating function \(\mathcal K(s,t)\) of \((X,Y)\), and let \(W_j=X_j-r_jY_j\), whose cumulant generating function is \(K_W(s)=\mathcal K(s,-r\circ s)\). As in the applications of the paper, \(n\) is absorbed into \(\mathcal K\). The distribution function \(\Pr(R\leq r)=\Pr(-W\geq0)\) is the orthant probability of \(-W\) at \(0\), given by Theorem 1 with \(x=0\) and by (17) when the saddlepoint has negative components. The density is the saddlepoint integral (45), whose amplitude collects the derivatives \(\mathcal K_B=\partial^{|B|}\mathcal K/\prod_{j\in B}\partial t_j\) over the partitions \(\pi\) of \(\{1,\ldots,d\}\):</p>
+  </header>
+  <div class="panel">
+    <div class="defs">
+      \[ f_R(r)=\frac{1}{(2\pi\mathrm{i})^{d}}\int_{\hat s-\mathrm{i}\infty}^{\hat s+\mathrm{i}\infty}e^{K_W(s)}g(s)\,ds,\qquad g=\sum_{\pi}\prod_{B\in\pi}\mathcal K_B(s,-r\circ s)=\sum_{k=0}^{d-1}g_k, \]
+      \[ f_R(r)\approx\frac{e^{K_W(\hat s)}}{(2\pi)^{d/2}|K_W''(\hat s)|^{1/2}}\sum_{m=0}^{M-1}\tilde a_m,\qquad \tilde a_m=\sum_{k=0}^{\min(m,d-1)}b_{m-k}(g_k), \]
+      \[ b_m(h)=\sum_{r=0}^{2m}\ \sum_{j=3r}^{2m+2r}\ \sum_{|\nu|=j}\ \sum_{|\mu|=2m+2r-j}c_{r,\nu}\,\gamma_\mu\,\mathrm{He}_{\nu+\mu}(0),\qquad c_{0,0}=1, \]
+    </div>
+    <p class="note">Here \(K_W'(\hat s)=0\), \(g_k\) collects the partitions into \(d-k\) blocks, and everything is whitened as on the companion page for \(d\) random variables: with \(K_W''(\hat s)=LL^{\top}\), \(\theta_\nu\) are the Taylor coefficients of \(K_W(L^{-\top}u)\) at \(\hat u=L^{\top}\hat s\) (\(|\nu|\geq3\)), the \(c_{r,\nu}\) follow from the recursion (5), \(\gamma_\mu\) are the Taylor coefficients of \(h(L^{-\top}u)\) at \(\hat u\), and \(\mathrm{He}_\nu(0)=\prod_j\mathrm{He}_{\nu_j}(0)\). This is Theorem 4 and Corollary 3. For \(d=1\), \(b_m(g)/\gamma_0\) is the coefficient \(\tilde a_m\) of Rice's expansion (Corollary 5), for example \(\tilde a_1=3\theta_4-\tfrac{15}{2}\theta_3^2+3\theta_3\tilde\gamma_1-\tilde\gamma_2\) with \(\tilde\gamma_l=\gamma_l/\gamma_0\).</p>
+    <div class="controls">
+      <div class="ctl"><span class="lab" id="dLab">Number of ratios \(d\)</span><div class="seg" role="group" aria-labelledby="dLab" id="dSeg"></div></div>
+      <div class="ctl"><span class="lab" id="mLab">Order \(M\)</span><div class="seg" role="group" aria-labelledby="mLab" id="mSeg"></div></div>
+      <div class="note" id="genNote"></div>
+    </div>
+    <div class="terms" id="genG"></div>
+  </div>
+  <div class="stack"><h3>Amplitude coefficients: \(b_0,\ldots,b_{M-1}\)</h3><div class="exprs" id="genB"></div></div>
+</section>
+
+<section class="block" id="ex1">
+  <header>
+    <div class="eyebrow">Example 1 &middot; \(d=1\)</div>
+    <h2>A ratio of quadratic forms</h2>
+    <p>\(R=z^{\top}Az/z^{\top}Bz\) with \(B\) positive definite and \(z\sim N(\mu,\Sigma)\) in \(\mathbb{R}^N\), where \(N\) plays the role of \(n\) (set it below; the default is \(N=30\)). The point is \(r=r_0+q\,s_0\), with \(r_0=\operatorname{E}(z^{\top}Az)/\operatorname{E}(z^{\top}Bz)\) and \(s_0=\operatorname{sd}(W)/\operatorname{E}(z^{\top}Bz)\) at \(r_0\). With \(\Sigma=RR^{\top}\), \(m=R^{-1}\mu\), \(\tilde A=R^{\top}AR\), \(\tilde B=R^{\top}BR\) and \(D=\{I-2s(\tilde A-r\tilde B)\}^{-1}\):</p>
+  </header>
+  <div class="panel">
+    <div class="defs">\[ K_W(s)=-\tfrac12\log|D^{-1}|+\tfrac12m^{\top}(D-I)m,\qquad g(s)=\mathcal K_t(s,-rs)=\operatorname{tr}(D\tilde B)+m^{\top}D\tilde BDm. \]</div>
+    <p class="note">The density is Rice's expansion (Corollary 5) and the distribution function is the Hauschildt–Robinson expansion applied to \(W\) at \(0\) (Corollary 4). The Taylor coefficients of \(g\) are the mixed derivatives of the cumulant generating function of the forms with matrices \(\tilde A-r\tilde B\) and \(\tilde B\), computed by the trace recursion of the companion page.</p>
+    <div class="controls" id="ex1Ctl"></div>
+    <div class="setting" id="ex1Set"></div>
+    <div class="status" id="ex1Status" aria-live="polite"></div>
+    <div class="results">
+      <div class="chartbox stack" id="ex1Chart"></div>
+      <div class="tablebox" id="ex1Table"></div>
+    </div>
+    <p class="note" id="ex1Note"></p>
+  </div>
+</section>
+
+<section class="block" id="ex2">
+  <header>
+    <div class="eyebrow">Example 2 &middot; \(d=2\) or \(3\)</div>
+    <h2>Sample autocorrelations</h2>
+    <p>As in Section S4 of the Supplementary Material, \(z\sim N(0,\Sigma)\) with \(\Sigma_{ts}=\rho^{|t-s|}\) holds \(N\) observations of a first-order autoregression, and \(R_j=z^{\top}MA_jMz/z^{\top}Mz\), \(j=1,\ldots,d\), are the sample autocorrelations at lags \(1,\ldots,d\), with \(M=I-1_N1_N^{\top}/N\) (or \(M=I\) without the mean correction) and \((A_j)_{ts}=\tfrac12\) for \(|t-s|=j\). The common denominator makes \(\mathcal K\) depend on \(t\) only through \(t_1+\cdots+t_d\), so that every \(\mathcal K_B\) is a derivative of order \(|B|\) in that direction. The points are \(r_j=\rho^j+q_jN^{-1/2}\).</p>
+  </header>
+  <div class="panel">
+    <div class="controls" id="ex2Ctl"></div>
+    <div class="setting" id="ex2Set"></div>
+    <div class="status" id="ex2Status" aria-live="polite"></div>
+    <div class="results">
+      <div class="chartbox stack" id="ex2Chart"></div>
+      <div class="tablebox" id="ex2Table"></div>
+    </div>
+    <div class="stack">
+      <h3>Terms of the distribution function</h3>
+      <div class="terms" id="ex2Terms"></div>
+    </div>
+    <p class="note" id="ex2Note"></p>
+  </div>
+</section>
+
+<footer>
+  <div>Exact values: numerical inversion of (45) for the density and of the orthant probability of \(-W\) for the distribution function, along a contour through the saddlepoint (moved just right of the poles when a component of the saddlepoint is near zero), with (17) applied exactly. In whitened polar coordinates each ray reduces to a real symmetric eigenproblem; the amplitude \(g\) then costs \(O(N)\) per radial node for one ratio and \(O(N^2)\) for two. For three ratios the amplitude needs \(O(N^3)\) per node, which is too slow for a browser, so the exact density is not computed for \(d=3\); the exact distribution function is computed with a time limit of about 30 seconds and its accuracy is shown. The rays are shared among several background workers, one per processor core. For \(N=50\) and \(100\) the code reproduces the relative errors of Table S8 of the Supplementary Material, whose exact values were computed independently.</div>
+  <div>Matrices for Example 1: \(A\), \(B\) and \(\Sigma\) are \(N\times N\) Toeplitz matrices \(T_N(\rho)\) with \((i,k)\) entry \(\rho^{|i-k|}\) (\(T_N(0)=I_N\)), and \(\mu=c\,1_N\). Relative errors: density \((\hat f-f)/f\); distribution function \((\hat F-F)/\min(F,1-F)\). Everything runs in your browser in double precision.</div>
+</footer>
+</div>
+
+<script>
+"use strict";
+/* ======================================================================================
+   Numerical engine for the companion demos of Broda and Kan, "Uniform saddlepoint
+   expansions for multivariate tail probabilities".  Quadratic forms Q_j = z'A_j z,
+   z ~ N(mu, Sigma), are handled in w-coordinates, z = R w, w ~ N(m, I), Sigma = R R',
+   A_j -> R'A_j R, m = R^{-1} mu.  Everything is in double precision.
+   ====================================================================================== */
+function ENG_FACTORY() {
+const LOG2PI = Math.log(2 * Math.PI);
+
+/* ---------------- small real linear algebra (row-major n x n) ---------------- */
+const mat = n => new Float64Array(n * n);
+function eye(n) { const M = mat(n); for (let i = 0; i < n; i++) M[i * n + i] = 1; return M; }
+function mm(A, B, n) { const C = mat(n); for (let i = 0; i < n; i++) { const ci = i * n; for (let k = 0; k < n; k++) { const a = A[ci + k]; if (a === 0) continue; const bk = k * n; for (let j = 0; j < n; j++) C[ci + j] += a * B[bk + j]; } } return C; }
+function mv(A, x, n) { const y = new Float64Array(n); for (let i = 0; i < n; i++) { let s = 0; const ci = i * n; for (let j = 0; j < n; j++) s += A[ci + j] * x[j]; y[i] = s; } return y; }
+const dot = (x, y) => { let s = 0; for (let i = 0; i < x.length; i++) s += x[i] * y[i]; return s; };
+const tr = (A, n) => { let s = 0; for (let i = 0; i < n; i++) s += A[i * n + i]; return s; };
+function trProd(A, B, n) { let s = 0; for (let i = 0; i < n; i++) for (let k = 0; k < n; k++) s += A[i * n + k] * B[k * n + i]; return s; }
+function axpy(Y, a, X) { for (let i = 0; i < Y.length; i++) Y[i] += a * X[i]; }
+function cholesky(A, n) { // lower L with A = L L', or null
+  const L = mat(n);
+  for (let j = 0; j < n; j++) {
+    let s = A[j * n + j];
+    for (let k = 0; k < j; k++) s -= L[j * n + k] * L[j * n + k];
+    if (!(s > 0)) return null;
+    const ljj = Math.sqrt(s); L[j * n + j] = ljj;
+    for (let i = j + 1; i < n; i++) { let t = A[i * n + j]; for (let k = 0; k < j; k++) t -= L[i * n + k] * L[j * n + k]; L[i * n + j] = t / ljj; }
+  }
+  return L;
+}
+function invLower(L, n) { const X = mat(n); for (let j = 0; j < n; j++) { X[j * n + j] = 1 / L[j * n + j]; for (let i = j + 1; i < n; i++) { let s = 0; for (let k = j; k < i; k++) s += L[i * n + k] * X[k * n + j]; X[i * n + j] = -s / L[i * n + i]; } } return X; }
+function spdInverse(A, n) { const L = cholesky(A, n); if (!L) return null; const Li = invLower(L, n); const X = mat(n); for (let i = 0; i < n; i++) for (let j = 0; j <= i; j++) { let s = 0; for (let k = i; k < n; k++) s += Li[k * n + i] * Li[k * n + j]; X[i * n + j] = s; X[j * n + i] = s; } return { X, L }; }
+function jacobiEig(S, n) {
+  const A = Float64Array.from(S), V = eye(n);
+  for (let sweep = 0; sweep < 100; sweep++) {
+    let off = 0, diag = 0; for (let i = 0; i < n; i++) { diag += A[i * n + i] ** 2; for (let j = i + 1; j < n; j++) off += A[i * n + j] ** 2; }
+    if (off <= 1e-32 * diag || off < 1e-300) break;
+    for (let p = 0; p < n; p++) for (let q = p + 1; q < n; q++) {
+      const apq = A[p * n + q]; if (Math.abs(apq) < 1e-300) continue;
+      const app = A[p * n + p], aqq = A[q * n + q], th = (aqq - app) / (2 * apq);
+      const t = Math.sign(th || 1) / (Math.abs(th) + Math.sqrt(th * th + 1)), c = 1 / Math.sqrt(t * t + 1), s = t * c;
+      for (let k = 0; k < n; k++) { const akp = A[k * n + p], akq = A[k * n + q]; A[k * n + p] = c * akp - s * akq; A[k * n + q] = s * akp + c * akq; }
+      for (let k = 0; k < n; k++) { const apk = A[p * n + k], aqk = A[q * n + k]; A[p * n + k] = c * apk - s * aqk; A[q * n + k] = s * apk + c * aqk; }
+      for (let k = 0; k < n; k++) { const vkp = V[k * n + p], vkq = V[k * n + q]; V[k * n + p] = c * vkp - s * vkq; V[k * n + q] = s * vkp + c * vkq; }
+    }
+  }
+  const w = new Float64Array(n); for (let i = 0; i < n; i++) w[i] = A[i * n + i];
+  return { w, V };
+}
+function sym(A, n) { for (let i = 0; i < n; i++) for (let j = 0; j < i; j++) { const v = (A[i * n + j] + A[j * n + i]) / 2; A[i * n + j] = v; A[j * n + i] = v; } return A; }
+function toeplitz(rho, n) { const M = mat(n); for (let i = 0; i < n; i++) for (let j = 0; j < n; j++) M[i * n + j] = Math.pow(rho, Math.abs(i - j)); return M; }
+function congruence(R, A, n) { return sym(mm(transpose(R, n), mm(A, R, n), n), n); }   // R'AR
+function transpose(A, n) { const T = mat(n); for (let i = 0; i < n; i++) for (let j = 0; j < n; j++) T[j * n + i] = A[i * n + j]; return T; }
+function lowerSolve(L, b, n) { const x = new Float64Array(n); for (let i = 0; i < n; i++) { let s = b[i]; for (let k = 0; k < i; k++) s -= L[i * n + k] * x[k]; x[i] = s / L[i * n + i]; } return x; }
+
+/* ---------------- quadratic-form model ---------------- */
+/* model: { N, mats: [..] (w-space, symmetric), m: Float64Array (w-space mean) }            */
+function makeModel(As, Sigma, mu, N) {
+  let R = null;
+  if (Sigma) { R = cholesky(Sigma, N); if (!R) throw new Error('Sigma not positive definite'); }
+  const mats = As.map(A => (R ? congruence(R, A, N) : sym(Float64Array.from(A), N)));
+  const m = mu ? (R ? lowerSolve(R, mu, N) : Float64Array.from(mu)) : new Float64Array(N);
+  return { N, mats, m };
+}
+function subModel(model, idx, signs) { // components idx, each multiplied by its sign (+1/-1)
+  return { N: model.N, m: model.m, mats: idx.map((j, k) => { const A = model.mats[j]; if (signs[k] === 1) return A; const B = new Float64Array(A.length); for (let i = 0; i < A.length; i++) B[i] = -A[i]; return B; }) };
+}
+function combo(mats, coef, N) { const C = mat(N); for (let j = 0; j < mats.length; j++) if (coef[j] !== 0) axpy(C, coef[j], mats[j]); return C; }
+/* K(s), gradient, Hessian, and D = (I - 2C)^{-1}; null outside the domain */
+function cgf2(model, s) {
+  const { N, mats, m } = model, d = mats.length;
+  const P = combo(mats, s, N); for (let i = 0; i < N * N; i++) P[i] *= -2; for (let i = 0; i < N; i++) P[i * N + i] += 1;
+  const inv = spdInverse(P, N); if (!inv) return null;
+  const D = inv.X; let logdet = 0; for (let i = 0; i < N; i++) logdet += 2 * Math.log(inv.L[i * N + i]);
+  const Dm = mv(D, m, N);
+  const K = -0.5 * logdet + 0.5 * (dot(m, Dm) - dot(m, m));
+  const DM = mats.map(A => mm(D, A, N)), MDm = mats.map(A => mv(A, Dm, N));
+  const g = new Float64Array(d), H = new Float64Array(d * d);
+  for (let i = 0; i < d; i++) {
+    g[i] = tr(DM[i], N) + dot(Dm, MDm[i]);
+    for (let j = 0; j <= i; j++) {
+      // 2 tr(D Mi D Mj) + 4 (Dm)' Mi D Mj (Dm)
+      const v = 2 * trProd(DM[i], DM[j], N) + 4 * dot(MDm[i], mv(D, MDm[j], N));
+      H[i * d + j] = v; H[j * d + i] = v;
+    }
+  }
+  return { K, g, H, D, Dm };
+}
+function smallChol(H, d) { return cholesky(H, d); }
+/* saddlepoint: K'(s) = x by damped Newton on the convex function K(s) - s'x */
+function saddle(model, x, s0) {
+  const d = model.mats.length;
+  let s = s0 ? Float64Array.from(s0) : new Float64Array(d);
+  let cur = cgf2(model, s);
+  if (!cur) { s = new Float64Array(d); cur = cgf2(model, s); }
+  const fval = (c, s) => c.K - dot(s, x);
+  let iters = 0, small = 0;
+  for (let it = 0; it < 100; it++) {
+    iters++;
+    const r = new Float64Array(d); for (let i = 0; i < d; i++) r[i] = x[i] - cur.g[i];
+    const L = smallChol(cur.H, d); if (!L) throw new Error('Hessian not positive definite');
+    const y = lowerSolve(L, r, d); const step = new Float64Array(d);
+    for (let i = d - 1; i >= 0; i--) { let t = y[i]; for (let k = i + 1; k < d; k++) t -= L[k * d + i] * step[k]; step[i] = t / L[i * d + i]; }
+    const dec = dot(r, step);   // squared Newton decrement
+    if (!(dec > 1e-30)) break;
+    if (dec < 1e-14) { // quadratic convergence region: full steps, stop after two of them
+      const sn = s.map((v, i) => v + step[i]); const nxt = cgf2(model, sn); if (!nxt) break;
+      s = sn; cur = nxt; if (++small >= 2) break; continue;
+    }
+    let t = 1, nxt = null, sn = null; const f0 = fval(cur, s);
+    for (let k = 0; k < 50; k++) {
+      sn = s.map((v, i) => v + t * step[i]); nxt = cgf2(model, sn);
+      if (nxt && fval(nxt, sn) <= f0 - 0.25 * t * dec) break;
+      t /= 2; nxt = null;
+    }
+    if (!nxt) break;
+    s = sn; cur = nxt;
+  }
+  return { s, iters, ...cur };
+}
+
+/* ---------------- multi-indices (padded to 3 coordinates, dense storage) ---------------- */
+function makeBox(d, P) { // all nu with |nu| <= P in d <= 3 coordinates
+  const n = [P + 1, d >= 2 ? P + 1 : 1, d >= 3 ? P + 1 : 1];
+  const size = n[0] * n[1] * n[2];
+  const idx = (a, b = 0, c = 0) => a + n[0] * (b + n[1] * c);
+  const list = [];   // by degree
+  for (let l = 0; l <= P; l++) { const L = []; for (let c = 0; c <= (d >= 3 ? l : 0); c++) for (let b = 0; b <= (d >= 2 ? l - c : 0); b++) { const a = l - b - c; L.push([a, b, c]); } list.push(L); }
+  return { d, P, n, size, idx, list };
+}
+const FACT = [1]; for (let i = 1; i <= 170; i++) FACT.push(FACT[i - 1] * i);
+const nufact = v => FACT[v[0]] * FACT[v[1]] * FACT[v[2]];
+/* derivatives K_alpha of the cgf of the forms with direction matrices dirs at the point with
+   D = (I-2C)^{-1}, for all alpha with |alpha| <= L (d = dirs.length <= 3), via
+   F_alpha = sum_i D dirs_i F_{alpha - e_i}, K_alpha = 2^{|alpha|-1} alpha!/|alpha| {tr F + |alpha| m'F D m} */
+function derivs(N, D, Dm, m, dirs, L) {
+  const d = dirs.length, box = makeBox(d, L), out = new Float64Array(box.size);
+  const G = cgfDerivsGen(N, D, Dm, m, dirs, new Array(d).fill(L), L);
+  for (const [k, v] of G) { const a = k.split(',').map(Number); while (a.length < 3) a.push(0); out[box.idx(a[0], a[1], a[2])] = v; }
+  return { box, K: out };
+}
+
+/* generic derivatives of the cgf of quadratic forms in the directions dirs (q of them), with
+   per-direction caps, for all alpha with |alpha| <= L: K_alpha = 2^{|alpha|-1} alpha!/|alpha|
+   {tr F_alpha + |alpha| m'F_alpha D m}, F_alpha the sum of the products of the D dirs_i in every
+   order.  F is formed by recursion up to degree h = ceil(L/2) only; for higher degrees the words
+   are split, F_alpha = sum_{|g| = k} F_g F_{alpha-g}, so that tr(F_alpha) = sum tr(F_g F_{alpha-g})
+   and m'F_alpha D m = sum (m'F_g)(F_{alpha-g} D m) cost O(N^2) and O(N) per pair.
+   Returns a Map from 'a0,a1,...' to K_alpha. */
+function cgfDerivsGen(N, D, Dm, m, dirs, caps, L) {
+  // symmetric form: with D = L_D L_D', G_i = L_D' A_i L_D, tr(words of D A_i) = tr(words of G_i) and
+  // m'(words) D m = y'(words of G) y, y = L_D' m; F_alpha(G) is symmetric (reversal maps its words onto themselves)
+  const q = dirs.length;
+  const LD = cholesky(D, N), LDt = transpose(LD, N);
+  const G = dirs.map(A => sym(mm(LDt, mm(A, LD, N), N), N));
+  const y = mv(LDt, m, N);
+  const levels = []; // levels[l] = list of alpha with |alpha| = l within caps
+  const rec = (i, rem, cur, out) => { if (i === q) { if (rem === 0) out.push(cur.slice()); return; } for (let a = 0; a <= Math.min(rem, caps[i]); a++) { cur[i] = a; rec(i + 1, rem - a, cur, out); } };
+  for (let l = 0; l <= L; l++) { const out = []; rec(0, l, new Array(q).fill(0), out); levels.push(out); }
+  const h = Math.ceil(L / 2);
+  const F = new Map(), Fy = new Map();
+  const key = a => a.join(',');
+  const afact = a => a.reduce((p, x) => p * FACT[x], 1);
+  const hasMean = m.some(v => v !== 0);
+  const out = new Map();
+  Fy.set(key(new Array(q).fill(0)), y);
+  for (let l = 1; l <= Math.min(h, L); l++) for (const a of levels[l]) {
+    let Fa;
+    if (l === 1) Fa = G[a.indexOf(1)];
+    else {
+      Fa = new Float64Array(N * N);
+      for (let i = 0; i < q; i++) if (a[i] > 0) {
+        const b = a.slice(); b[i]--; const Fb = F.get(key(b)), Gi = G[i];
+        for (let r = 0; r < N; r++) { const rr = r * N; for (let c = 0; c <= r; c++) { const cc = c * N; let s = 0; for (let k = 0; k < N; k++) s += Gi[rr + k] * Fb[cc + k]; Fa[rr + c] += s; } }
+      }
+      for (let r = 0; r < N; r++) for (let c = 0; c < r; c++) Fa[c * N + r] = Fa[r * N + c];
+    }
+    F.set(key(a), Fa);
+    if (hasMean) Fy.set(key(a), mv(Fa, y, N));
+    const val = Math.pow(2, l - 1) * afact(a) / l * (tr(Fa, N) + (hasMean ? l * dot(y, Fy.get(key(a))) : 0));
+    out.set(key(a), val);
+  }
+  for (let l = h + 1; l <= L; l++) {
+    const k = l - h;
+    for (const a of levels[l]) {
+      let t = 0, mq = 0;
+      for (const g of levels[k]) {
+        let ok = true; for (let i = 0; i < q; i++) if (g[i] > a[i]) { ok = false; break; } if (!ok) continue;
+        const rest = a.map((x, i) => x - g[i]), kg = key(g), kr = key(rest);
+        const A = F.get(kg), B = F.get(kr);   // both symmetric: tr(A B) = sum_ij A_ij B_ij
+        let s = 0; for (let i = 0; i < N * N; i++) s += A[i] * B[i];
+        t += s;
+        if (hasMean) mq += dot(Fy.get(kg), Fy.get(kr));
+      }
+      out.set(key(a), Math.pow(2, l - 1) * afact(a) / l * (t + l * mq));
+    }
+  }
+  return out;
+}
+
+/* ---------------- coefficients c_{r,nu} (equation (eq:arec)) ---------------- */
+function coefficients(box, kappa, Kmax, R, Pmax) {
+  // kappa: dense array on box (|nu| <= box.P), used for 3 <= |nu| <= Kmax; returns c[r] dense, r = 1..R, |nu| <= Pmax
+  const { idx, list } = box;
+  const c = [null];
+  const c1 = new Float64Array(box.size);
+  for (let l = 3; l <= Math.min(Kmax, Pmax); l++) for (const v of list[l]) c1[idx(v[0], v[1], v[2])] = kappa[idx(v[0], v[1], v[2])];
+  c.push(c1);
+  for (let r = 2; r <= R; r++) {
+    const cr = new Float64Array(box.size), cp = c[r - 1];
+    for (let l = 3 * r; l <= Pmax; l++) for (const v of list[l]) {
+      let s = 0;
+      const lmax = Math.min(Kmax, l - 3 * (r - 1));
+      for (let a = 0; a <= v[0]; a++) for (let b = 0; b <= v[1]; b++) for (let cc = 0; cc <= v[2]; cc++) {
+        const k = a + b + cc; if (k < 3 || k > lmax) continue;
+        const kap = kappa[idx(a, b, cc)]; if (kap === 0) continue;
+        s += kap * cp[idx(v[0] - a, v[1] - b, v[2] - cc)];
+      }
+      cr[idx(v[0], v[1], v[2])] = s / r;
+    }
+    c.push(cr);
+  }
+  return c;
+}
+const HZ = [1]; for (let i = 1; i <= 40; i++) HZ.push(HZ[i - 1] * (1 - 2 * i));   // h_i = He_{2i}(0)
+const He0 = v => (v[0] % 2 || v[1] % 2 || v[2] % 2) ? 0 : HZ[v[0] / 2] * HZ[v[1] / 2] * HZ[v[2] / 2];
+
+/* ---------------- whitening at the saddlepoint ---------------- */
+function whitenAt(model, sp) {
+  const d = model.mats.length, N = model.N;
+  const L = cholesky(sp.H, d); const Li = invLower(L, d);
+  // directions of K_Y(u) = K(L^{-T} u): column i of L^{-T} = row i of L^{-1}
+  const dirs = []; for (let i = 0; i < d; i++) { const coef = []; for (let j = 0; j < d; j++) coef.push(Li[i * d + j]); dirs.push(combo(model.mats, coef, N)); }
+  const uhat = new Float64Array(d); for (let i = 0; i < d; i++) { let s = 0; for (let j = i; j < d; j++) s += L[j * d + i] * sp.s[j]; uhat[i] = s; }
+  let halfLogDet = 0; for (let i = 0; i < d; i++) halfLogDet += Math.log(L[i * d + i]);
+  return { L, Li, dirs, uhat, halfLogDet };
+}
+function kappaWhite(model, sp, wh, Kmax) {
+  const { box, K } = derivs(model.N, sp.D, sp.Dm, model.m, wh.dirs, Kmax);
+  const kap = new Float64Array(box.size);
+  for (let l = 3; l <= Kmax; l++) for (const v of box.list[l]) { const i = box.idx(v[0], v[1], v[2]); kap[i] = K[i] / nufact(v); }
+  return { box, kap, Kder: K };
+}
+
+/* ---------------- density expansion (Theorem 3), whitened ---------------- */
+function densitySPA(model, x, Mmax, s0) {
+  const d = model.mats.length;
+  const sp = saddle(model, x, s0), wh = whitenAt(model, sp);
+  const Kmax = 2 * Mmax, Pmax = Math.max(6 * (Mmax - 1), Kmax);
+  const kw = kappaWhite(model, sp, wh, Kmax);
+  const box = makeBox(d, Pmax); const kap = new Float64Array(box.size);
+  for (let l = 3; l <= Kmax; l++) for (const v of box.list[l]) kap[box.idx(v[0], v[1], v[2])] = kw.kap[kw.box.idx(v[0], v[1], v[2])];
+  const c = coefficients(box, kap, Kmax, Math.max(1, 2 * (Mmax - 1)), Pmax);
+  const terms = [1];
+  for (let m = 1; m <= Mmax - 1; m++) { let t = 0; for (let r = 1; r <= 2 * m; r++) for (const v of box.list[2 * m + 2 * r]) t += c[r][box.idx(v[0], v[1], v[2])] * He0(v); terms.push(t); }
+  const logpref = -d / 2 * LOG2PI - wh.halfLogDet + sp.K - dot(sp.s, x);
+  const pdf = []; let s = 0; for (let M = 1; M <= Mmax; M++) { s += terms[M - 1]; pdf.push(Math.exp(logpref) * s); }
+  return { pdf, terms, logpref, sp, wh, kw };
+}
+
+/* ---------------- Gauss-Legendre ---------------- */
+const GLC = new Map();
+function gauleg(n) {
+  if (GLC.has(n)) return GLC.get(n);
+  const x = new Float64Array(n), w = new Float64Array(n);
+  for (let i = 0; i < n; i++) {
+    let z = Math.cos(Math.PI * (i + 0.75) / (n + 0.5)), pp = 0;
+    for (let it = 0; it < 100; it++) { let p1 = 1, p2 = 0; for (let j = 1; j <= n; j++) { const p3 = p2; p2 = p1; p1 = ((2 * j - 1) * z * p2 - (j - 1) * p3) / j; } pp = n * (z * p1 - p2) / (z * z - 1); const z1 = z; z = z1 - p1 / pp; if (Math.abs(z - z1) < 1e-16) break; }
+    x[i] = z; w[i] = 2 / ((1 - z * z) * pp * pp);
+  }
+  const r = { x, w }; GLC.set(n, r); return r;
+}
+/* breakpoints for int_l^inf exp(-(v-c)^2/2) poly(v) dv; extra: additional candidate breakpoints */
+function breakpoints(l, c, extra) {
+  const pts = [];
+  const lo = Math.max(l, c - 14);
+  let hi;
+  if (lo < c) { pts.push(lo); for (const t of [-9, -6, -4, -2.5, -1.2, 0, 1.2, 2.5, 4, 6, 9, 14]) { const p = c + t; if (p > lo + 1e-12) pts.push(p); } hi = c + 14; }
+  else {
+    const b = lo - c, sc = Math.min(1, 1 / b), yend = -b + Math.sqrt(b * b + 2 * 75);
+    pts.push(lo); for (const t of [0.4, 1.2, 2.5, 4.5, 7, 10.5, 15, 21, 29, 40, 55]) { const y = t * sc; if (y < yend - 1e-12) pts.push(lo + y); }
+    pts.push(lo + yend); hi = lo + yend;
+  }
+  if (extra) for (const e of extra) if (e > lo + 1e-9 && e < hi - 1e-9) pts.push(e);
+  pts.sort((a, b) => a - b);
+  const out = [pts[0]]; for (let i = 1; i < pts.length; i++) if (pts[i] - out[out.length - 1] > 1e-9 * (1 + Math.abs(pts[i]))) out.push(pts[i]);
+  return out;
+}
+function nodesOn(bp, ng) {
+  const { x, w } = gauleg(ng), z = [], wz = [];
+  for (let k = 0; k + 1 < bp.length; k++) { const h = (bp[k + 1] - bp[k]) / 2, m = (bp[k + 1] + bp[k]) / 2; for (let i = 0; i < ng; i++) { z.push(m + h * x[i]); wz.push(h * w[i]); } }
+  return { z, wz };
+}
+function hermiteRow(v, K, out) { out[0] = 1; if (K >= 1) out[1] = v; for (let k = 1; k < K; k++) out[k + 1] = v * out[k] - k * out[k - 1]; return out; }
+/* scaled orthant integrals  I'(mu) = int_{Lv >= 0} prod_j He_{mu_j}(v_j) (2pi)^{-d/2} exp(-|v|^2/2 - v'uhat) dv
+   for all mu in the box [0,K]^d (padded to 3 coordinates); I(mu) of (eq:white) = exp(-|uhat|^2/2) I'(mu) */
+function orthantIntegrals(L, uhat, K, ng = 20) {
+  const d = uhat.length, K1 = K + 1;
+  const lowerOf = (j, v) => { if (j === 0) return 0; let s = 0; for (let i = 0; i < j; i++) s += L[j * d + i] * v[i]; return -s / L[j * d + j]; };
+  const layerPts = (j, v) => { // values of v_j where l_{j+1} + uhat_{j+1} hits a few levels
+    if (j + 1 >= d) return null; const a = L[(j + 1) * d + j]; if (Math.abs(a) < 1e-14) return null;
+    let rest = 0; for (let i = 0; i < j; i++) rest += L[(j + 1) * d + i] * v[i];
+    const out = []; for (const lev of [-9, -6, -4, -2.5, -1.2, 0, 1.2, 2.5, 4, 6]) out.push((-L[(j + 1) * d + j + 1] * (lev - uhat[j + 1]) - rest) / a);
+    return out;
+  };
+  const heb = Array.from({ length: d }, () => new Float64Array(K1));
+  const c0 = Math.pow(2 * Math.PI, -0.5);
+  function level(j, v) { // returns tensor over coordinates j..d-1 (size K1^(d-j))
+    const l = lowerOf(j, v), c = -uhat[j];
+    const bp = breakpoints(l, c, layerPts(j, v));
+    const { z, wz } = nodesOn(bp, ng);
+    const sz = Math.pow(K1, d - j - 1), out = new Float64Array(sz * K1);
+    for (let q = 0; q < z.length; q++) {
+      const vj = z[q]; const f = wz[q] * c0 * Math.exp(-vj * vj / 2 - vj * uhat[j]);
+      if (f === 0 || !isFinite(f)) continue;
+      const he = hermiteRow(vj, K, heb[j]);
+      if (j === d - 1) { for (let k = 0; k < K1; k++) out[k] += f * he[k]; continue; }
+      v[j] = vj; const inner = level(j + 1, v);
+      for (let k = 0; k < K1; k++) { const fk = f * he[k]; if (fk === 0) continue; const off = k * sz; for (let t = 0; t < sz; t++) out[off + t] += fk * inner[t]; }
+    }
+    return out;
+  }
+  const flat = level(0, new Float64Array(d));   // index k0*K1^(d-1) + k1*K1^(d-2) + ...
+  return { K, d, get: (a, b = 0, c = 0) => (d === 1 ? flat[a] : d === 2 ? flat[a * K1 + b] : flat[(a * K1 + b) * K1 + c]) };
+}
+
+/* ---------------- orthant probability expansion (Theorem 1), direct, whitened ---------------- */
+function orthantDirect(model, x, Mmax, sp) {
+  const d = model.mats.length, p = 2 * Mmax - 1;
+  const wh = whitenAt(model, sp);
+  const Kmax = p + 2, Pmax = 3 * p;
+  const kw = kappaWhite(model, sp, wh, Kmax);
+  const box = makeBox(d, Pmax); const kap = new Float64Array(box.size);
+  for (let l = 3; l <= Kmax; l++) for (const v of box.list[l]) kap[box.idx(v[0], v[1], v[2])] = kw.kap[kw.box.idx(v[0], v[1], v[2])];
+  const c = coefficients(box, kap, Kmax, p, Pmax);
+  const I = orthantIntegrals(wh.L, wh.uhat, Pmax, d === 3 ? 16 : 20);
+  const terms = [I.get(0, 0, 0)], absT = [Math.abs(terms[0])];
+  for (let m = 1; m <= p; m++) { let t = 0, a = 0; for (let r = 1; r <= m; r++) for (const v of box.list[m + 2 * r]) { const q = c[r][box.idx(v[0], v[1], v[2])] * I.get(v[0], v[1], v[2]); t += q; a += Math.abs(q); } terms.push(t); absT.push(a); }
+  const logE = sp.K - dot(sp.s, x);   // exp(K - s'x) times the scaled integrals
+  const P = [], kappa = []; let s = 0, sa = 0;
+  for (let m = 0; m <= p; m++) { s += terms[m]; sa += absT[m]; if (m % 2 === 1 || (m === 0 && p === 0)) { P.push(Math.exp(logE) * s); kappa.push(sa / Math.abs(s)); } }
+  return { P, kappa, terms, logE, sp, wh };
+}
+/* orthant probability P(Q_S >= x_S) with inclusion-exclusion (eq:ie), orders 1..Mmax.
+   Returns {P, node}: node = {idx, signs, s, kappa, P, children: [{sign, node}]} (idx, signs relative
+   to the original components through 'map'). */
+function orthantSPA(model, x, Mmax, map) {
+  const d = model.mats.length;
+  if (!map) map = { idx: Array.from({ length: d }, (_, j) => j), signs: new Array(d).fill(1) };
+  if (d === 0) return { P: new Array(Mmax).fill(1), node: { idx: [], signs: [], P: new Array(Mmax).fill(1), children: [] } };
+  const sp = saddle(model, x);
+  const neg = []; for (let j = 0; j < d; j++) if (sp.s[j] < 0) neg.push(j);
+  const node = { idx: map.idx, signs: map.signs, s: Array.from(sp.s), children: [] };
+  if (!neg.length) { const r = orthantDirect(model, x, Mmax, sp); node.P = r.P; node.kappa = r.kappa; node.uhat = Array.from(r.wh.uhat); return { P: r.P, node }; }
+  const total = new Array(Mmax).fill(0);
+  for (let mask = 0; mask < (1 << neg.length); mask++) {
+    const T = neg.filter((_, k) => mask & (1 << k)), keep = [], signs = [];
+    for (let j = 0; j < d; j++) { const isNeg = neg.includes(j); if (!isNeg) { keep.push(j); signs.push(1); } else if (T.includes(j)) { keep.push(j); signs.push(-1); } }
+    const sub = subModel(model, keep, signs); const xs = keep.map((j, k) => signs[k] * x[j]);
+    const r = orthantSPA(sub, xs, Mmax, { idx: keep.map(j => map.idx[j]), signs: keep.map((j, k) => map.signs[j] * signs[k]) });
+    const sg = T.length % 2 ? -1 : 1;
+    for (let M = 0; M < Mmax; M++) total[M] += sg * r.P[M];
+    node.children.push({ sign: sg, node: r.node });
+  }
+  node.P = total;
+  return { P: total, node };
+}
+/* ======================================================================================
+   Exact values by numerical inversion (trapezoidal rule on a sinh-mapped grid through the
+   saddlepoint, whitened), complex LU without pivoting of the accretive matrix
+   I - 2C(a) - 2iC(u), whose pivots have positive real parts, so that the sum of their
+   principal logarithms is the continuous branch of log det.
+   ====================================================================================== */
+function makeCplx(model) {
+  const { N, mats, m } = model;
+  const Pr = new Float64Array(N * N), Pi = new Float64Array(N * N);
+  const vr = new Float64Array(N), vi = new Float64Array(N);
+  /* returns {lr, li}: log of exp(K(a+iu)) as complex number, and optionally solves */
+  function K(a, u) {
+    Pr.fill(0); Pi.fill(0);
+    for (let j = 0; j < mats.length; j++) { const A = mats[j], aj = a[j], uj = u[j]; if (aj !== 0) for (let t = 0; t < N * N; t++) Pr[t] -= 2 * aj * A[t]; if (uj !== 0) for (let t = 0; t < N * N; t++) Pi[t] -= 2 * uj * A[t]; }
+    for (let i = 0; i < N; i++) Pr[i * N + i] += 1;
+    // LU without pivoting (in place): P = L U, unit lower L
+    let ldr = 0, ldi = 0;
+    for (let k = 0; k < N; k++) {
+      const pr = Pr[k * N + k], pi = Pi[k * N + k];
+      ldr += 0.5 * Math.log(pr * pr + pi * pi); ldi += Math.atan2(pi, pr);
+      const den = pr * pr + pi * pi, ir = pr / den, ii = -pi / den;
+      for (let i = k + 1; i < N; i++) {
+        const ar = Pr[i * N + k], ai = Pi[i * N + k];
+        const lr = ar * ir - ai * ii, li = ar * ii + ai * ir;
+        Pr[i * N + k] = lr; Pi[i * N + k] = li;
+        if (lr === 0 && li === 0) continue;
+        const ri = i * N, rk = k * N;
+        for (let j = k + 1; j < N; j++) { const ur = Pr[rk + j], ui = Pi[rk + j]; Pr[ri + j] -= lr * ur - li * ui; Pi[ri + j] -= lr * ui + li * ur; }
+      }
+    }
+    let kr = -0.5 * ldr, ki = -0.5 * ldi;
+    let hasMean = false; for (let i = 0; i < N; i++) if (m[i] !== 0) { hasMean = true; break; }
+    if (hasMean) {
+      solve(m, vr, vi);
+      let qr = 0, qi = 0; for (let i = 0; i < N; i++) { qr += m[i] * vr[i]; qi += m[i] * vi[i]; }
+      kr += 0.5 * (qr - dot(m, m)); ki += 0.5 * qi;
+    }
+    return { kr, ki };
+  }
+  function solve(b, xr, xi, bi) { // P x = b using the factors
+    for (let i = 0; i < N; i++) { let sr = b[i], si = bi ? bi[i] : 0; const ri = i * N; for (let k = 0; k < i; k++) { const lr = Pr[ri + k], li = Pi[ri + k]; sr -= lr * xr[k] - li * xi[k]; si -= lr * xi[k] + li * xr[k]; } xr[i] = sr; xi[i] = si; }
+    for (let i = N - 1; i >= 0; i--) { let sr = xr[i], si = xi[i]; const ri = i * N; for (let k = i + 1; k < N; k++) { const ur = Pr[ri + k], ui = Pi[ri + k]; sr -= ur * xr[k] - ui * xi[k]; si -= ur * xi[k] + ui * xr[k]; } const dr = Pr[ri + i], di = Pi[ri + i], den = dr * dr + di * di; xr[i] = (sr * dr + si * di) / den; xi[i] = (si * dr - sr * di) / den; }
+  }
+  return { K, solve, N };
+}
+/* one-dimensional fast path: eigen-decomposition of the single matrix */
+function makeCplx1(model) {
+  const { N, mats, m } = model; const { w, V } = jacobiEig(mats[0], N);
+  const b = new Float64Array(N); for (let k = 0; k < N; k++) { let s = 0; for (let i = 0; i < N; i++) s += V[i * N + k] * m[i]; b[k] = s; }
+  function K(a, u) { let kr = 0, ki = 0; for (let k = 0; k < N; k++) { const zr = 1 - 2 * a[0] * w[k], zi = -2 * u[0] * w[k], den = zr * zr + zi * zi; kr += -0.25 * Math.log(den); ki += -0.5 * Math.atan2(zi, zr); if (b[k] !== 0) { const b2 = b[k] * b[k]; kr += 0.5 * b2 * (zr / den - 1); ki += 0.5 * b2 * (-zi / den); } } return { kr, ki }; }
+  return { K, w, V, b, N };
+}
+/* trapezoid over v in R^d (uniform step h, ball of radius V), u = L^{-T} v; f(u) returns {re, im};
+   returns the integral of Re f du/(2 pi)^d and the difference from the subgrid of step 2h */
+function trapezoid(d, Li, f, opts = {}) {
+  const h = opts.h || (d === 1 ? 0.25 : 0.5), tol = opts.tol || (d === 1 ? 1e-17 : d === 2 ? 1e-15 : 1e-9);
+  const uOf = (v) => { const u = new Float64Array(d); for (let i = 0; i < d; i++) { let s = 0; for (let j = 0; j < d; j++) s += Li[j * d + i] * v[j]; u[i] = s; } return u; }; // u = L^{-T} v
+  let detLi = 1; for (let i = 0; i < d; i++) detLi *= Li[i * d + i];
+  const peak = Math.hypot(...Object.values(f(new Float64Array(d)))) || 1;
+  // radius: along axes and diagonals, the amplitude must stay below tol*peak beyond V
+  const dirs = [];
+  for (let j = 0; j < d; j++) for (const sg of [-1, 1]) { const e = new Float64Array(d); e[j] = sg; dirs.push(e); }
+  if (d >= 2) for (let mask = 0; mask < (1 << d); mask++) { const e = new Float64Array(d); for (let j = 0; j < d; j++) e[j] = (mask & (1 << j) ? 1 : -1) / Math.sqrt(d); dirs.push(e); }
+  const amp = (e, r) => { const r2 = f(uOf(e.map(x => x * r))); return Math.hypot(r2.re, r2.im); };
+  let V = 4;
+  const maxV = opts.maxV || (d === 1 ? 4e4 : d === 2 ? 400 : 60);
+  while (V < maxV) { let ok = true; for (const e of dirs) { if (amp(e, V) > tol * peak || amp(e, 1.3 * V) > tol * peak || amp(e, 1.7 * V) > tol * peak) { ok = false; break; } } if (ok) break; V *= 1.15; }
+  V = Math.min(V, maxV);
+  const n = Math.ceil(V / h), V2 = (V + h) * (V + h);
+  let sum = 0, sumC = 0, count = 0;
+  const v = new Float64Array(d), idx = new Int32Array(d);
+  const total = Math.pow(2 * n + 1, d), prog = opts.progress, step = Math.max(1, Math.floor(total / 50));
+  for (let q = 0; q < total; q++) {
+    if (prog && q % step === 0) prog(q / total);
+    let rem = q, first = 0, allEven = true, r2 = 0;
+    for (let j = 0; j < d; j++) { idx[j] = (rem % (2 * n + 1)) - n; rem = Math.floor(rem / (2 * n + 1)); }
+    for (let j = d - 1; j >= 0; j--) if (idx[j] !== 0) { first = idx[j]; break; }
+    if (first < 0) continue;
+    for (let j = 0; j < d; j++) { v[j] = idx[j] * h; r2 += v[j] * v[j]; if (idx[j] % 2) allEven = false; }
+    if (r2 > V2) continue;
+    const wt = first === 0 ? 1 : 2;
+    const r = f(uOf(v)); const val = wt * r.re; count++;
+    sum += val; if (allEven) sumC += val;
+  }
+  const I = sum * Math.pow(h, d), Ic = sumC * Math.pow(2 * h, d);
+  const sc = detLi / Math.pow(2 * Math.PI, d);
+  return { val: I * sc, err: Math.abs(I - Ic) * Math.abs(sc), V, nodes: count };
+}
+/* exact density of Q at x */
+function exactDensity(model, x, opts = {}) {
+  const d = model.mats.length;
+  const sp = saddle(model, x); const L = cholesky(sp.H, d), Li = invLower(L, d);
+  const C = d === 1 ? makeCplx1(model) : makeCplx(model);
+  const base = sp.K - dot(sp.s, x);
+  const f = u => { const k = C.K(sp.s, u); const ph = k.ki - dot(u, x), mag = Math.exp(k.kr - sp.K + 0 * base); return { re: mag * Math.cos(ph), im: mag * Math.sin(ph) }; };
+  // note: exp(K(s+iu) - (s+iu)'x) = exp(base) * exp(Kr - K(s)) * exp(i(Ki - u'x))
+  const r = trapezoid(d, Li, f, opts);
+  return { val: Math.exp(base) * r.val, err: Math.exp(base) * r.err, sp };
+}
+/* exact orthant probability for a model whose saddlepoint has no negative component */
+function exactOrthantLeaf(model, x, sp, opts = {}) {
+  const d = model.mats.length;
+  const C = d === 1 ? makeCplx1(model) : makeCplx(model);
+  // contour: a_j >= delta * sqrt((H^{-1})_jj), with a margin from the boundary of the domain
+  const Hi = spdInverse(sp.H, d).X;
+  let delta = 2.0, a = null, ca = null;
+  for (let k = 0; k < 40; k++) {
+    a = sp.s.map((s, j) => Math.max(s, delta * Math.sqrt(Hi[j * d + j])));
+    const far = sp.s.map((s, j) => s + 2 * (a[j] - s));
+    ca = cgf2(model, a);
+    if (ca && cgf2(model, far)) break;
+    delta *= 0.85; ca = null;
+  }
+  if (!ca) { a = Array.from(sp.s); ca = cgf2(model, a); }
+  const Hia = spdInverse(ca.H, d).X;
+  let dmin = Infinity; for (let j = 0; j < d; j++) dmin = Math.min(dmin, a[j] / Math.sqrt(Hia[j * d + j]));
+  if (!opts.h) opts = Object.assign({}, opts, { h: Math.min(d === 1 ? 0.25 : 0.5, 2 * Math.PI * dmin / 32) });
+  const L = cholesky(ca.H, d), Li = invLower(L, d);
+  const base = ca.K - dot(a, x);
+  const f = u => { const k = C.K(a, u); const ph = k.ki - dot(u, x), mag = Math.exp(k.kr - ca.K);
+    let dr = 1, di = 0; for (let j = 0; j < d; j++) { const nr = dr * a[j] - di * u[j], ni = dr * u[j] + di * a[j]; dr = nr; di = ni; }
+    const den = dr * dr + di * di, cr = mag * Math.cos(ph), ci = mag * Math.sin(ph);
+    return { re: (cr * dr + ci * di) / den, im: (ci * dr - cr * di) / den }; };
+  const r = trapezoid(d, Li, f, opts);
+  return { val: Math.exp(base) * r.val, err: Math.exp(base) * r.err };
+}
+function exactOrthant(model, x, opts = {}) {
+  const d = model.mats.length; if (d === 0) return { val: 1, err: 0 };
+  const sp = saddle(model, x);
+  const neg = []; for (let j = 0; j < d; j++) if (sp.s[j] < 0) neg.push(j);
+  if (!neg.length) return exactOrthantLeaf(model, x, sp, opts);
+  let val = 0, err = 0;
+  for (let mask = 0; mask < (1 << neg.length); mask++) {
+    const T = neg.filter((_, k) => mask & (1 << k)), keep = [], signs = [];
+    for (let j = 0; j < d; j++) { const isNeg = neg.includes(j); if (!isNeg) { keep.push(j); signs.push(1); } else if (T.includes(j)) { keep.push(j); signs.push(-1); } }
+    const r = exactOrthant(subModel(model, keep, signs), keep.map((j, k) => signs[k] * x[j]), opts);
+    val += (T.length % 2 ? -1 : 1) * r.val; err += r.err;
+  }
+  return { val, err };
+}
+
+
+/* ---------------- symmetric eigen-decomposition (Householder + implicit QL, after JAMA) ---------------- */
+function symEig(A, n, wantV = true) {
+  const V = Float64Array.from(A), d = new Float64Array(n), e = new Float64Array(n);
+  // column-major view (A is symmetric): V[j*n+i] is element (i,j), so the inner loops run down columns
+  for (let j = 0; j < n; j++) d[j] = V[((j) * n + (n - 1))];
+  for (let i = n - 1; i > 0; i--) {
+    let scale = 0, h = 0;
+    for (let k = 0; k < i; k++) scale += Math.abs(d[k]);
+    if (scale === 0) { e[i] = d[i - 1]; for (let j = 0; j < i; j++) { d[j] = V[((j) * n + (i - 1))]; V[((j) * n + (i))] = 0; V[((i) * n + (j))] = 0; } }
+    else {
+      for (let k = 0; k < i; k++) { d[k] /= scale; h += d[k] * d[k]; }
+      let f = d[i - 1], g = Math.sqrt(h); if (f > 0) g = -g;
+      e[i] = scale * g; h -= f * g; d[i - 1] = f - g;
+      for (let j = 0; j < i; j++) e[j] = 0;
+      for (let j = 0; j < i; j++) { f = d[j]; V[((i) * n + (j))] = f; g = e[j] + V[((j) * n + (j))] * f; for (let k = j + 1; k <= i - 1; k++) { g += V[((j) * n + (k))] * d[k]; e[k] += V[((j) * n + (k))] * f; } e[j] = g; }
+      f = 0; for (let j = 0; j < i; j++) { e[j] /= h; f += e[j] * d[j]; }
+      const hh = f / (h + h); for (let j = 0; j < i; j++) e[j] -= hh * d[j];
+      for (let j = 0; j < i; j++) { f = d[j]; g = e[j]; for (let k = j; k <= i - 1; k++) V[((j) * n + (k))] -= (f * e[k] + g * d[k]); d[j] = V[((j) * n + (i - 1))]; V[((j) * n + (i))] = 0; }
+    }
+    d[i] = h;
+  }
+  if (!wantV) { for (let i = 0; i < n; i++) d[i] = V[((i) * n + (i))]; e[0] = 0; }
+  else for (let i = 0; i < n - 1; i++) {
+    V[((i) * n + (n - 1))] = V[((i) * n + (i))]; V[((i) * n + (i))] = 1; const h = d[i + 1];
+    if (h !== 0) { for (let k = 0; k <= i; k++) d[k] = V[((i + 1) * n + (k))] / h; for (let j = 0; j <= i; j++) { let g = 0; for (let k = 0; k <= i; k++) g += V[((i + 1) * n + (k))] * V[((j) * n + (k))]; for (let k = 0; k <= i; k++) V[((j) * n + (k))] -= g * d[k]; } }
+    for (let k = 0; k <= i; k++) V[((i + 1) * n + (k))] = 0;
+  }
+  if (wantV) { for (let j = 0; j < n; j++) { d[j] = V[((j) * n + (n - 1))]; V[((j) * n + (n - 1))] = 0; }
+  V[((n - 1) * n + (n - 1))] = 1; e[0] = 0; }
+  // tql2
+  for (let i = 1; i < n; i++) e[i - 1] = e[i]; e[n - 1] = 0;
+  let f = 0, tst1 = 0; const eps = Math.pow(2, -52);
+  for (let l = 0; l < n; l++) {
+    tst1 = Math.max(tst1, Math.abs(d[l]) + Math.abs(e[l]));
+    let m = l; while (m < n) { if (Math.abs(e[m]) <= eps * tst1) break; m++; }
+    if (m > l) {
+      let iter = 0;
+      do {
+        iter++;
+        let g = d[l], p = (d[l + 1] - g) / (2 * e[l]), r = Math.hypot(p, 1); if (p < 0) r = -r;
+        d[l] = e[l] / (p + r); d[l + 1] = e[l] * (p + r); const dl1 = d[l + 1]; let h = g - d[l];
+        for (let i = l + 2; i < n; i++) d[i] -= h;
+        f += h; p = d[m]; let c = 1, c2 = c, c3 = c; const el1 = e[l + 1]; let s = 0, s2 = 0;
+        for (let i = m - 1; i >= l; i--) {
+          c3 = c2; c2 = c; s2 = s; g = c * e[i]; h = c * p; r = Math.hypot(p, e[i]); e[i + 1] = s * r; s = e[i] / r; c = p / r; p = c * d[i] - s * g; d[i + 1] = h + s * (c * g + s * d[i]);
+          if (wantV) for (let k = 0; k < n; k++) { const vi1 = V[((i + 1) * n + (k))], vi = V[((i) * n + (k))]; V[((i + 1) * n + (k))] = s * vi + c * vi1; V[((i) * n + (k))] = c * vi - s * vi1; }
+        }
+        p = -s * s2 * c3 * el1 * e[l] / dl1; e[l] = s * p; d[l] = c * p;
+      } while (Math.abs(e[l]) > eps * tst1 && iter < 60);
+    }
+    d[l] += f; e[l] = 0;
+  }
+  if (wantV) { for (let i = 0; i < n; i++) for (let j = 0; j < i; j++) { const t = V[i * n + j]; V[i * n + j] = V[j * n + i]; V[j * n + i] = t; } }   // back to row-major
+  return { w: d, V };
+}
+
+/* ======================================================================================
+   Exact values by inversion along rays: in whitened coordinates v (u = L_a^{-T} v, s = a + iu),
+   int_{R^d} Re F du = |L_a^{-T}| int_{S^{d-1}} int_0^inf Re F(r w) r^{d-1} dr dw.  On a ray,
+   I - 2C(a) - 2irC(w~) = L_R (I - 2ir S_w) L_R', S_w real symmetric, so with S_w = Q diag(lam) Q'
+   log det = log det(I - 2C(a)) + sum_k log(1 - 2 i r lam_k) (principal logarithms, real parts
+   positive) and each radial node costs O(N).
+   ====================================================================================== */
+function rayPrep(model, a, x) {
+  const { N, mats, m } = model, d = mats.length;
+  const ca = cgf2(model, a); if (!ca) return null;
+  const P = combo(mats, a, N); for (let i = 0; i < N * N; i++) P[i] *= -2; for (let i = 0; i < N; i++) P[i * N + i] += 1;
+  const LR = cholesky(P, N), LRi = invLower(LR, N);
+  const Mhat = mats.map(A => sym(mm(mm(LRi, A, N), transpose(LRi, N), N), N));
+  const mt = mv(LRi, m, N);
+  const La = cholesky(ca.H, d), Lai = invLower(La, d);
+  let detLai = 1; for (let i = 0; i < d; i++) detLai *= Lai[i * d + i];
+  return { N, d, a, x, ca, LRi, Mhat, mt, Lai, detLai, hasMean: m.some(v => v !== 0) };
+}
+/* radial integral of Re F(r w) r^{d-1}; F = exp(K(a+iu) - K(a) - iu'x) * pole * amp */
+function rayRadial(prep, w, kind, ampHook, tol) {
+  const { N, d, a, x, Mhat, mt, Lai } = prep;
+  const ut = new Float64Array(d); for (let i = 0; i < d; i++) { let s = 0; for (let j = 0; j < d; j++) s += Lai[j * d + i] * w[j]; ut[i] = s; }
+  const S = mat(N); for (let j = 0; j < d; j++) if (ut[j] !== 0) axpy(S, ut[j], Mhat[j]);
+  const needV = prep.hasMean || !!ampHook;
+  const { w: lam, V: Q } = symEig(S, N, needV);
+  let b2 = null; if (prep.hasMean) { b2 = new Float64Array(N); for (let k = 0; k < N; k++) { let s = 0; for (let i = 0; i < N; i++) s += Q[i * N + k] * mt[i]; b2[k] = s * s; } }
+  const hookRay = ampHook ? ampHook.ray(Q, lam, ut) : null;
+  const ux = dot(ut, x);
+  let lmax = 0; for (let k = 0; k < N; k++) lmax = Math.max(lmax, Math.abs(lam[k]));
+  const freq = Math.abs(ux) + 2 * lmax + 1;
+  const len = Math.min(1.5, 9 / freq), { x: gx, w: gw } = gauleg(16);
+  const Dr = new Float64Array(N), Di = new Float64Array(N);
+  const Fval = (r) => {
+    let lr = 0, li = 0;
+    for (let k = 0; k < N; k++) {
+      const zi = -2 * r * lam[k], den = 1 + zi * zi;
+      lr -= 0.25 * Math.log(den); li -= 0.5 * Math.atan(zi);
+      Dr[k] = 1 / den; Di[k] = -zi / den;   // 1/(1 - 2 i r lam)
+      if (b2) { lr += 0.5 * b2[k] * (Dr[k] - 1); li += 0.5 * b2[k] * Di[k]; }
+    }
+    li -= r * ux;
+    let mag = Math.exp(lr), cr = mag * Math.cos(li), ci = mag * Math.sin(li);
+    if (kind === 'cdf') { let pr = 1, pi = 0; for (let j = 0; j < d; j++) { const nr = pr * a[j] - pi * r * ut[j], ni = pr * r * ut[j] + pi * a[j]; pr = nr; pi = ni; } const den = pr * pr + pi * pi; const tr_ = (cr * pr + ci * pi) / den, ti = (ci * pr - cr * pi) / den; cr = tr_; ci = ti; }
+    if (hookRay) { const g = hookRay(r, Dr, Di); const tr_ = cr * g.re - ci * g.im, ti = cr * g.im + ci * g.re; cr = tr_; ci = ti; }
+    return { re: cr, im: ci, mag: Math.hypot(cr, ci) };
+  };
+  const f0 = Fval(0).mag || 1;
+  let total = 0, r0 = 0, quiet = 0;
+  for (let piece = 0; piece < 200000; piece++) {
+    const r1 = r0 + len, hm = len / 2, mid = r0 + hm;
+    let sPiece = 0;
+    for (let i = 0; i < gx.length; i++) { const r = mid + hm * gx[i]; const F = Fval(r); sPiece += gw[i] * F.re * Math.pow(r, d - 1); }
+    total += hm * sPiece;
+    const end = Fval(r1); const ampEnd = end.mag * Math.pow(r1, d - 1) * Math.max(1, r1);
+    if (r1 > 6 && ampEnd < tol * f0) { if (++quiet >= 3) break; } else quiet = 0;
+    r0 = r1;
+  }
+  return total;
+}
+function sphereRule(d, level) { // directions and weights covering each antipodal pair once (total weight = half the sphere area)
+  const pts = [];
+  if (d === 1) { pts.push({ w: [1], wt: 1 }); return pts; }
+  if (d === 2) { const n = 16 << level; for (let k = 0; k < n; k++) { const t = Math.PI * k / n; pts.push({ w: [Math.cos(t), Math.sin(t)], wt: Math.PI / n }); } return pts; }
+  const nz = 8 << level, np = 16 << level; const { x, w } = gauleg(nz);
+  for (let i = 0; i < nz; i++) { const z = x[i], rho = Math.sqrt(1 - z * z); for (let k = 0; k < np; k++) { const ph = Math.PI * k / np; pts.push({ w: [rho * Math.cos(ph), rho * Math.sin(ph), z], wt: w[i] * Math.PI / np }); } }
+  return pts;
+}
+/* (2 pi)^{-d} int Re F du over R^d, by rays; returns value relative to exp(K(a) - a'x) */
+function rayIntegral(prep, kind, ampHook, opts = {}) {
+  const d = prep.d, tol = opts.tol || (d === 3 ? 1e-12 : 1e-15), rtol = opts.rtol || (d === 3 ? 1e-9 : 1e-12);
+  let prev = null, val = NaN, err = NaN, rays = 0; const t0 = Date.now();
+  for (let level = 0; level <= (d === 1 ? 0 : d === 2 ? 5 : 3); level++) {
+    const pts = sphereRule(d, level); let s = 0;
+    pts.forEach((p, i) => { s += p.wt * rayRadial(prep, p.w, kind, ampHook, tol); if (opts.progress && i % 16 === 0) opts.progress(level, i / pts.length); });
+    rays += pts.length;
+    val = 2 * s * prep.detLai / Math.pow(2 * Math.PI, d);
+    if (d === 1) { err = 0; break; }
+    if (prev !== null) { err = Math.abs(val - prev); if (err <= rtol * Math.abs(val)) break; }
+    prev = val;
+    if (opts.budget && Date.now() - t0 > opts.budget && level >= 1) break;
+  }
+  return { val, err, rays };
+}
+function exactDensityR(model, x, opts = {}) {
+  const sp = saddle(model, x); const prep = rayPrep(model, sp.s, x);
+  const r = rayIntegral(prep, 'pdf', null, opts); const sc = Math.exp(sp.K - dot(sp.s, x));
+  return { val: sc * r.val, err: sc * r.err, sp, rays: r.rays };
+}
+function leafContour(model, sp) {
+  const d = model.mats.length; const Hi = spdInverse(sp.H, d).X;
+  let delta = 2.0;
+  for (let k = 0; k < 40; k++) {
+    const a = sp.s.map((s, j) => Math.max(s, delta * Math.sqrt(Hi[j * d + j])));
+    const far = sp.s.map((s, j) => s + 2 * (a[j] - s));
+    if (cgf2(model, a) && cgf2(model, far)) return a;
+    delta *= 0.85;
+  }
+  return Array.from(sp.s);
+}
+function exactOrthantR(model, x, opts = {}) {
+  const d = model.mats.length; if (d === 0) return { val: 1, err: 0 };
+  const sp = saddle(model, x);
+  const neg = []; for (let j = 0; j < d; j++) if (sp.s[j] < 0) neg.push(j);
+  if (!neg.length) {
+    const a = leafContour(model, sp); const prep = rayPrep(model, a, x);
+    const r = rayIntegral(prep, 'cdf', null, opts); const sc = Math.exp(prep.ca.K - dot(a, x));
+    return { val: sc * r.val, err: sc * r.err };
+  }
+  let val = 0, err = 0;
+  for (let mask = 0; mask < (1 << neg.length); mask++) {
+    const T = neg.filter((_, k) => mask & (1 << k)), keep = [], signs = [];
+    for (let j = 0; j < d; j++) { const isNeg = neg.includes(j); if (!isNeg) { keep.push(j); signs.push(1); } else if (T.includes(j)) { keep.push(j); signs.push(-1); } }
+    const r = exactOrthantR(subModel(model, keep, signs), keep.map((j, k) => signs[k] * x[j]), opts);
+    val += (T.length % 2 ? -1 : 1) * r.val; err += r.err;
+  }
+  return { val, err };
+}
+
+
+/* ======================================================================================
+   Ratios R_j = z'A_j z / z'B_j z (Appendix A): W_j = A_j - r_j B_j, density by Theorem 4 and
+   Corollary 3 with the amplitude g = sum over partitions of prod_B K_B, K_B = d^{|B|}K/prod dt_j.
+   ====================================================================================== */
+function partitions(set) { // all set partitions of an array
+  if (!set.length) return [[]];
+  const [first, ...rest] = set, out = [];
+  for (const p of partitions(rest)) {
+    out.push([[first], ...p]);
+    for (let i = 0; i < p.length; i++) out.push(p.map((B, j) => (j === i ? [first, ...B] : B)));
+  }
+  return out;
+}
+/* Taylor coefficients T_beta(nu) = K_{(nu, 1_beta)}/nu! at the saddlepoint, nu in whitened
+   s-directions (|nu| <= Lnu), beta a nonempty subset (bitmask) of the t-directions tdirs */
+function amplitudeTaylor(N, D, Dm, m, sdirs, tdirs, Lnu) {
+  const d = sdirs.length, q = tdirs.length, box = makeBox(d, Lnu);
+  const caps = new Array(d).fill(Lnu).concat(new Array(q).fill(1));
+  const G = cgfDerivsGen(N, D, Dm, m, sdirs.concat(tdirs), caps, Lnu + q);
+  const out = new Map(); for (let beta = 1; beta < (1 << q); beta++) out.set(beta, new Float64Array(box.size));
+  for (const [k, v] of G) {
+    const a = k.split(',').map(Number); let beta = 0; for (let j = 0; j < q; j++) if (a[d + j]) beta |= 1 << j;
+    if (!beta) continue; const nu = a.slice(0, d); if (nu.reduce((x, y) => x + y, 0) > Lnu) continue; while (nu.length < 3) nu.push(0);
+    out.get(beta)[box.idx(nu[0], nu[1], nu[2])] = v / (FACT[nu[0]] * FACT[nu[1]] * FACT[nu[2]]);
+  }
+  return { box, T: out };
+}
+function popc(x) { let c = 0; while (x) { c += x & 1; x >>= 1; } return c; }
+function seriesMul(box, A, B, L) { const C = new Float64Array(box.size); for (let l1 = 0; l1 <= L; l1++) for (const a of box.list[l1]) { const va = A[box.idx(a[0], a[1], a[2])]; if (va === 0) continue; for (let l2 = 0; l1 + l2 <= L; l2++) for (const b of box.list[l2]) { const vb = B[box.idx(b[0], b[1], b[2])]; if (vb === 0) continue; C[box.idx(a[0] + b[0], a[1] + b[1], a[2] + b[2])] += va * vb; } } return C; }
+/* density of the ratios, orders 1..Mmax; Wmodel has mats W_j = A_j - r_j B_j; Bm = [B_j] (w-space) */
+function ratioDensitySPA(Wmodel, Bm, Mmax) {
+  const d = Wmodel.mats.length, N = Wmodel.N, zero = new Float64Array(d);
+  const sp = saddle(Wmodel, zero), wh = whitenAt(Wmodel, sp);
+  const Kmax = 2 * Mmax, Pmax = Math.max(Kmax, 6 * (Mmax - 1)), Lg = 2 * (Mmax - 1);
+  const kw = kappaWhite(Wmodel, sp, wh, Kmax);
+  const box = makeBox(d, Pmax + Lg); const kap = new Float64Array(box.size);
+  for (let l = 3; l <= Kmax; l++) for (const v of box.list[l]) kap[box.idx(v[0], v[1], v[2])] = kw.kap[kw.box.idx(v[0], v[1], v[2])];
+  const c = coefficients(box, kap, Kmax, Math.max(1, 2 * (Mmax - 1)), Pmax);
+  const at = amplitudeTaylor(N, sp.D, sp.Dm, Wmodel.m, wh.dirs, Bm, Lg);
+  const gbox = at.box;
+  // g_k: partitions with d-k blocks
+  const parts = partitions(Array.from({ length: d }, (_, i) => i));
+  const gk = Array.from({ length: d }, () => new Float64Array(gbox.size));
+  for (const p of parts) {
+    let prod = null;
+    for (const B of p) { const mask = B.reduce((s, j) => s | (1 << j), 0); const T = at.T.get(mask); prod = prod === null ? Float64Array.from(T) : seriesMul(gbox, prod, T, Lg); }
+    axpy(gk[d - p.length], 1, prod);
+  }
+  const bm = (g, m) => { // equation (eq:amp)
+    let s = 0;
+    for (let r = 0; r <= 2 * m; r++) for (let j = 3 * r; j <= 2 * m + 2 * r; j++) {
+      const lmu = 2 * m + 2 * r - j; if (lmu > Lg) continue;
+      for (const nu of box.list[j]) {
+        const cv = r === 0 ? (j === 0 ? 1 : 0) : c[r][box.idx(nu[0], nu[1], nu[2])]; if (cv === 0) continue;
+        for (const mu of gbox.list[lmu]) { const gv = g[gbox.idx(mu[0], mu[1], mu[2])]; if (gv === 0) continue; s += cv * gv * He0([nu[0] + mu[0], nu[1] + mu[1], nu[2] + mu[2]]); }
+      }
+    }
+    return s;
+  };
+  const at_ = []; for (let m = 0; m < Mmax; m++) { let s = 0; for (let k = 0; k <= Math.min(m, d - 1); k++) s += bm(gk[k], m - k); at_.push(s); }
+  const logpref = -d / 2 * LOG2PI - wh.halfLogDet + sp.K;
+  const pdf = []; let s = 0; for (let M = 1; M <= Mmax; M++) { s += at_[M - 1]; pdf.push(Math.exp(logpref) * s); }
+  return { pdf, terms: at_, sp, wh, gk, logpref };
+}
+/* joint distribution function P(R <= r) = P(-W >= 0) */
+function ratioCdfSPA(Wmodel, Mmax, signs) { const d = Wmodel.mats.length; signs = signs || new Array(d).fill(-1); return orthantSPA(subModel(Wmodel, Array.from({ length: d }, (_, j) => j), signs), new Array(d).fill(0), Mmax, { idx: Array.from({ length: d }, (_, j) => j), signs: signs.slice() }); }
+function ratioCdfExact(Wmodel, opts, signs) { const d = Wmodel.mats.length; signs = signs || new Array(d).fill(-1); return exactOrthantR(subModel(Wmodel, Array.from({ length: d }, (_, j) => j), signs), new Array(d).fill(0), opts); }
+/* exact density of the ratios by rays, d <= 2: amplitude g = sum over partitions of prod K_B at s = a + iu */
+function ratioDensityExact(Wmodel, Bm, opts = {}) {
+  const d = Wmodel.mats.length; if (d > 2) return null;
+  const zero = new Float64Array(d); const sp = saddle(Wmodel, zero); const prep = rayPrep(Wmodel, sp.s, zero);
+  const hook = ratioHook(prep, Bm);
+  const r = rayIntegral(prep, 'pdf', hook, opts); const sc = Math.exp(sp.K);
+  return { val: sc * r.val, err: sc * r.err, sp };
+}
+function ratioHook(prep, Bm) {
+  const d = Bm.length, N = prep.N;
+  const Bh = Bm.map(B => sym(mm(mm(prep.LRi, B, N), transpose(prep.LRi, N), N), N));
+  let same = d === 2; if (same) { const A = Bm[0], B = Bm[1]; for (let i = 0; i < A.length; i++) if (A[i] !== B[i]) { same = false; break; } }
+  const hook = { ray(Q, lam, ut) {
+    const G = Bh.map((B, j) => (j === 1 && same ? null : sym(mm(transpose(Q, N), mm(B, Q, N), N), N))); if (same) G[1] = G[0];
+    const y = prep.hasMean ? (() => { const v = new Float64Array(N); for (let k = 0; k < N; k++) { let s = 0; for (let i = 0; i < N; i++) s += Q[i * N + k] * prep.mt[i]; v[k] = s; } return v; })() : null;
+    const yr = new Float64Array(N), yi = new Float64Array(N);
+    return (r, Dr, Di) => {
+      // K_j = sum_k Delta_k G_kk + (Delta y)' G (Delta y)
+      const K1 = G.map(Gj => { let re = 0, im = 0; for (let k = 0; k < N; k++) { const g = Gj[k * N + k]; re += Dr[k] * g; im += Di[k] * g; } return { re, im }; });
+      if (y) { for (let k = 0; k < N; k++) { yr[k] = Dr[k] * y[k]; yi[k] = Di[k] * y[k]; } G.forEach((Gj, j) => { let re = 0, im = 0; for (let k = 0; k < N; k++) { let sr = 0, si = 0; for (let l = 0; l < N; l++) { const g = Gj[k * N + l]; sr += g * yr[l]; si += g * yi[l]; } re += yr[k] * sr - yi[k] * si; im += yr[k] * si + yi[k] * sr; } K1[j].re += re; K1[j].im += im; }); }
+      if (d === 1) return K1[0];
+      // K_12 = 2 sum_kl Delta_k Delta_l G1_kl G2_lk + 2 m'(DB1DB2 + DB2DB1)Dm
+      let re = 0, im = 0; const G1 = G[0], G2 = G[1];
+      for (let k = 0; k < N; k++) { let sr = 0, si = 0; for (let l = 0; l < N; l++) { const g = G1[k * N + l] * G2[l * N + k]; sr += Dr[l] * g; si += Di[l] * g; } re += Dr[k] * sr - Di[k] * si; im += Dr[k] * si + Di[k] * sr; }
+      let K12r = 2 * re, K12i = 2 * im;
+      if (y) { // (Delta y)' G1 Delta G2 (Delta y) + (1 <-> 2)
+        const term = (A, B) => { const zr = new Float64Array(N), zi = new Float64Array(N); for (let k = 0; k < N; k++) { let sr = 0, si = 0; for (let l = 0; l < N; l++) { const g = B[k * N + l]; sr += g * yr[l]; si += g * yi[l]; } zr[k] = Dr[k] * sr - Di[k] * si; zi[k] = Dr[k] * si + Di[k] * sr; } let tr_ = 0, ti = 0; for (let k = 0; k < N; k++) { let sr = 0, si = 0; for (let l = 0; l < N; l++) { const g = A[k * N + l]; sr += g * zr[l]; si += g * zi[l]; } tr_ += yr[k] * sr - yi[k] * si; ti += yr[k] * si + yi[k] * sr; } return { re: tr_, im: ti }; };
+        const t1 = term(G1, G2), t2 = term(G2, G1); K12r += 2 * (t1.re + t2.re); K12i += 2 * (t1.im + t2.im);
+      }
+      return { re: K1[0].re * K1[1].re - K1[0].im * K1[1].im + K12r, im: K1[0].re * K1[1].im + K1[0].im * K1[1].re + K12i };
+    };
+  } };
+  return hook;
+}
+
+
+/* ---------------- exact integrals split into chunks of rays (for a pool of workers) ---------------- */
+const SPEC_STORE = new Map(), SPEC_PREP = new Map();
+function specPrep(id) {
+  if (SPEC_PREP.has(id)) return SPEC_PREP.get(id);
+  const spec = SPEC_STORE.get(id), model = spec.model, d = model.mats.length;
+  const s = Float64Array.from(spec.s), cg = cgf2(model, s);
+  const a = spec.kind === 'cdf' ? leafContour(model, { s, H: cg.H }) : Array.from(s);
+  const prep = rayPrep(model, a, spec.x);
+  const hook = spec.kind === 'ratiopdf' ? ratioHook(prep, spec.Bm) : null;
+  const factor = Math.exp(prep.ca.K - dot(a, spec.x)) * 2 * prep.detLai / Math.pow(2 * Math.PI, d);
+  const P = { prep, hook, factor, kind: spec.kind === 'cdf' ? 'cdf' : 'pdf', d, tol: d === 3 ? 1e-12 : 1e-15 };
+  SPEC_PREP.set(id, P); return P;
+}
+function chunkSum(id, level, start, step) {
+  const P = specPrep(id), pts = sphereRule(P.d, level); let s = 0;
+  for (let i = start; i < pts.length; i += step) s += pts[i].wt * rayRadial(P.prep, pts[i].w, P.kind, P.hook, P.tol);
+  return s * P.factor;
+}
+function rayCount(d, level) { return d === 1 ? 1 : d === 2 ? 16 << level : (8 << level) * (16 << level); }
+
+/* ---------------- jobs (run in a worker or inline) ---------------- */
+function negModel(model) { const d = model.mats.length; return subModel(model, Array.from({ length: d }, (_, j) => j), new Array(d).fill(-1)); }
+function stripTree(n) { return n; }
+function runJob(msg, post) {
+  const t0 = Date.now();
+  if (msg.type === 'chunk') {
+    if (msg.spec) SPEC_STORE.set(msg.specId, msg.spec);
+    post({ stage: 'chunk', sum: chunkSum(msg.specId, msg.level, msg.start, msg.step) }); return;
+  }
+  const prog = what => (level, frac) => post({ stage: 'progress', what, level, frac });
+  if (msg.type === 'qf') {
+    const { model, x, M } = msg, d = model.mats.length;
+    const dens = densitySPA(model, x, M);
+    const kw = kappaWhite(model, dens.sp, dens.wh, 4);
+    const th = []; for (let l = 3; l <= 4; l++) for (const v of kw.box.list[l]) th.push({ nu: v.slice(0, d), val: kw.kap[kw.box.idx(v[0], v[1], v[2])] });
+    const out = { stage: 'spa', pdf: dens.pdf, s: Array.from(dens.sp.s), uhat: Array.from(dens.wh.uhat), H: Array.from(dens.sp.H), theta: th };
+    if (d === 1) { out.up = orthantSPA(model, x, M).P; out.low = orthantSPA(negModel(model), x.map(v => -v), M).P; }
+    else { const r = orthantSPA(model, x, M); out.P = r.P; out.tree = r.node; }
+    out.ms = Date.now() - t0; post(out);
+    if (!msg.exact) return;
+    const opts = d === 3 ? { budget: msg.budget || 12000 } : {};
+    const ep = exactDensityR(model, x, Object.assign({ progress: prog('density') }, opts));
+    const ex = { stage: 'exact', pdf: { val: ep.val, err: ep.err } };
+    if (d === 1) { if (dens.sp.s[0] >= 0) { const u = exactOrthantR(model, x); ex.up = u; ex.low = { val: 1 - u.val, err: u.err }; } else { const l = exactOrthantR(negModel(model), x.map(v => -v)); ex.low = l; ex.up = { val: 1 - l.val, err: l.err }; } }
+    else ex.P = exactOrthantR(model, x, Object.assign({ progress: prog('orthant probability') }, opts));
+    ex.ms = Date.now() - t0; post(ex);
+  } else if (msg.type === 'ratio') {
+    const { W, Bm, M } = msg, d = W.mats.length;
+    const dens = ratioDensitySPA(W, Bm, M);
+    const out = { stage: 'spa', pdf: dens.pdf, s: Array.from(dens.sp.s), H: Array.from(dens.sp.H) };
+    if (d === 1) { out.low = ratioCdfSPA(W, M, [-1]).P; out.up = ratioCdfSPA(W, M, [1]).P; }
+    else { const r = ratioCdfSPA(W, M); out.F = r.P; out.tree = r.node; }
+    out.ms = Date.now() - t0; post(out);
+    if (!msg.exact) return;
+    const opts = d === 3 ? { budget: msg.budget || 12000 } : {};
+    const ex = { stage: 'exact' };
+    if (d <= 2) { const ep = ratioDensityExact(W, Bm, { progress: prog('density') }); ex.pdf = { val: ep.val, err: ep.err }; }
+    if (d === 1) { if (dens.sp.s[0] <= 0) { const l = ratioCdfExact(W, {}, [-1]); ex.low = l; ex.up = { val: 1 - l.val, err: l.err }; } else { const u = ratioCdfExact(W, {}, [1]); ex.up = u; ex.low = { val: 1 - u.val, err: u.err }; } }
+    else ex.F = ratioCdfExact(W, Object.assign({ progress: prog('distribution function') }, opts));
+    ex.ms = Date.now() - t0; post(ex);
+  }
+}
+
+return { runJob, negModel, chunkSum, rayCount, SPEC_STORE, SPEC_PREP, ratioHook, mat, eye, mm, mv, dot, tr, cholesky, invLower, spdInverse, jacobiEig, toeplitz, makeModel, subModel, combo, cgf2, saddle,
+  makeBox, derivs, coefficients, He0, HZ, whitenAt, kappaWhite, densitySPA, gauleg, orthantIntegrals, orthantDirect, orthantSPA,
+  makeCplx, makeCplx1, trapezoid, exactDensity, exactOrthant, exactOrthantLeaf, symEig, rayPrep, rayRadial, rayIntegral, exactDensityR, exactOrthantR, leafContour, sphereRule, partitions, amplitudeTaylor, ratioDensitySPA, ratioCdfSPA, ratioCdfExact, ratioDensityExact, hermiteRow, nufact, FACT };
+}
+const ENG = ENG_FACTORY();
+
+</script>
+<script>
+"use strict";
+/* Exact symbolic coefficients of the expansions in whitened coordinates (theta_nu = Taylor
+   coefficients of the cgf of the whitened variable at its saddlepoint, |nu| >= 3). */
+const SYM = (function () {
+const babs = x => (x < 0n ? -x : x);
+function bgcd(a, b) { a = babs(a); b = babs(b); while (b) { [a, b] = [b, a % b]; } return a; }
+function Q(n, d = 1n) { n = BigInt(n); d = BigInt(d); if (d < 0n) { n = -n; d = -d; } const g = bgcd(n, d) || 1n; return { n: n / g, d: d / g }; }
+const Q0 = Q(0), Q1 = Q(1);
+const qadd = (a, b) => Q(a.n * b.d + b.n * a.d, a.d * b.d);
+const qmul = (a, b) => Q(a.n * b.n, a.d * b.d);
+const qzero = a => a.n === 0n;
+const qnum = a => Number(a.n) / Number(a.d);
+/* sparse polynomials: Map key -> {c, f}, f = sorted [[symbol, power]] */
+const monoKey = f => f.map(([s, p]) => s + '^' + p).join('*');
+function padd(A, B, q = Q1) {
+  const R = new Map(A);
+  for (const [k, t] of B) { const c = qmul(t.c, q); if (R.has(k)) { const s = qadd(R.get(k).c, c); if (qzero(s)) R.delete(k); else R.set(k, { c: s, f: t.f }); } else if (!qzero(c)) R.set(k, { c, f: t.f }); }
+  return R;
+}
+function mergeF(f1, f2) { const m = new Map(f1); for (const [s, p] of f2) m.set(s, (m.get(s) || 0) + p); return [...m.entries()].sort((a, b) => (a[0] < b[0] ? -1 : a[0] > b[0] ? 1 : 0)); }
+function pmul(A, B) {
+  const R = new Map();
+  for (const [, s] of A) for (const [, t] of B) { const f = mergeF(s.f, t.f), k = monoKey(f), c = qmul(s.c, t.c); if (R.has(k)) { const u = qadd(R.get(k).c, c); if (qzero(u)) R.delete(k); else R.set(k, { c: u, f }); } else R.set(k, { c, f }); }
+  return R;
+}
+const pscale = (A, q) => padd(new Map(), A, q);
+function psym(s) { const f = [[s, 1]]; return new Map([[monoKey(f), { c: Q1, f }]]); }
+const pconst = q => (qzero(q) ? new Map() : new Map([['', { c: q, f: [] }]]));
+/* multi-indices */
+function comps(l, d) { if (d === 1) return [[l]]; const out = []; for (let i = l; i >= 0; i--) for (const r of comps(l - i, d - 1)) out.push([i, ...r]); return out; }
+const ix = v => v.join(',');
+const leq = (a, b) => a.every((x, i) => x <= b[i]);
+const vsub = (a, b) => a.map((x, i) => x - b[i]);
+const vadd = (a, b) => a.map((x, i) => x + b[i]);
+const HZ = [1n]; for (let i = 1; i <= 40; i++) HZ.push(HZ[i - 1] * BigInt(1 - 2 * i));
+const He0 = v => (v.some(x => x % 2) ? 0n : v.reduce((p, x) => p * HZ[x / 2], 1n));   // He_nu(0, I)
+
+function engine(d) {
+  const cMemo = new Map();
+  const theta = nu => psym('t|' + ix(nu));
+  /* c_{r,nu} of (eq:arec), polynomials in theta_lambda, |lambda| >= 3 */
+  function c(r, nu) {
+    const key = r + ':' + ix(nu); if (cMemo.has(key)) return cMemo.get(key);
+    const N = nu.reduce((s, x) => s + x, 0); let res = new Map();
+    if (r === 0) res = N === 0 ? pconst(Q1) : new Map();
+    else if (N >= 3 * r) {
+      if (r === 1) res = theta(nu);
+      else { for (let l = 3; l <= N - 3 * (r - 1); l++) for (const lam of comps(l, d)) if (leq(lam, nu)) res = padd(res, pmul(theta(lam), c(r - 1, vsub(nu, lam)))); res = pscale(res, Q(1n, BigInt(r))); }
+    }
+    cMemo.set(key, res); return res;
+  }
+  /* density: a_m = sum_r sum_{|nu|=2m+2r} c_{r,nu} He_nu(0,I) */
+  function densityTerm(m) {
+    if (m === 0) return pconst(Q1);
+    let res = new Map();
+    for (let r = 1; r <= 2 * m; r++) for (const nu of comps(2 * m + 2 * r, d)) { const h = He0(nu); if (h !== 0n) res = padd(res, c(r, nu), Q(h)); }
+    return res;
+  }
+  /* distribution function: term m = sum_{r=1}^m sum_{|nu|=m+2r} c_{r,nu} I(nu); returns list [{nu, r, poly}] */
+  function cdfTerm(m) {
+    const out = [];
+    for (let r = 1; r <= m; r++) for (const nu of comps(m + 2 * r, d)) { const p = c(r, nu); if (p.size) out.push({ nu, r, poly: p }); }
+    return out;
+  }
+  /* ratio amplitude: b_m(h) with h's Taylor coefficients gamma_mu (symbols 'g|mu') */
+  function ampTerm(m) {
+    let res = new Map();
+    for (let r = 0; r <= 2 * m; r++) for (let j = 3 * r; j <= 2 * m + 2 * r; j++) {
+      const lmu = 2 * m + 2 * r - j;
+      for (const nu of comps(j, d)) {
+        const cv = c(r, nu); if (!cv.size) continue;
+        for (const mu of comps(lmu, d)) { const h = He0(vadd(nu, mu)); if (h === 0n) continue; res = padd(res, pmul(cv, psym('g|' + ix(mu))), Q(h)); }
+      }
+    }
+    return res;
+  }
+  return { c, densityTerm, cdfTerm, ampTerm };
+}
+/* numerical evaluation */
+function evalPoly(P, val) { let s = 0; for (const [, t] of P) { let v = qnum(t.c); for (const [sym, p] of t.f) v *= Math.pow(val(sym), p); s += v; } return s; }
+return { Q, Q0, Q1, qnum, qzero, padd, pmul, psym, pconst, comps, ix, He0, engine, evalPoly, monoKey, bgcd, babs };
+})();
+
+</script>
+<script>
+"use strict";
+/* ===================== shared page helpers ===================== */
+const UI = (function () {
+const $ = id => document.getElementById(id);
+const el = (tag, attrs = {}, kids = []) => { const e = document.createElement(tag); for (const [k, v] of Object.entries(attrs)) { if (k === 'text') e.textContent = v; else if (k === 'html') e.innerHTML = v; else e.setAttribute(k, v); } for (const k of [].concat(kids)) if (k) e.appendChild(k); return e; };
+/* theme */
+function initTheme(key) {
+  const root = document.documentElement, seg = $('themeSeg');
+  const set = v => { if (v === 'auto') root.removeAttribute('data-theme'); else root.setAttribute('data-theme', v); for (const b of seg.querySelectorAll('button')) b.setAttribute('aria-pressed', String(b.dataset.v === v)); try { localStorage.setItem(key, v); } catch (e) {} };
+  let saved = 'auto'; try { saved = localStorage.getItem(key) || 'auto'; } catch (e) {}
+  seg.addEventListener('click', e => { const b = e.target.closest('button'); if (b) set(b.dataset.v); });
+  set(saved);
+}
+/* MathJax */
+function typeset(node) {
+  const M = window.MathJax;
+  if (!M || typeof M.typesetPromise !== 'function') return;
+  M.startup.promise.then(() => { if (M.typesetClear) M.typesetClear([node]); return M.typesetPromise([node]); }).catch(err => console.warn(err));
+}
+function setTeX(id, tex) { const h = $(id); h.textContent = '\\(' + tex + '\\)'; typeset(h); }
+/* TeX assembly */
+const visLen = s => s.replace(/\\(operatorname|tfrac|frac|Big|big|theta|gamma|kappa|tilde|mathrm|quad|left|right|top|Pr|geq|leq)/g, 'x').replace(/[{}^_\\]/g, '').length;
+function aligned(lhs, pieces, maxLen = 64) {
+  if (!pieces.length) pieces = ['0'];
+  const rows = []; let cur = '', len = 0;
+  for (const p of pieces) { const L = visLen(p); if (cur && len + L > maxLen) { rows.push(cur); cur = ''; len = 0; } cur += p; len += L; }
+  if (cur) rows.push(cur);
+  if (rows.length === 1) return lhs + ' = ' + rows[0];
+  return '\\begin{aligned}' + lhs + ' &= ' + rows[0] + rows.slice(1).map(r => ' \\\\ &\\quad ' + r).join('') + '\\end{aligned}';
+}
+const sgn = (first, neg) => first ? (neg ? '-' : '') : (neg ? ' - ' : ' + ');
+function qAbsTeX(q, showOne) { const n = q.n < 0n ? -q.n : q.n, d = q.d; if (d === 1n) return (n === 1n && !showOne) ? '' : n.toString(); return '\\tfrac{' + n + '}{' + d + '}'; }
+function coefBody(q, rest) { const c = qAbsTeX(q, !rest); return c + (c && rest && /^[0-9]/.test(rest) ? '\\,' : '') + rest; }
+const subIdx = s => s.split(',').join('');
+function symTeX(sym, p) { const [k, idx] = sym.split('|'); const base = k === 't' ? '\\theta' : k === 'g' ? '\\gamma' : k; return base + '_{' + subIdx(idx) + '}' + (p > 1 ? '^{' + p + '}' : ''); }
+function monoTeX(f) { return f.map(([s, p]) => symTeX(s, p)).join(''); }
+const degOf = f => f.reduce((s, [, p]) => s + p, 0);
+function sortTerms(P) { return [...P.values()].sort((a, b) => degOf(a.f) - degOf(b.f) || (a.f.map(x => x.join('^')).join('*') < b.f.map(x => x.join('^')).join('*') ? 1 : -1)); }
+function polyPieces(P) { return sortTerms(P).map((t, i) => sgn(i === 0, t.c.n < 0n) + coefBody(t.c, monoTeX(t.f))); }
+function groupPieces(first, lead, items, close) {
+  if (items.length === 1) { const it = items[0]; return [sgn(first, it.neg) + lead + it.body + close]; }
+  const flip = items[0].neg; const out = [];
+  items.forEach((it, i) => { const neg = flip ? !it.neg : it.neg; let s = (i === 0 ? '' : (neg ? ' - ' : ' + ')) + it.body; if (i === 0) s = sgn(first, flip) + lead + '\\big(' + s; if (i === items.length - 1) s += '\\big)' + close; out.push(s); });
+  return out;
+}
+/* expression list items with lazy rendering */
+function copyText(btn, text) {
+  const done = () => { btn.textContent = 'Copied'; setTimeout(() => (btn.textContent = 'Copy LaTeX'), 1400); };
+  const fallback = () => { const ta = el('textarea', { class: 'raw', 'aria-label': 'LaTeX source' }); ta.value = text; btn.parentNode.appendChild(ta); ta.select(); btn.textContent = 'Selected: press Ctrl+C'; };
+  try { navigator.clipboard.writeText(text).then(done, fallback); } catch (e) { fallback(); }
+}
+function exprItem(container, nameTeX, count, texFn, open) {
+  const sum = el('summary', {}, [el('span', { class: 'nm', text: '\\(' + nameTeX + '\\)' }), el('span', { class: 'cnt', text: count })]);
+  const body = el('div', { class: 'mathbody' });
+  const det = el('details', { class: 'expr' }, [sum, body]);
+  let tex = null;
+  const render = () => {
+    if (tex !== null) return; tex = texFn();
+    const btn = el('button', { class: 'copy', type: 'button', text: 'Copy LaTeX' }); btn.addEventListener('click', () => copyText(btn, tex));
+    const m = el('div'); m.textContent = '\\[' + tex + '\\]';
+    body.append(el('div', { class: 'copyrow' }, [btn]), m); typeset(m);
+  };
+  det.addEventListener('toggle', () => { if (det.open) render(); });
+  if (open) { det.open = true; render(); }
+  container.appendChild(det); typeset(sum);
+}
+const plural = (n, w) => n + ' ' + w + (n === 1 ? '' : 's');
+function segButtons(host, values, cur, onPick, labelFn = v => String(v)) {
+  host.innerHTML = '';
+  for (const v of values) { const b = el('button', { type: 'button', 'aria-pressed': String(v === cur), text: labelFn(v) }); b.addEventListener('click', () => onPick(v)); host.appendChild(b); }
+}
+function slider(host, id, label, min, max, step, value, fmt = v => String(v), box = false) {
+  const inp = el('input', { type: 'range', id, min, max, step, value });
+  let out;
+  if (box) {
+    out = el('input', { type: 'number', id: id + 'Box', min, max, step, value, 'aria-label': 'value' });
+    out.addEventListener('change', () => { let v = Number(out.value); if (!isFinite(v)) v = value; v = Math.min(max, Math.max(min, Math.round(v / step) * step)); out.value = v; inp.value = v; inp.dispatchEvent(new Event('input')); });
+    inp.addEventListener('input', () => (out.value = inp.value));
+  } else { out = el('output', { for: id, text: fmt(value) }); inp.addEventListener('input', () => (out.textContent = fmt(Number(inp.value)))); }
+  const wrap = el('div', { class: 'ctl' }, [el('label', { for: id }, [el('span', { html: label }), out]), inp]);
+  host.appendChild(wrap);
+  inp.wrap = wrap; inp.setMax = m => { inp.max = m; if (box) out.max = m; if (+inp.value > m) { inp.value = m; if (box) out.value = m; } };
+  inp.setValue = v => { inp.value = v; if (box) out.value = v; else out.textContent = fmt(Number(v)); };
+  return inp;
+}
+const debounce = (f, ms) => { let t; return () => { clearTimeout(t); t = setTimeout(f, ms); }; };
+const f2 = v => (v < 0 ? '−' : '') + Math.abs(v).toFixed(2);
+/* numbers */
+function fmtNum(x, sig = 6) {
+  if (!isFinite(x)) return '–'; const a = Math.abs(x); if (a === 0) return '0';
+  if (a >= 1e-3 && a < 1e5) return x.toPrecision(sig).replace(/(\.\d*?[1-9])0+$/, '$1').replace(/\.0+$/, '').replace('-', '−');
+  const e = Math.floor(Math.log10(a)); return (x / Math.pow(10, e)).toFixed(3).replace('-', '−') + '×10<sup>' + String(e).replace('-', '−') + '</sup>';
+}
+function fmtRel(x) {
+  if (!isFinite(x)) return '–'; if (x === 0) return '0';
+  let e = Math.floor(Math.log10(Math.abs(x))); let m = x / Math.pow(10, e); if (Math.abs(Number(m.toFixed(1))) >= 10) { e += 1; m /= 10; }
+  return m.toFixed(1).replace('-', '−') + '×10<sup>' + String(e).replace('-', '−') + '</sup>';
+}
+function texNum(x, sig = 6) {
+  if (!isFinite(x)) return '\\text{--}'; const a = Math.abs(x); if (a === 0) return '0';
+  if (a >= 1e-3 && a < 1e5) return x.toPrecision(sig).replace(/(\.\d*?[1-9])0+$/, '$1').replace(/\.0+$/, '');
+  const e = Math.floor(Math.log10(a)); return (x / Math.pow(10, e)).toFixed(sig - 1).replace(/(\.\d*?[1-9])0+$/, '$1').replace(/\.0+$/, '') + '\\times10^{' + e + '}';
+}
+function texRel(x, acc) {
+  if (!isFinite(x)) return '\\text{--}'; if (acc && Math.abs(x) < acc) return '<' + texRel(acc).replace(/^1\.0\\times/, '');
+  if (x === 0) return '0';
+  let e = Math.floor(Math.log10(Math.abs(x))); let m = x / Math.pow(10, e); if (Math.abs(Number(m.toFixed(1))) >= 10) { e += 1; m /= 10; }
+  return m.toFixed(1) + '\\times10^{' + e + '}';
+}
+/* chart: |relative error| by order, log scale */
+function drawChart(host, series, Mmax, ytitle) {
+  host.innerHTML = '';
+  const legend = el('div', { class: 'legend' });
+  for (const s of series) legend.appendChild(el('span', { html: '<span class="sw" style="background:var(' + s.color + ')"></span>' + s.name }));
+  legend.appendChild(el('span', { html: '<span class="mk fill"></span>above exact' }));
+  legend.appendChild(el('span', { html: '<span class="mk"></span>below exact' }));
+  host.appendChild(legend);
+  const W = 600, H = 300, ml = 58, mr = 92, mt = 26, mb = 42;
+  const pts0 = s => s.pts.filter(p => isFinite(p.rel)).map(p => ({ ...p, y: Math.max(Math.log10(s.floor || 1e-15), Math.log10(Math.abs(p.rel) || 1e-300)), cut: Math.abs(p.rel) < (s.floor || 1e-15) }));
+  const ys = []; for (const s of series) for (const p of pts0(s)) ys.push(p.y);
+  if (!ys.length) { host.appendChild(el('p', { class: 'note', text: 'Waiting for the exact values.' })); return; }
+  let lo = Math.floor(Math.min(...ys)), hi = Math.ceil(Math.max(...ys)); if (hi - lo < 2) { lo -= 1; hi += 1; }
+  const step = hi - lo > 8 ? 2 : 1;
+  const X = j => ml + (W - ml - mr) * (j - 0.5) / Mmax, Y = v => mt + (H - mt - mb) * (hi - v) / (hi - lo);
+  const NS = 'http://www.w3.org/2000/svg';
+  const svg = document.createElementNS(NS, 'svg'); svg.setAttribute('viewBox', '0 0 ' + W + ' ' + H); svg.setAttribute('class', 'chart'); svg.setAttribute('role', 'img'); svg.setAttribute('aria-label', ytitle + ' by order, log scale');
+  const add = (tag, at, parent = svg) => { const e = document.createElementNS(NS, tag); for (const [k, v] of Object.entries(at)) e.setAttribute(k, v); parent.appendChild(e); return e; };
+  for (let v = lo; v <= hi; v += step) {
+    add('line', { x1: ml, x2: W - mr + 8, y1: Y(v), y2: Y(v), class: 'grid' });
+    const t = add('text', { x: ml - 8, y: Y(v) + 4, 'text-anchor': 'end' });
+    const a = document.createElementNS(NS, 'tspan'); a.textContent = '10'; t.appendChild(a);
+    const b = document.createElementNS(NS, 'tspan'); b.textContent = String(v).replace('-', '−'); b.setAttribute('dy', '-6'); b.setAttribute('font-size', '9.5'); t.appendChild(b);
+  }
+  add('line', { x1: ml, x2: W - mr + 8, y1: H - mb, y2: H - mb, class: 'axis' });
+  for (let j = 1; j <= Mmax; j++) { const t = add('text', { x: X(j), y: H - mb + 18, 'text-anchor': 'middle' }); t.textContent = String(j); }
+  const xt = add('text', { x: (ml + W - mr) / 2, y: H - 6, 'text-anchor': 'middle' }); xt.textContent = 'order M';
+  const yt = add('text', { x: 6, y: 13 }); yt.textContent = ytitle;
+  const tip = el('div', { class: 'tip', hidden: '' });
+  const ends = [];
+  for (const s of series) {
+    const pts = pts0(s); if (!pts.length) continue;
+    add('polyline', { points: pts.map(p => X(p.j) + ',' + Y(p.y)).join(' '), fill: 'none', stroke: 'var(' + s.color + ')', 'stroke-width': 2, 'stroke-linejoin': 'round' });
+    for (const p of pts) {
+      const above = p.rel > 0;
+      add('circle', { cx: X(p.j), cy: Y(p.y), r: 4.5, fill: above ? 'var(' + s.color + ')' : 'var(--surface)', stroke: 'var(' + s.color + ')', 'stroke-width': 2 });
+      const hit = add('circle', { cx: X(p.j), cy: Y(p.y), r: 13, fill: 'transparent', tabindex: 0 });
+      const show = () => {
+        tip.innerHTML = '<b>' + s.name + ', order ' + p.j + '</b><br>approximation ' + fmtNum(p.val, 10) + '<br>relative error ' + (p.cut ? 'below ' + fmtRel(s.floor) + ' (accuracy of the exact value)' : fmtRel(p.rel));
+        tip.hidden = false; const box = svg.getBoundingClientRect(), sc = box.width / W;
+        let left = X(p.j) * sc + 12, top = Y(p.y) * sc - 10 + (legend.offsetHeight + 14);
+        if (left + 230 > box.width) left = X(p.j) * sc - 240;
+        tip.style.left = Math.max(0, left) + 'px'; tip.style.top = top + 'px';
+      };
+      hit.addEventListener('mouseenter', show); hit.addEventListener('focus', show);
+      hit.addEventListener('mouseleave', () => (tip.hidden = true)); hit.addEventListener('blur', () => (tip.hidden = true));
+    }
+    const last = pts[pts.length - 1]; ends.push({ x: X(last.j) + 10, y: Y(last.y), name: s.short });
+  }
+  ends.sort((a, b) => a.y - b.y); for (let i = 1; i < ends.length; i++) if (ends[i].y - ends[i - 1].y < 15) ends[i].y = ends[i - 1].y + 15;
+  for (const e of ends) { const t = add('text', { x: e.x, y: e.y + 4, class: 'lbl' }); t.textContent = e.name; }
+  host.appendChild(svg); host.appendChild(tip);
+}
+/* LaTeX table with a Copy LaTeX button */
+function texTable(host, head, rows, foot, colspec) {
+  const arr = '\\begin{array}{' + colspec.replace(/\|/g, '|') + '}' + head.join(' & ') + ' \\\\ \\hline ' + rows.map(r => r.join(' & ')).join(' \\\\ ') + (foot ? ' \\\\ \\hline ' + foot.join(' & ') : '') + '\\end{array}';
+  const dol = c => (c ? '$' + c + '$' : '');
+  const tab = '\\begin{tabular}{' + colspec.replace(/\|/g, '') + '}\n\\toprule\n' + head.map(dol).join(' & ') + ' \\\\\n\\midrule\n' + rows.map(r => r.map(dol).join(' & ') + ' \\\\').join('\n') + (foot ? '\n\\midrule\n' + foot.map(dol).join(' & ') + ' \\\\' : '') + '\n\\bottomrule\n\\end{tabular}';
+  host.innerHTML = '';
+  const btn = el('button', { class: 'copy', type: 'button', text: 'Copy LaTeX' }); btn.addEventListener('click', () => copyText(btn, tab));
+  const mdiv = el('div', { class: 'tabletex' }); mdiv.textContent = '\\[' + arr + '\\]';
+  host.append(el('div', { class: 'copyrow' }, [btn]), mdiv);
+  typeset(mdiv);
+}
+/* background runner: one worker per example; a new request replaces the running one */
+const WORKER_SRC = ENG_FACTORY.toString() + '\nconst ENG = ENG_FACTORY();\nself.onmessage = e => { const id = e.data.id; try { ENG.runJob(e.data, m => self.postMessage(Object.assign({ id }, m))); } catch (err) { self.postMessage({ id, stage: "error", message: String((err && err.message) || err) }); } };';
+let workerURL = null, workerOK = true;
+try { workerURL = URL.createObjectURL(new Blob([WORKER_SRC], { type: 'text/javascript' })); } catch (e) { workerOK = false; }
+function makeRunner(onMsg) {
+  let w = null, id = 0;
+  return function run(msg) {
+    id++; const my = id;
+    if (w) { w.terminate(); w = null; }
+    if (workerOK) {
+      try {
+        w = new Worker(workerURL);
+        w.onmessage = e => { if (e.data.id === my) onMsg(e.data); };
+        w.onerror = () => { workerOK = false; w = null; setTimeout(() => inline(my, msg), 0); };
+        w.postMessage(Object.assign({ id: my }, msg));
+        return;
+      } catch (e) { workerOK = false; }
+    }
+    inline(my, msg);
+  };
+  function inline(my, msg) { setTimeout(() => { try { ENG.runJob(msg, m => { if (my === id) onMsg(Object.assign({ id: my }, m)); }); } catch (err) { onMsg({ id: my, stage: 'error', message: String(err.message || err) }); } }, 20); }
+}
+/* pool of workers for the exact values: each integral is split into chunks of rays */
+function makePool() {
+  const size = Math.max(2, Math.min(8, (navigator.hardwareConcurrency || 4) - 1));
+  let workers = [], queue = [], gen = 0, inline = !workerOK;
+  function ensure() {
+    if (workers.length || inline) return;
+    for (let i = 0; i < size; i++) {
+      try {
+        const w = new Worker(workerURL); w.task = null; w.seen = new Set();
+        w.onmessage = e => { const t = w.task; w.task = null; if (t && t.gen === gen) { if (e.data.stage === 'error') t.reject(new Error(e.data.message)); else t.resolve(e.data.sum); } pump(); };
+        w.onerror = () => { inline = true; const t = w.task; w.task = null; if (t) queue.unshift(t); for (const x of workers) x.terminate(); workers = []; pump(); };
+        workers.push(w);
+      } catch (e) { inline = true; break; }
+    }
+  }
+  function pump() {
+    if (inline) { const t = queue.shift(); if (!t) return; setTimeout(() => { if (t.gen !== gen) return pump(); try { ENG.SPEC_STORE.set(t.id, t.spec); t.resolve(ENG.chunkSum(t.id, t.level, t.start, t.step)); } catch (err) { t.reject(err); } pump(); }, 0); return; }
+    for (const w of workers) {
+      if (w.task || !queue.length) continue;
+      const t = queue.shift(); if (t.gen !== gen) continue;
+      w.task = t;
+      const msg = { type: 'chunk', id: 0, gen: t.gen, specId: t.id, level: t.level, start: t.start, step: t.step };
+      if (!w.seen.has(t.id)) { msg.spec = t.spec; w.seen.add(t.id); }
+      w.postMessage(msg);
+    }
+  }
+  return {
+    size,
+    reset() { gen++; queue = []; for (const w of workers) w.terminate(); workers = []; return gen; },
+    chunk(g, id, spec, level, start, step) { ensure(); return new Promise((resolve, reject) => { queue.push({ gen: g, id, spec, level, start, step, resolve, reject }); pump(); }); }
+  };
+}
+/* one exact integral, refined level by level until two levels agree or the budget is used */
+async function exactIntegral(pool, g, id, spec, d, opts, onLevel) {
+  const maxLevel = d === 1 ? 0 : d === 2 ? 5 : 3, rtol = d === 3 ? 1e-9 : 1e-12;
+  let prev = null, val = NaN, err = NaN, last = 0;
+  for (let level = 0; level <= maxLevel; level++) {
+    if (opts.deadline && level >= 2 && Date.now() + 4 * last > opts.deadline) break;   // the next level costs about four times the last
+    const tl = Date.now();
+    const parts = d === 1 ? 1 : Math.min(ENG.rayCount(d, level), pool.size * 2);
+    const sums = await Promise.all(Array.from({ length: parts }, (_, c) => pool.chunk(g, id, spec, level, c, parts)));
+    val = sums.reduce((a, b) => a + b, 0);
+    last = Date.now() - tl;
+    if (onLevel) onLevel(level);
+    if (d === 1) { err = 0; break; }
+    if (prev !== null) { err = Math.abs(val - prev); if (err <= rtol * Math.abs(val)) break; }
+    prev = val;
+  }
+  return { val, err };
+}
+/* leaves of the inclusion-exclusion tree, identical terms merged */
+function treeLeaves(tree) {
+  const leaves = []; const walk = (node, sg) => { if (!node.children.length) leaves.push({ sg, node }); else for (const ch of node.children) walk(ch.node, sg * ch.sign); }; walk(tree, 1);
+  const mp = new Map(); for (const l of leaves) { const k = l.node.idx.join(',') + '|' + l.node.signs.join(','); if (mp.has(k)) mp.get(k).sg += l.sg; else mp.set(k, { sg: l.sg, node: l.node }); }
+  return [...mp.values()].filter(v => v.sg !== 0).sort((a, b) => a.node.idx.length - b.node.idx.length);
+}
+/* exact values for a quadratic-form job (density and orthant probability, or the two tails for d = 1) */
+async function exactQF(pool, model, x, spa, opts = {}) {
+  const g = pool.reset(), d = model.mats.length, t0 = Date.now();
+  const deadline = d === 3 ? t0 + (opts.budget || 30000) : 0;
+  let levels = 0; const tick = () => { levels++; if (opts.onProgress) opts.onProgress(levels, Date.now() - t0); };
+  const pdfP = exactIntegral(pool, g, g + ':pdf', { kind: 'pdf', model, x, s: spa.s }, d, { deadline }, tick);
+  if (d === 1) {
+    const upper = spa.s[0] >= 0;
+    const tP = exactIntegral(pool, g, g + ':cdf', upper ? { kind: 'cdf', model, x, s: spa.s } : { kind: 'cdf', model: ENG.negModel(model), x: [-x[0]], s: [-spa.s[0]] }, 1, {}, tick);
+    const [pdf, t] = await Promise.all([pdfP, tP]); const o = { val: 1 - t.val, err: t.err };
+    return { pdf, up: upper ? t : o, low: upper ? o : t, ms: Date.now() - t0 };
+  }
+  let cst = 0; const lj = [];
+  treeLeaves(spa.tree).forEach((l, i) => {
+    if (!l.node.idx.length) { cst += l.sg; return; }
+    const m = ENG.subModel(model, l.node.idx, l.node.signs), xs = l.node.idx.map((j, k) => l.node.signs[k] * x[j]);
+    lj.push({ sg: l.sg, p: exactIntegral(pool, g, g + ':c' + i, { kind: 'cdf', model: m, x: xs, s: l.node.s }, l.node.idx.length, { deadline }, tick) });
+  });
+  const pdf = await pdfP; let P = cst, err = 0;
+  for (const j of lj) { const r = await j.p; P += j.sg * r.val; err += Math.abs(j.sg) * r.err; }
+  return { pdf, P: { val: P, err }, ms: Date.now() - t0 };
+}
+/* exact values for a ratio job: density (d <= 2) and distribution function */
+async function exactRatio(pool, W, Bm, spa, opts = {}) {
+  const g = pool.reset(), d = W.mats.length, t0 = Date.now(), zero = new Array(d).fill(0);
+  const deadline = d === 3 ? t0 + (opts.budget || 30000) : 0;
+  let levels = 0; const tick = () => { levels++; if (opts.onProgress) opts.onProgress(levels, Date.now() - t0); };
+  const pdfP = d <= 2 ? exactIntegral(pool, g, g + ':pdf', { kind: 'ratiopdf', model: W, x: zero, s: spa.s, Bm }, d, { deadline }, tick) : Promise.resolve(null);
+  if (d === 1) {
+    const lowTail = spa.s[0] <= 0;
+    const tP = exactIntegral(pool, g, g + ':cdf', lowTail ? { kind: 'cdf', model: ENG.negModel(W), x: [0], s: [-spa.s[0]] } : { kind: 'cdf', model: W, x: [0], s: spa.s }, 1, {}, tick);
+    const [pdf, t] = await Promise.all([pdfP, tP]); const o = { val: 1 - t.val, err: t.err };
+    return { pdf, low: lowTail ? t : o, up: lowTail ? o : t, ms: Date.now() - t0 };
+  }
+  let cst = 0; const lj = [];
+  treeLeaves(spa.tree).forEach((l, i) => {
+    if (!l.node.idx.length) { cst += l.sg; return; }
+    const m = ENG.subModel(W, l.node.idx, l.node.signs);
+    lj.push({ sg: l.sg, p: exactIntegral(pool, g, g + ':c' + i, { kind: 'cdf', model: m, x: l.node.idx.map(() => 0), s: l.node.s }, l.node.idx.length, { deadline }, tick) });
+  });
+  const pdf = await pdfP; let F = cst, err = 0;
+  for (const j of lj) { const r = await j.p; F += j.sg * r.val; err += Math.abs(j.sg) * r.err; }
+  return { pdf, F: { val: F, err }, ms: Date.now() - t0 };
+}
+return { makePool, exactIntegral, treeLeaves, exactQF, exactRatio, $, el, initTheme, typeset, setTeX, aligned, sgn, qAbsTeX, coefBody, symTeX, monoTeX, polyPieces, groupPieces, sortTerms, exprItem, plural, segButtons, slider, debounce, f2, fmtNum, fmtRel, texNum, texRel, drawChart, texTable, makeRunner, copyText };
+})();
+
+</script>
+<script>
+"use strict";
+(function () {
+const { makePool, exactRatio, treeLeaves, $, el, typeset, setTeX, aligned, sgn, coefBody, monoTeX, polyPieces, groupPieces, sortTerms, exprItem, plural, segButtons, slider, debounce, f2, fmtNum, fmtRel, texNum, texRel, drawChart, texTable, makeRunner } = UI;
+UI.initTheme('rse-theme');
+
+/* ---------------- symbolic section ---------------- */
+const CAP = { 1: 6, 2: 4, 3: 3 };
+const gen = { d: 2, M: 3 };
+const engines = new Map();
+const symE = d => { if (!engines.has(d)) engines.set(d, SYM.engine(d)); return engines.get(d); };
+/* b_m grouped by the gamma factor */
+function bPieces(P) {
+  const groups = new Map();
+  for (const t of P.values()) {
+    const g = t.f.filter(([s]) => s[0] === 'g'), th = t.f.filter(([s]) => s[0] !== 'g');
+    const key = g.map(x => x[0]).join(); if (!groups.has(key)) groups.set(key, { g, items: [] }); groups.get(key).items.push({ c: t.c, f: th });
+  }
+  const deg = G => G.g.length ? G.g[0][0].slice(2).split(',').reduce((a, b) => a + +b, 0) : 0;
+  const gs = [...groups.values()].sort((a, b) => deg(a) - deg(b) || (a.g[0][0] < b.g[0][0] ? 1 : -1));
+  const pieces = []; let first = true;
+  for (const G of gs) {
+    const items = G.items.sort((a, b) => a.f.length - b.f.length || (a.f.map(x => x.join()).join() < b.f.map(x => x.join()).join() ? 1 : -1)).map(it => ({ neg: it.c.n < 0n, body: coefBody(it.c, monoTeX(it.f)), c: it.c, f: it.f }));
+    const gt = monoTeX(G.g);
+    if (items.length === 1) { const it = items[0]; pieces.push(sgn(first, it.neg) + coefBody(it.c, monoTeX(it.f) + gt)); }
+    else pieces.push(...groupPieces(first, '', items, gt));
+    first = false;
+  }
+  return pieces;
+}
+const blockTeX = B => '\\mathcal K_{' + B.map(j => j + 1).join('') + '}';
+function partitionsOf(d) { return ENG.partitions(Array.from({ length: d }, (_, i) => i)); }
+function renderGeneral() {
+  segButtons($('dSeg'), [1, 2, 3], gen.d, v => { gen.d = v; gen.M = Math.min(gen.M, CAP[v]); renderGeneral(); });
+  segButtons($('mSeg'), Array.from({ length: CAP[gen.d] }, (_, i) => i + 1), gen.M, v => { gen.M = v; renderGeneral(); });
+  const d = gen.d, E = symE(d);
+  // partitions and the combination of the b's
+  const parts = partitionsOf(d);
+  const gRows = [];
+  for (let k = 0; k < d; k++) { const ps = parts.filter(p => p.length === d - k).map(p => p.map(B => B.slice().sort()).sort((a, b) => a.length - b.length || a[0] - b[0])); gRows.push('g_{' + k + '} &= ' + ps.map(p => p.map(blockTeX).join('')).join(' + ')); }
+  const aRows = []; for (let m = 0; m < gen.M; m++) { const t = []; for (let k = 0; k <= Math.min(m, d - 1); k++) t.push('b_{' + (m - k) + '}(g_{' + k + '})'); aRows.push('\\tilde a_{' + m + '} &= ' + t.join(' + ')); }
+  const G = $('genG'); G.innerHTML = '';
+  const m1 = el('div'); m1.textContent = '\\[\\begin{aligned}' + gRows.join(' \\\\ ') + '\\end{aligned}\\qquad\\begin{aligned}' + aRows.join(' \\\\ ') + '\\end{aligned}\\]';
+  G.appendChild(m1); typeset(G);
+  const B = $('genB'); B.innerHTML = '';
+  for (let m = 0; m < gen.M; m++) { const P = m === 0 ? E.ampTerm(0) : E.ampTerm(m); exprItem(B, 'b_{' + m + '}(h)', plural(P.size, 'term'), () => aligned('b_{' + m + '}(h)', bPieces(P), 64), m <= 1 && P.size <= 40); }
+  $('genNote').innerHTML = d === 1 ? 'For d = 1 there is one block, g = g<sub>0</sub> = 𝒦<sub>t</sub>(s, −rs).' : 'Here θ<sub>21</sub> stands for θ<sub>(2,1)</sub> and γ<sub>10</sub> for γ<sub>(1,0)</sub>. The partitions into fewer blocks enter later: g<sub>k</sub> first appears in ã<sub>k</sub>.';
+}
+renderGeneral();
+
+/* ---------------- shared ---------------- */
+const tN = v => (v === 0 ? 'I_N' : 'T_N(' + v + ')');
+function status(id, text, frac) { const h = $(id); h.innerHTML = ''; if (!text) return; h.appendChild(el('span', { html: text })); if (frac !== undefined) h.appendChild(el('span', { class: 'bar' }, [el('i', { style: 'width:' + Math.round(100 * frac) + '%' })])); }
+const accOf = r => (r ? Math.max(1e-14, 4 * (r.err || 0) / Math.abs(r.val)) : 1e-14);
+const vecTeX = v => '(' + v.map(x => texNum(x, 4)).join(',\\ ') + ')';
+function Wmodel(base, num, den, r) { const B = base.mats[den]; return { N: base.N, m: base.m, mats: num.map((j, k) => { const A = base.mats[j], W = new Float64Array(A.length); for (let i = 0; i < A.length; i++) W[i] = A[i] - r[k] * B[i]; return W; }) }; }
+
+/* ---------------- example 1 ---------------- */
+(function () {
+  const host = $('ex1Ctl');
+  const n = slider(host, 'r1n', 'dimension \\(N\\)', 6, 400, 1, 30, String, true);
+  const ra = slider(host, 'r1ra', '\\(\\rho\\) of \\(A\\)', -0.9, 0.9, 0.05, 0.5, f2);
+  const rb = slider(host, 'r1rb', '\\(\\rho\\) of \\(B\\)', -0.9, 0.9, 0.05, 0.3, f2);
+  const rs = slider(host, 'r1rs', '\\(\\rho\\) of \\(\\Sigma\\)', -0.9, 0.9, 0.05, 0, f2);
+  const c = slider(host, 'r1c', 'mean \\(\\mu=c\\,1_N\\), \\(c\\)', 0, 2, 0.1, 1, v => v.toFixed(1));
+  const q = slider(host, 'r1q', 'point \\(r=r_0+q\\,s_0\\), \\(q\\)', -3, 3.5, 0.25, 1.5, f2);
+  const mHost = el('div', { class: 'seg', role: 'group', 'aria-label': 'order M' });
+  host.appendChild(el('div', { class: 'ctl' }, [el('span', { class: 'lab', html: 'orders up to \\(M\\)' }), mHost]));
+  const st = { M: 6, spa: null, ex: null, r: NaN, r0: NaN, s0: NaN };
+  const pickM = v => { st.M = v; segButtons(mHost, [1, 2, 3, 4, 5, 6], st.M, pickM); go(); };
+  segButtons(mHost, [1, 2, 3, 4, 5, 6], st.M, pickM);
+  typeset(host);
+  const runner = makeRunner(msg => {
+    if (msg.stage === 'progress') { status('ex1Status', 'computing exact values (' + msg.what + ')', msg.frac); return; }
+    if (msg.stage === 'error') { status('ex1Status', 'Could not compute this case: ' + msg.message + '. Try a point closer to r₀.'); return; }
+    if (msg.stage === 'spa') { st.spa = msg; st.ex = null; status('ex1Status', 'computing exact values…'); startExact(msg); }
+    render();
+  });
+  const pool = makePool();
+  function startExact(spa) {
+    const run = st.run;
+    exactRatio(pool, st.W, st.Bm, spa).then(ex => { if (run !== st.run) return; st.ex = ex; status('ex1Status', 'Computed: approximations in ' + spa.ms + ' ms, exact values in ' + ex.ms + ' ms.'); render(); }).catch(err => { if (run === st.run) status('ex1Status', 'Could not compute the exact values: ' + err.message); });
+  }
+  function render() {
+    const s = st.spa; if (!s) return; const ex = st.ex, Mx = s.pdf.length;
+    const useLow = ex ? ex.low.val <= ex.up.val : true;
+    const relF = M => !ex ? NaN : useLow ? (s.low[M - 1] - ex.low.val) / ex.low.val : -(s.up[M - 1] - ex.up.val) / ex.up.val;
+    const relf = M => (ex ? s.pdf[M - 1] / ex.pdf.val - 1 : NaN);
+    const accF = ex ? accOf(useLow ? ex.low : ex.up) : 1e-14, accf = ex ? accOf(ex.pdf) : 1e-14;
+    drawChart($('ex1Chart'), [
+      { name: 'density fₘ', short: 'density', color: '--s1', floor: accf, pts: s.pdf.map((v, i) => ({ j: i + 1, val: v, rel: relf(i + 1) })) },
+      { name: 'distribution function Fₘ', short: 'cdf', color: '--s2', floor: accF, pts: s.low.map((v, i) => ({ j: i + 1, val: v, rel: relF(i + 1) })) }], Mx, '|relative error|');
+    const rows = []; for (let M = 1; M <= Mx; M++) rows.push([String(M), texNum(s.pdf[M - 1], 10), texRel(relf(M), accf), texNum(s.low[M - 1], 10), texRel(relF(M), accF)]);
+    texTable($('ex1Table'), ['M', 'f_M(r)', '\\text{rel. error}', 'F_M(r)', '\\text{rel. error}'], rows, ['\\text{exact}', ex ? texNum(ex.pdf.val, 10) : '\\cdots', '', ex ? texNum(ex.low.val, 10) : '\\cdots', ''], 'c|rr|rr');
+    $('ex1Note').innerHTML = 'r<sub>0</sub> = ' + fmtNum(st.r0) + ', s<sub>0</sub> = ' + fmtNum(st.s0) + ', r = ' + fmtNum(st.r) + '. Saddlepoint of K<sub>W</sub>: ŝ = ' + fmtNum(s.s[0], 5) + '. F<sub>M</sub>(r) = Pr(R ≤ r) = Pr(W ≤ 0) with the terms m ≤ 2M − 1; ' + (s.s[0] <= 0 ? 'here ŝ ≤ 0, so it is computed directly as the lower tail of W.' : 'here ŝ > 0, so it is one minus Pr(W > 0), and the error is measured on that tail.') + ' The approximations took ' + s.ms + ' ms.';
+  }
+  function run() {
+    const N = +n.value, Sig = +rs.value === 0 ? null : ENG.toeplitz(+rs.value, N), mu = +c.value === 0 ? null : new Float64Array(N).fill(+c.value);
+    const base = ENG.makeModel([ENG.toeplitz(+ra.value, N), ENG.toeplitz(+rb.value, N)], Sig, mu, N);
+    const c0 = ENG.cgf2(base, new Float64Array(2));
+    st.r0 = c0.g[0] / c0.g[1]; st.s0 = Math.sqrt(c0.H[0] - 2 * st.r0 * c0.H[1] + st.r0 * st.r0 * c0.H[3]) / c0.g[1]; st.r = st.r0 + (+q.value) * st.s0;
+    setTeX('ex1Set', 'N=' + N + ',\\quad A=' + tN(+ra.value) + ',\\quad B=' + tN(+rb.value) + ',\\quad \\Sigma=' + tN(+rs.value) + ',\\quad \\mu=' + (+c.value === 0 ? '0' : c.value + '\\,1_N') + ',\\quad r=' + texNum(st.r, 6) + ',\\quad M\\leq' + st.M);
+    status('ex1Status', 'computing…');
+    st.run = (st.run || 0) + 1; st.W = Wmodel(base, [0], 1, [st.r]); st.Bm = [base.mats[1]]; pool.reset();
+    runner({ type: 'ratio', W: st.W, Bm: st.Bm, M: st.M, exact: false });
+  }
+  const go = debounce(run, 150);
+  for (const inp of [n, ra, rb, rs, c, q]) inp.addEventListener('input', go);
+  run();
+})();
+
+/* ---------------- example 2: autocorrelations ---------------- */
+(function () {
+  const host = $('ex2Ctl');
+  const dHost = el('div', { class: 'seg', role: 'group', 'aria-label': 'number of lags d' });
+  host.appendChild(el('div', { class: 'ctl' }, [el('span', { class: 'lab', html: 'lags \\(d\\)' }), dHost]));
+  const n = slider(host, 'r2n', 'observations \\(N\\)', 10, 200, 1, 50, String, true);
+  const rho = slider(host, 'r2rho', 'autoregression \\(\\rho\\)', -0.9, 0.9, 0.05, 0, f2);
+  const qs = [1, 2, 3].map(j => slider(host, 'r2q' + j, 'point, \\(q_' + j + '\\)', -3.5, 3.5, 0.25, 0.5, f2));
+  const mcHost = el('div', { class: 'seg', role: 'group', 'aria-label': 'mean correction' });
+  host.appendChild(el('div', { class: 'ctl' }, [el('span', { class: 'lab', text: 'mean correction' }), mcHost]));
+  const mHost = el('div', { class: 'seg', role: 'group', 'aria-label': 'order M' });
+  host.appendChild(el('div', { class: 'ctl' }, [el('span', { class: 'lab', html: 'orders up to \\(M\\)' }), mHost]));
+  const st = { d: 2, M: 5, mc: true, spa: null, ex: null, r: null };
+  const MCAP = { 2: 5, 3: 4 };
+  function controls() {
+    segButtons(dHost, [2, 3], st.d, v => { if (v === st.d) return; st.d = v; st.M = MCAP[v]; controls(); go(); });
+    segButtons(mHost, Array.from({ length: MCAP[st.d] }, (_, i) => i + 1), st.M, v => { st.M = v; controls(); go(); });
+    segButtons(mcHost, [true, false], st.mc, v => { st.mc = v; controls(); go(); }, v => (v ? 'on' : 'off'));
+    qs[2].wrap.hidden = st.d < 3;
+  }
+  controls(); typeset(host);
+  const runner = makeRunner(msg => {
+    if (msg.stage === 'progress') { status('ex2Status', 'computing exact values (' + msg.what + (st.d === 3 ? ', refinement ' + (msg.level + 1) : '') + ')', msg.frac); return; }
+    if (msg.stage === 'error') { status('ex2Status', 'Could not compute this case: ' + msg.message + '. Try points closer to ρ^j.'); return; }
+    if (msg.stage === 'spa') { st.spa = msg; st.ex = null; status('ex2Status', 'computing exact values…'); startExact(msg); }
+    render();
+  });
+  const pool = makePool();
+  function startExact(spa) {
+    const run = st.run, d = st.d;
+    exactRatio(pool, st.W, st.Bm, spa, { budget: 30000, onProgress: (k, ms) => { if (run === st.run) status('ex2Status', 'computing exact values (' + k + ' refinement steps, ' + Math.round(ms / 1000) + ' s)…'); } }).then(ex => {
+      if (run !== st.run) return; st.ex = ex;
+      status('ex2Status', 'Computed: approximations in ' + spa.ms + ' ms, exact values in ' + ex.ms + ' ms' + (d === 3 ? '; the exact distribution function is accurate to about ' + fmtRel(accOf(ex.F) / 4).replace(/^1\.0×/, '') + ' relative, and the exact density is not computed for d = 3 (see the note below the page).' : '.'));
+      render();
+    }).catch(err => { if (run === st.run) status('ex2Status', 'Could not compute the exact values: ' + err.message); });
+  }
+  const relDen = F => Math.min(F, 1 - F);
+  function leafTeX(node) { return '\\Pr(' + node.idx.map((j, k) => (node.signs[k] < 0 ? 'R_{' + (j + 1) + '}\\leq r_{' + (j + 1) + '}' : 'R_{' + (j + 1) + '}> r_{' + (j + 1) + '}')).join(',\\ ') + ')'; }
+  function render() {
+    const s = st.spa; if (!s) return; const ex = st.ex, Mx = s.pdf.length, d = st.d;
+    const hasPdf = ex && ex.pdf;
+    const relf = M => (hasPdf ? s.pdf[M - 1] / ex.pdf.val - 1 : NaN), relF = M => (ex ? (s.F[M - 1] - ex.F.val) / relDen(ex.F.val) : NaN);
+    const accf = hasPdf ? accOf(ex.pdf) : 1e-14, accF = ex ? Math.max(1e-14, 4 * (ex.F.err || 0) / relDen(ex.F.val)) : 1e-14;
+    const series = [];
+    if (d < 3) series.push({ name: 'density fₘ', short: 'density', color: '--s1', floor: accf, pts: s.pdf.map((v, i) => ({ j: i + 1, val: v, rel: relf(i + 1) })) });
+    series.push({ name: 'distribution function Fₘ', short: 'cdf', color: '--s2', floor: accF, pts: s.F.map((v, i) => ({ j: i + 1, val: v, rel: relF(i + 1) })) });
+    drawChart($('ex2Chart'), series, Mx, '|relative error|');
+    const rows = []; for (let M = 1; M <= Mx; M++) rows.push([String(M), texNum(s.pdf[M - 1], 10), d < 3 ? texRel(relf(M), accf) : '\\text{--}', texNum(s.F[M - 1], 10), texRel(relF(M), accF)]);
+    texTable($('ex2Table'), ['M', 'f_M(r)', '\\text{rel. error}', 'F_M(r)', '\\text{rel. error}'], rows, ['\\text{exact}', hasPdf ? texNum(ex.pdf.val, 10) : (d < 3 ? '\\cdots' : '\\text{not computed}'), '', ex ? texNum(ex.F.val, 10) : '\\cdots', ''], 'c|rr|rr');
+    const leaves = []; const walk = (node, sg) => { if (!node.children.length) leaves.push({ sg, node }); else for (const ch of node.children) walk(ch.node, sg * ch.sign); }; walk(s.tree, 1);
+    { const mp = new Map(); for (const l of leaves) { const k = l.node.idx.join(',') + '|' + l.node.signs.join(','); if (mp.has(k)) mp.get(k).sg += l.sg; else mp.set(k, { sg: l.sg, node: l.node }); } leaves.length = 0; for (const v of mp.values()) if (v.sg !== 0) leaves.push(v); leaves.sort((a, b) => a.node.idx.length - b.node.idx.length); }
+    const T = $('ex2Terms'); T.innerHTML = '';
+    const sW = s.s.map(v => -v);   // saddlepoint of -W
+    const intro = leaves.length === 1 ? 'The saddlepoint of \\(-W\\), \\(' + vecTeX(sW) + '\\), has no negative component, so Theorem 1 applies directly.' : 'The saddlepoint of \\(-W\\), \\(' + vecTeX(sW) + '\\), has a negative component, so (17) is applied' + (leaves.some(l => l.node.idx.length < d - 1) ? ', recursively where a marginal saddlepoint is again negative' : '') + ':';
+    T.appendChild(el('p', { class: 'note', text: intro }));
+    const lhs = leafTeX(s.tree);
+    const eq = aligned(lhs, leaves.map((l, i) => (i === 0 ? (l.sg < 0 ? '-' : '') : (l.sg < 0 ? ' - ' : ' + ')) + (Math.abs(l.sg) > 1 ? Math.abs(l.sg) : '') + (l.node.idx.length ? leafTeX(l.node) : '1')), 70);
+    const head = ['\\text{term}', '\\hat s\\ \\text{of the term}', 'F_{' + Mx + '}', '\\kappa_{' + Mx + '}'];
+    const rws = leaves.map(l => [(l.sg < 0 ? '-' : '+') + (Math.abs(l.sg) > 1 ? Math.abs(l.sg) : '') + (l.node.idx.length ? leafTeX(l.node) : '1'), l.node.s ? vecTeX(l.node.s) : '', texNum(l.node.P[Mx - 1], 8), l.node.kappa ? texNum(l.node.kappa[Mx - 1], 3) : '']);
+    const m1 = el('div'); m1.textContent = '\\[' + (leaves.length > 1 ? eq : lhs + '\\approx ' + texNum(s.F[Mx - 1], 10)) + '\\]';
+    const m2 = el('div', { class: 'tabletex' }); m2.textContent = '\\[\\begin{array}{lllr}' + head.join(' & ') + ' \\\\ \\hline ' + rws.map(r => r.join(' & ')).join(' \\\\ ') + '\\end{array}\\]';
+    T.append(m1, m2); typeset(T);
+    $('ex2Note').innerHTML = 'r = (' + st.r.map(v => fmtNum(v, 5)).join(', ') + '). Each term is an orthant probability at 0 of a subvector of W with some components negated (−W<sub>j</sub> ≥ 0 is R<sub>j</sub> ≤ r<sub>j</sub>), and its saddlepoint is shown. κ is the cancellation indicator of Appendix C. The approximations took ' + s.ms + ' ms.';
+  }
+  function run() {
+    const N = +n.value, d = st.d, R = +rho.value;
+    const As = [];
+    for (let j = 1; j <= d; j++) { const A = ENG.mat(N); for (let t = 0; t + j < N; t++) { A[t * N + t + j] = 0.5; A[(t + j) * N + t] = 0.5; } As.push(A); }
+    const M = ENG.eye(N); if (st.mc) for (let i = 0; i < N * N; i++) M[i] -= 1 / N;
+    const MAM = As.map(A => (st.mc ? ENG.mm(ENG.mm(M, A, N), M, N) : A));
+    const base = ENG.makeModel([...MAM, M], R === 0 ? null : ENG.toeplitz(R, N), null, N);
+    st.r = Array.from({ length: d }, (_, j) => Math.pow(R, j + 1) + (+qs[j].value) / Math.sqrt(N));
+    setTeX('ex2Set', 'N=' + N + ',\\quad \\rho=' + R + ',\\quad d=' + d + ',\\quad M=' + (st.mc ? 'I-1_N1_N^{\\top}/N' : 'I') + ',\\quad r=' + vecTeX(st.r) + ',\\quad \\text{orders}\\leq' + st.M);
+    status('ex2Status', 'computing…');
+    const W = Wmodel(base, Array.from({ length: d }, (_, j) => j), d, st.r);
+    st.run = (st.run || 0) + 1; st.W = W; st.Bm = Array.from({ length: d }, () => base.mats[d]); pool.reset();
+    runner({ type: 'ratio', W, Bm: st.Bm, M: st.M, exact: false });
+  }
+  const go = debounce(run, 200);
+  for (const inp of [n, rho, ...qs]) inp.addEventListener('input', go);
+  run();
+})();
+})();
+
+</script>
