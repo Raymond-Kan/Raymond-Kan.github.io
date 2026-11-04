@@ -1,0 +1,1967 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>AR(1) Exact Distribution Explorer</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Source+Serif+4:ital,wght@0,400;0,600;1,400&family=IBM+Plex+Sans:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500&display=swap">
+<style>
+/* layout: a fixed control rail on the left, two charts and a figures strip on the right; stacks at phone width */
+:root {
+  --bg: #f6f7f8; --panel: #ffffff; --fg: #1d2630; --muted: #5d6b78; --line: #d9dfe5; --grid: #e9edf0;
+  --accent: #0d6f7a; --accent-soft: #cfe7ea; --limit: #b4731a; --focus: #0d6f7a;
+  --display: "Source Serif 4", Georgia, "Times New Roman", serif;
+  --sans: "IBM Plex Sans", "Segoe UI", Helvetica, Arial, sans-serif;
+  --mono: "IBM Plex Mono", Consolas, "Courier New", monospace;
+}
+@media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) {
+  --bg: #15191d; --panel: #1d2329; --fg: #e6eaee; --muted: #9aa7b3; --line: #313a43; --grid: #262d35;
+  --accent: #4fb9c4; --accent-soft: #1f4a4f; --limit: #e0a452; --focus: #4fb9c4; color-scheme: dark; } }
+:root[data-theme="dark"] {
+  --bg: #15191d; --panel: #1d2329; --fg: #e6eaee; --muted: #9aa7b3; --line: #313a43; --grid: #262d35;
+  --accent: #4fb9c4; --accent-soft: #1f4a4f; --limit: #e0a452; --focus: #4fb9c4; color-scheme: dark; }
+* { box-sizing: border-box; }
+[hidden] { display: none !important; }
+html, body { height: 100%; }
+body { margin: 0; background: var(--bg); color: var(--fg); font-family: var(--sans); font-size: 14px; line-height: 1.45;
+  padding-block: 0; padding-left: max(16px, env(safe-area-inset-left, 0px)); padding-right: max(16px, env(safe-area-inset-right, 0px)); }
+header { display: flex; flex-wrap: wrap; align-items: baseline; justify-content: space-between; gap: 8px 24px; padding: 18px 0 10px; border-bottom: 1px solid var(--line); }
+header h1 { font-family: var(--display); font-weight: 600; font-size: 1.45rem; margin: 0; letter-spacing: 0.01em; text-wrap: balance; }
+header .sub { color: var(--muted); font-size: 0.9rem; margin: 2px 0 0; }
+.theme { display: inline-flex; border: 1px solid var(--line); border-radius: 6px; overflow: hidden; }
+.theme button { background: var(--panel); color: var(--muted); border: 0; padding: 5px 11px; font: inherit; font-size: 0.82rem; cursor: pointer; }
+.theme button + button { border-left: 1px solid var(--line); }
+.theme button[aria-pressed="true"] { background: var(--accent); color: #fff; }
+main { display: grid; grid-template-columns: 300px minmax(0, 1fr); gap: 20px; padding: 18px 0 28px; }
+@media (max-width: 820px) { main { grid-template-columns: 1fr; } }
+.rail { display: flex; flex-direction: column; gap: 14px; min-width: 0; }
+.field { display: grid; gap: 4px; }
+.field label, .field .lab { font-size: 0.8rem; letter-spacing: 0.03em; color: var(--muted); }
+.field .row { display: flex; gap: 8px; align-items: center; }
+input[type="number"], select { font: inherit; font-family: var(--mono); font-size: 0.9rem; color: var(--fg); background: var(--panel); border: 1px solid var(--line); border-radius: 5px; padding: 5px 7px; width: 100%; min-width: 0; }
+input[type="range"] { width: 100%; accent-color: var(--accent); }
+input:focus-visible, select:focus-visible, button:focus-visible { outline: 2px solid var(--focus); outline-offset: 1px; }
+.seg { display: grid; grid-template-columns: 1fr 1fr; gap: 6px; }
+.seg button { font: inherit; font-size: 0.85rem; text-align: left; padding: 7px 9px; border: 1px solid var(--line); border-radius: 6px; background: var(--panel); color: var(--fg); cursor: pointer; }
+.seg button b { font-family: var(--mono); font-weight: 500; }
+.seg button[aria-pressed="true"] { border-color: var(--accent); background: var(--accent-soft); }
+.hint { color: var(--muted); font-size: 0.8rem; margin: 0; }
+.radios { display: grid; gap: 4px; }
+.radios label { display: flex; align-items: baseline; gap: 8px; font-size: 0.88rem; min-width: 0; cursor: pointer; }
+.radios input { accent-color: var(--accent); flex: none; position: relative; top: 1px; }
+.radios span { min-width: 0; flex: 1 1 auto; }
+.radios label.off { opacity: 0.45; cursor: not-allowed; }
+.check { display: flex; align-items: center; gap: 8px; font-size: 0.9rem; min-width: 0; }
+.check span { min-width: 0; flex: 1 1 auto; }
+.hint mjx-container { font-size: 0.95em; }
+.rail > * { min-width: 0; max-width: 100%; }
+.check input { accent-color: var(--accent); }
+.status { font-family: var(--mono); font-size: 0.78rem; color: var(--muted); min-height: 1.2em; }
+.charts { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; min-width: 0; }
+@media (max-width: 1100px) { .charts { grid-template-columns: 1fr; } }
+.chart { background: var(--panel); border: 1px solid var(--line); border-radius: 8px; padding: 10px 10px 6px; min-width: 0; }
+.chart h2 { font-family: var(--display); font-weight: 400; font-size: 1.05rem; margin: 0 0 4px 6px; }
+.chart canvas { width: 100%; height: 300px; display: block; }
+.xlabel { text-align: center; font-size: 0.85rem; color: var(--muted); margin-top: -4px; }
+.legend { display: flex; gap: 16px; font-size: 0.8rem; color: var(--muted); margin: 4px 6px 0; flex-wrap: wrap; }
+.legend span::before { content: ""; display: inline-block; width: 18px; height: 0; border-top: 2px solid var(--accent); vertical-align: middle; margin-right: 6px; }
+.legend span.lim::before { border-top: 2px dashed var(--limit); }
+.read { font-family: var(--mono); font-size: 0.78rem; font-variant-numeric: tabular-nums; color: var(--fg); min-height: 1.3em; margin: 2px 6px 0; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.read span { margin-left: 14px; }
+.read .lim { color: var(--limit); }
+.chart canvas { cursor: crosshair; touch-action: pan-y; }
+.figs { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 10px; }
+.figs.figs5 { grid-template-columns: repeat(5, minmax(0, 1fr)); }
+.group { display: grid; gap: 6px; min-width: 0; }
+.gt { font-size: 0.8rem; letter-spacing: 0.03em; color: var(--muted); }
+.tools { display: flex; gap: 8px; align-items: center; flex-wrap: wrap; }
+.btn { font: inherit; font-size: 0.82rem; padding: 5px 10px; border: 1px solid var(--line); border-radius: 6px; background: var(--panel); color: var(--fg); cursor: pointer; }
+.btn:hover { border-color: var(--accent); }
+textarea { width: 100%; min-width: 0; font-family: var(--mono); font-size: 0.78rem; line-height: 1.4; color: var(--fg); background: var(--panel); border: 1px solid var(--line); border-radius: 6px; padding: 8px; resize: vertical; }
+mjx-container { color: inherit; }
+@media (max-width: 700px) { .figs, .figs.figs5 { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
+.fig { background: var(--panel); border: 1px solid var(--line); border-radius: 8px; padding: 10px 12px; }
+.fig .k { font-size: 0.74rem; text-transform: uppercase; letter-spacing: 0.06em; color: var(--muted); }
+.fig .v { font-family: var(--mono); font-size: 1.12rem; font-variant-numeric: tabular-nums; margin-top: 2px; }
+.note { grid-column: 1 / -1; color: var(--muted); font-size: 0.82rem; line-height: 1.5; max-width: 75ch; }
+.note code { font-family: var(--mono); }
+.right { display: grid; gap: 16px; min-width: 0; align-content: start; }
+.varline { font-family: var(--mono); font-size: 0.85rem; color: var(--fg); }
+@media (prefers-reduced-motion: no-preference) { .fig .v { transition: color 0.2s; } }
+</style>
+</head>
+<body>
+
+<header>
+  <div>
+    <h1>AR(1) Exact Distribution Explorer</h1>
+    <p class="sub">Exact density, distribution function and moments of the least squares estimator \(\hat\phi\) in \(y_t = \alpha + \phi y_{t-1} + \sigma e_t\) (with a trend \(\delta t\) added in cases DT and ST), \(t = 1,\ldots,n\), \(e_t\) i.i.d. \(N(0,1)\), computed by inversion of the characteristic function (Bao and Kan).</p>
+  </div>
+  <div class="theme" role="group" aria-label="Color theme">
+    <button type="button" id="th-auto" aria-pressed="true">Auto</button>
+    <button type="button" id="th-light" aria-pressed="false">Light</button>
+    <button type="button" id="th-dark" aria-pressed="false">Dark</button>
+  </div>
+</header>
+
+<main>
+  <section class="rail" aria-label="Parameters">
+    <div class="field">
+      <span class="lab">Case</span>
+      <div class="seg" id="cases">
+        <button type="button" data-cas="DK" aria-pressed="false"><b>DK</b><br>fixed start, intercept known</button>
+        <button type="button" data-cas="SK" aria-pressed="false"><b>SK</b><br>stationary start, intercept known</button>
+        <button type="button" data-cas="DU" aria-pressed="true"><b>DU</b><br>fixed start, intercept unknown</button>
+        <button type="button" data-cas="SU" aria-pressed="false"><b>SU</b><br>stationary start, intercept unknown</button>
+        <button type="button" data-cas="DT" aria-pressed="false"><b>DT</b><br>fixed start, intercept and trend</button>
+        <button type="button" data-cas="ST" aria-pressed="false"><b>ST</b><br>stationary start, intercept and trend</button>
+      </div>
+    </div>
+    <div class="field">
+      <label for="n">Sample size n</label>
+      <div class="row"><input type="number" id="n" value="50" min="5" max="100000" step="1"></div>
+      <input type="range" id="n-slider" min="0.699" max="5" step="0.001" value="1.699" aria-label="n, logarithmic slider">
+    </div>
+    <div class="field">
+      <label for="phi">Coefficient \(\phi\)</label>
+      <div class="row"><input type="number" id="phi" value="0.9" step="0.01" min="-3" max="3"></div>
+      <input type="range" id="phi-slider" min="-1.5" max="1.5" step="0.005" value="0.9" aria-label="phi slider">
+      <p class="hint">Any real \(\phi\) with a fixed start \(y_0\); \(|\phi|<1\) with a stationary start (the slider is restricted accordingly).</p>
+    </div>
+    <div class="field" id="par-field">
+      <label for="par" id="par-label">\(\gamma = [\alpha-(1-\phi)y_0]/\sigma\)</label>
+      <div class="row"><input type="number" id="par" value="0" step="0.1" min="-10" max="10"></div>
+      <input type="range" id="par-slider" min="-3" max="3" step="0.05" value="0" aria-label="initial-condition parameter">
+    </div>
+    <div class="field" id="par2-field" hidden>
+      <label for="par2" id="par2-label">\(\gamma_\tau = \delta/\sigma\) (trend)</label>
+      <div class="row"><input type="number" id="par2" value="0" step="0.01" min="-10" max="10"></div>
+      <input type="range" id="par2-slider" min="-0.5" max="0.5" step="0.005" value="0" aria-label="trend parameter">
+      <p class="hint">\(w_t = \gamma + \gamma_\tau\,(t-\tfrac{n+1}{2}) + \phi w_{t-1} + e_t\), \(w_t = (y_t-y_0)/\sigma\), \(w_0 = 0\); regression of \(y_t\) on \(1\), \(t\) and \(y_{t-1}\).</p>
+    </div>
+    <div class="field">
+      <span class="lab">Normalization \(c_n\) of the plotted variable \(c_n(\hat\phi-\phi)\)</span>
+      <div class="radios" id="norm" role="radiogroup">
+        <label><input type="radio" name="norm" value="auto" checked><span>auto: \(n\) at and near \(|\phi|=1\) (\(n\,\big||\phi|-1\big|\le30\)), \(|\phi|^n/(\phi^2-1)\) if \(n(|\phi|-1)>30\), \(1\) otherwise</span></label>
+        <label><input type="radio" name="norm" value="none"><span>\(1\)</span></label>
+        <label><input type="radio" name="norm" value="sqrtn"><span>\(\sqrt{n}\)</span></label>
+        <label><input type="radio" name="norm" value="n"><span>\(n\)</span></label>
+        <label id="norm-exp"><input type="radio" name="norm" value="exp"><span>\(|\phi|^n/(\phi^2-1)\) (\(|\phi|>1\) only)</span></label>
+      </div>
+    </div>
+    <div class="field">
+      <label class="check"><input type="checkbox" id="showlim" checked><span>show the limiting distribution</span></label>
+      <p class="hint">local-to-unity limit when \(|n(\phi-1)|\le 30\); the Cauchy-type limit of the explosive case (DK, DU and DT) beyond that; otherwise the normal approximation. Rescaled to the plotted variable.</p>
+    </div>
+    <div class="status" id="status" aria-live="polite"></div>
+  </section>
+
+  <section class="right">
+    <div class="varline" id="varline">variable: \(\hat\phi-\phi\)</div>
+    <div class="charts">
+      <div class="chart"><h2>Density</h2><canvas id="pdf" height="300"></canvas><div class="xlabel" id="xl-pdf">\(\hat\phi-\phi\)</div><div class="legend" id="leg-pdf"></div><div class="read" id="rd-pdf" aria-live="off"></div></div>
+      <div class="chart"><h2>Distribution function</h2><canvas id="cdf" height="300"></canvas><div class="xlabel" id="xl-cdf">\(\hat\phi-\phi\)</div><div class="legend" id="leg-cdf"></div><div class="read" id="rd-cdf" aria-live="off"></div></div>
+    </div>
+    <div class="group"><div class="gt" id="mt">Moments of the plotted variable</div>
+    <div class="figs" id="figs">
+      <div class="fig"><div class="k">mean</div><div class="v" id="v-mean">&ndash;</div></div>
+      <div class="fig"><div class="k">standard deviation</div><div class="v" id="v-sd">&ndash;</div></div>
+      <div class="fig"><div class="k">skewness</div><div class="v" id="v-skew">&ndash;</div></div>
+      <div class="fig"><div class="k">excess kurtosis</div><div class="v" id="v-kurt">&ndash;</div></div>
+    </div></div>
+    <div class="group"><div class="gt" id="qt">Quantiles of the plotted variable</div>
+    <div class="figs figs5">
+      <div class="fig"><div class="k">1%</div><div class="v" id="v-q01">&ndash;</div></div>
+      <div class="fig"><div class="k">5%</div><div class="v" id="v-q05">&ndash;</div></div>
+      <div class="fig"><div class="k">median</div><div class="v" id="v-med">&ndash;</div></div>
+      <div class="fig"><div class="k">95%</div><div class="v" id="v-q95">&ndash;</div></div>
+      <div class="fig"><div class="k">99%</div><div class="v" id="v-q99">&ndash;</div></div>
+    </div></div>
+    <p class="note" id="note"></p>
+    <div class="group"><div class="gt">LaTeX</div>
+      <div class="row tools"><button type="button" class="btn" id="tex-add">Add this row to the table</button><button type="button" class="btn" id="tex-clear">Clear rows</button><button type="button" class="btn" id="tex-copy">Copy</button><span class="status" id="tex-status"></span></div>
+      <textarea id="latex" rows="9" spellcheck="false" aria-label="LaTeX table"></textarea>
+    </div>
+  </section>
+</main>
+
+<script>
+window.MathJax = { tex: { inlineMath: [['\\(', '\\)']] }, svg: { fontCache: 'global' }, options: { skipHtmlTags: ['script', 'noscript', 'style', 'textarea', 'pre', 'code'] } };
+</script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/mathjax/3.2.2/es5/tex-svg.js"></script>
+<script type="text/plain" id="core">
+// ar1core.js -- exact distribution of the least squares estimator in AR(1),
+// a JavaScript port of the O(1) algorithms of Bao and Kan (ar1_logcf,
+// ar1_logcf_exp, ttprimsj, ratio_cdf, ratio_pdf, ratio_mom, ratio_icdf,
+// ar1_pdf_rank2, ar1_pdf_rank3).
+// Complex numbers are [re, im]; jets are arrays of complex numbers whose k-th
+// entry is the k-th Taylor coefficient in the variable of differentiation.
+'use strict';
+const AR1 = (function () {
+  // ---------------- complex arithmetic ----------------
+  const C = (re, im) => [re, im || 0];
+  const cadd = (a, b) => [a[0] + b[0], a[1] + b[1]];
+  const csub = (a, b) => [a[0] - b[0], a[1] - b[1]];
+  const cmul = (a, b) => [a[0] * b[0] - a[1] * b[1], a[0] * b[1] + a[1] * b[0]];
+  const cdiv = (a, b) => { // Smith's algorithm: no overflow or underflow of |b|^2
+    if (Math.abs(b[0]) >= Math.abs(b[1])) { const r = b[1] / b[0], d = b[0] + b[1] * r; return [(a[0] + a[1] * r) / d, (a[1] - a[0] * r) / d]; }
+    const r = b[0] / b[1], d = b[0] * r + b[1]; return [(a[0] * r + a[1]) / d, (a[1] * r - a[0]) / d]; };
+  const cscale = (a, s) => [a[0] * s, a[1] * s];
+  const cabs = (a) => Math.hypot(a[0], a[1]);
+  const carg = (a) => Math.atan2(a[1], a[0]);
+  const clog = (a) => [Math.log(cabs(a)), carg(a)];
+  const cexp = (a) => { const e = Math.exp(a[0]); return [e * Math.cos(a[1]), e * Math.sin(a[1])]; };
+  function csqrt(a) { // principal root, without cancellation when the argument is nearly real
+    const r = cabs(a); if (r === 0) return [0, 0];
+    if (a[0] >= 0) { const re = Math.sqrt((r + a[0]) / 2); return [re, a[1] / (2 * re)]; }
+    const im = Math.sqrt((r - a[0]) / 2); const re = Math.abs(a[1]) / (2 * im);
+    return [re, (a[1] < 0 || (a[1] === 0 && Object.is(a[1], -0))) ? -im : im];
+  }
+  function cpow(a, m) { // a^m, m integer >= 0, by repeated squaring
+    let r = [1, 0], b = a, e = m;
+    while (e > 0) { if (e & 1) r = cmul(r, b); e >>= 1; if (e > 0) b = cmul(b, b); }
+    return r;
+  }
+  // ---------------- jets ----------------
+  function zjet(K) { const z = new Array(K + 1); for (let k = 0; k <= K; k++) z[k] = [0, 0]; return z; }
+  function pad(a, K) { if (a.length === K + 1) return a; const b = zjet(K); for (let k = 0; k < Math.min(a.length, K + 1); k++) b[k] = a[k]; return b; }
+  function jm(a, b) {
+    const K = Math.max(a.length, b.length) - 1; a = pad(a, K); b = pad(b, K);
+    const c = zjet(K);
+    for (let k = 0; k <= K; k++) { let re = 0, im = 0; for (let j = 0; j <= k; j++) { const x = a[j], y = b[k - j]; re += x[0] * y[0] - x[1] * y[1]; im += x[0] * y[1] + x[1] * y[0]; } c[k] = [re, im]; }
+    return c;
+  }
+  function jd(a, b) {
+    const K = Math.max(a.length, b.length) - 1; a = pad(a, K); b = pad(b, K);
+    const c = zjet(K); c[0] = cdiv(a[0], b[0]);
+    for (let k = 1; k <= K; k++) { let acc = a[k]; for (let j = 1; j <= k; j++) acc = csub(acc, cmul(b[j], c[k - j])); c[k] = cdiv(acc, b[0]); }
+    return c;
+  }
+  function jadd(a, b) { const K = Math.max(a.length, b.length) - 1; a = pad(a, K); b = pad(b, K); const c = zjet(K); for (let k = 0; k <= K; k++) c[k] = cadd(a[k], b[k]); return c; }
+  function jsub(a, b) { const K = Math.max(a.length, b.length) - 1; a = pad(a, K); b = pad(b, K); const c = zjet(K); for (let k = 0; k <= K; k++) c[k] = csub(a[k], b[k]); return c; }
+  function jsc(a, s) { const c = zjet(a.length - 1); for (let k = 0; k < a.length; k++) c[k] = typeof s === 'number' ? cscale(a[k], s) : cmul(a[k], s); return c; }
+  function jc(a, v) { const c = a.slice(); c[0] = typeof v === 'number' ? [a[0][0] + v, a[0][1]] : cadd(a[0], v); return c; }
+  function jsq(a) {
+    const K = a.length - 1, c = zjet(K); c[0] = csqrt(a[0]);
+    for (let k = 1; k <= K; k++) { let acc = a[k]; for (let j = 1; j <= k - 1; j++) acc = csub(acc, cmul(c[j], c[k - j])); c[k] = cdiv(acc, cscale(c[0], 2)); }
+    return c;
+  }
+  function jlog0(a) {
+    const K = a.length - 1, L = zjet(K);
+    for (let m = 1; m <= K; m++) { let acc = a[m]; for (let i = 1; i <= m - 1; i++) acc = csub(acc, cscale(cmul(L[i], a[m - i]), i / m)); L[m] = cdiv(acc, a[0]); }
+    return L;
+  }
+  function jlogc(a) { const L = jlog0(a); L[0] = clog(a[0]); return L; }
+  function jexp0(a) {
+    const K = a.length - 1, e = zjet(K); e[0] = [1, 0];
+    for (let k = 1; k <= K; k++) { let acc = [0, 0]; for (let j = 1; j <= k; j++) acc = cadd(acc, cscale(cmul(a[j], e[k - j]), j / k)); e[k] = acc; }
+    return e;
+  }
+  // x 2^k for an integer k, the power of two applied in factors that are representable (pow2 in MATLAB)
+  function ldexp(x, k) {
+    if (x === 0 || !isFinite(x)) return x;
+    while (k > 1000) { x *= Math.pow(2, 1000); k -= 1000; if (!isFinite(x)) return x; }
+    while (k < -1000) { x *= Math.pow(2, -1000); k += 1000; if (x === 0) return x; }
+    return x * Math.pow(2, k);
+  }
+  // a^m for a jet a and an integer m >= 0, a port of jpow.m.  Scalars (K = 0): the power directly, O(1).  m <= 12:
+  // repeated multiplication.  Otherwise the leading power of the jet variable is factored out exactly (a = x^l b
+  // with l the number of leading coefficients that are exactly zero, b(0) != 0), and b^m = b(0)^m u^m, u = b/b(0),
+  // with u^m from the exact recurrence k w_k = sum_{j=1}^k [(m+1) j - k] u_j w_{k-j}, w_0 = 1, after a rescaling
+  // of the jet variable by a power of two, s = 2^e2, with |u_j| s^j <= 1; b(0)^m = P 2^E in O(1) operations, with
+  // lm = m log2|b(0)|, E = floor(lm), P = 2^(lm - E) exp(i m arg b(0)) (the sign (-1)^m exactly for a real
+  // negative b(0)), the binary exponent carried separately.  A nonfinite result is retried by repeated squaring of
+  // the original jet, and kept nonfinite if that is not entirely finite either.  (Until November 2026 this port
+  // factored out the coefficients below 1e-14 times the largest one, which is not invariant under rescaling of the
+  // jet variable, used log and exp of jets, and replaced nonfinite coefficients by zero.)
+  function jpow(a, m) {
+    const K = a.length - 1;
+    const one = () => { const c = zjet(K); c[0] = [1, 0]; return c; };
+    if (m === 0) return one();
+    if (K === 0) {
+      const a0 = a[0];
+      if (a0[1] === 0) return [[Math.pow(a0[0], m), 0]];
+      const rm = Math.pow(cabs(a0), m), th = m * carg(a0); return [[rm * Math.cos(th), rm * Math.sin(th)]];
+    }
+    const sq = (x) => { let c = one(), b = x, e = m; while (e > 0) { if (e % 2 === 1) c = jm(c, b); e = Math.floor(e / 2); if (e > 0) b = jm(b, b); } return c; };
+    if (m <= 12) return sq(a);
+    const c = zjet(K);
+    let l = 0; while (l <= K && a[l][0] === 0 && a[l][1] === 0) l++;   // exact zeros only
+    if (l > K || l * m > K) return c;
+    const b = zjet(K); for (let k = 0; k + l <= K; k++) b[k] = a[k + l];
+    const b0 = b[0], lb0 = Math.log(cabs(b0));
+    let mx = -Infinity; for (let j = 1; j <= K; j++) { const aj = cabs(b[j]); if (aj > 0) mx = Math.max(mx, (Math.log(aj) - lb0) / j); }
+    let e2 = Math.floor(-mx / Math.LN2); if (!isFinite(e2)) e2 = 0;     // constant jets
+    const ut = b.map((v, j) => cdiv([ldexp(v[0], e2 * j), ldexp(v[1], e2 * j)], b0));   // u_j s^j, |.| <= 1
+    const w = zjet(K); w[0] = [1, 0];
+    for (let k = 1; k <= K; k++) {
+      let acc = [0, 0]; for (let j = 1; j <= k; j++) acc = cadd(acc, cscale(cmul(ut[j], w[k - j]), (m + 1) * j - k));
+      w[k] = [acc[0] / k, acc[1] / k];
+    }
+    const lm = m * Math.log2(cabs(b0)), E = Math.floor(lm);
+    let ph;
+    if (b0[1] === 0) ph = [(b0[0] < 0 && m % 2 === 1) ? -1 : 1, 0];
+    else { const th = m * carg(b0); ph = [Math.cos(th), Math.sin(th)]; }
+    const P = cscale(ph, Math.pow(2, lm - E));
+    const isReal = a.every(v => v[1] === 0);
+    let ok = true;
+    for (let k = 0; k + l * m <= K; k++) {
+      const pw = cmul(P, w[k]), EE = E - e2 * k;
+      const v = [ldexp(pw[0], EE), isReal ? 0 : ldexp(pw[1], EE)];
+      c[k + l * m] = v; if (!isFinite(v[0]) || !isFinite(v[1])) ok = false;
+    }
+    if (!ok) { const cc = sq(a); if (cc.every(v => isFinite(v[0]) && isFinite(v[1]))) return cc; }
+    return c;
+  }
+  // ---------------- tridiagonal Toeplitz primitives ----------------
+  function ttprimsj(p, q, p2q, m, K, thr, pm2q, wantT) {
+    thr = thr || 2.5;
+    const n = m + 1;
+    if (!pm2q) pm2q = jsub(p2q, jsc(q, 4));          // p - 2q; the callers pass the closed form
+    const xm = cdiv(p2q[0], cscale(q[0], 2)), xp = cdiv(pm2q[0], cscale(q[0], 2));   // x+1 and x-1 at the base point
+    const tm = cabs(xm) * n * n, tp = cabs(xp) * n * n;
+    let regime = 0; if (tm < thr) regime = -1; else if (tp < thr) regime = 1;
+    if (regime === 0) { const r = tt_generic(p, q, p2q, pm2q, n, K); if (wantT) Object.assign(r, trend_generic(q, p2q, r.d3, r.d4, n)); return r; }
+    const r = tt_conf(p, q, p2q, pm2q, n, K, regime, wantT);
+    if (wantT && regime === 1) Object.assign(r, trend_generic(q, p2q, r.d3, r.d4, n));
+    return r;
+  }
+  // trend primitives em'D^{-1}c and c'D^{-1}c (c the centered index vector) from the closed forms, away from x = -1
+  function trend_generic(q, p2q, d3, d4, n) {
+    const m = n - 1;
+    const ec = jd(jc(jsc(jm(q, jsub(d3, d4)), (m + 1) / 2), (m - 1) / 2), p2q);
+    const wcc = jd(jc(jsc(jm(q, ec), m + 1), m * (m * m - 1) / 12), p2q);
+    return { ec, wcc };
+  }
+  function tt_generic(p, q, p2q, pm2q, n, K) {
+    let h = jsq(jm(pm2q, p2q));                       // sqrt((p-2q)(p+2q)) without cancelling
+    let r1 = jsc(jadd(p, h), 0.5), r2 = jsc(jsub(p, h), 0.5);
+    if (cabs(r2[0]) > cabs(r1[0])) { const t = r1; r1 = r2; r2 = t; h = jsc(h, -1); }
+    const w = jd(q, r1);
+    const A2n = jpow(w, 2 * n), A2n2 = jpow(w, 2 * n - 2), An2 = jpow(w, n - 2);
+    const den = jc(jsc(A2n, -1), 1);
+    const d3 = jd(jd(jc(jsc(A2n2, -1), 1), r1), den);
+    const d4 = jsc(jd(jm(An2, h), jm(jm(r1, r1), den)), (n % 2 === 0) ? 1 : -1);
+    const d2 = jd(jc(jm(q, jadd(d3, d4)), 1), p2q);
+    const d1 = jd(jc(jsc(jm(q, d2), 2), n - 1), p2q);
+    const lgi = jsub(jsub(jlog0(h), jlog0(den)), jsc(jlog0(r1), n));
+    lgi[0] = csub(csub(clog(h[0]), clog(den[0])), cscale(clog(r1[0]), n));
+    return { d1, d2, d3, d4, lgi, regime: 0 };
+  }
+  function tt_conf(p, q, p2q, pm2q, n, K, sgn, wantT) {
+    // coefficients carried against powers of tau = n^2 (x -+ 1), so that none overflows at any n
+    const m = n - 1, JT = 20, L = K + JT + 2 + (wantT ? 2 : 0);
+    const eA = new Array(L + 1), eB = new Array(L + 1);
+    eA[0] = ((m % 2 === 0) ? 1 : -1) * (m + 1);
+    for (let i = 0; i <= L - 1; i++) eA[i + 1] = -eA[i] * ((m - i) / n) * ((m + i + 2) / n) / ((2 * i + 3) * (i + 1));
+    eB[0] = (((m - 1) % 2 === 0) ? 1 : -1) * m;
+    for (let i = 0; i <= L - 1; i++) eB[i + 1] = -eB[i] * ((m - 1 - i) / n) * ((m + i + 1) / n) / ((2 * i + 3) * (i + 1));
+    let A, B, Qj, Sj, dl, trendT = null;
+    if (sgn === -1) {
+      dl = jsc(jd(p2q, jsc(q, 2)), n * n);           // tau = n^2 (x+1), from the closed-form p+2q
+      const eQ = new Array(L); for (let i = 0; i < L; i++) eQ[i] = n * n * (eA[i + 1] + eB[i + 1]);
+      const eR = new Array(L); for (let i = 0; i < L; i++) eR[i] = m * eA[i] + eQ[i];
+      const eS = eR.slice(1).map(v => n * n * v);
+      const u0 = dl[0]; const u = dl.slice(); u[0] = [0, 0];
+      A = jhorner(shiftc(eA, u0, K, JT), u); B = jhorner(shiftc(eB, u0, K, JT), u);
+      Qj = jhorner(shiftc(eQ, u0, K, JT), u); Sj = jhorner(shiftc(eS, u0, K, JT), u);
+      if (wantT) {
+        // (m-1)U_m + (m+1)(U_{m-1} + (-1)^m) = (x+1) Pc and 4 c'c U_m + (m+1) Pc = (x+1) Rc, c'c = m(m^2-1)/12
+        const eN = eA.map((v, i) => (m - 1) * v + (m + 1) * eB[i]); eN[0] += (m + 1) * ((m % 2 === 0) ? 1 : -1);
+        const ePc = eN.slice(1).map(v => n * n * v);
+        const eT = ePc.map((v, i) => 4 * (m * (m * m - 1) / 12) * eA[i] + (m + 1) * v);
+        const eRc = eT.slice(1).map(v => n * n * v);
+        const Pc = jhorner(shiftc(ePc, u0, K, JT), u), Rc = jhorner(shiftc(eRc, u0, K, JT), u);
+        const qAt = jm(q, A);
+        trendT = { ec: jd(Pc, jsc(qAt, 4)), wcc: jd(Rc, jsc(qAt, 8)) };
+      }
+    } else {
+      const fA = new Array(L + 1), fB = new Array(L + 1);
+      for (let k = 0; k <= L; k++) { fA[k] = eA[k] * (((m + k) % 2 === 0) ? 1 : -1); fB[k] = eB[k] * (((m - 1 + k) % 2 === 0) ? 1 : -1); }
+      dl = jsc(jd(pm2q, jsc(q, 2)), n * n);          // tau = n^2 (x-1), from the closed-form p-2q
+      const u0 = dl[0]; const u = dl.slice(); u[0] = [0, 0];
+      A = jhorner(shiftc(fA, u0, K, JT), u); B = jhorner(shiftc(fB, u0, K, JT), u);
+      const xp1 = jc(jsc(dl, 1 / (n * n)), 2);        // x+1 = (x-1)+2
+      Qj = jd(jc(jadd(A, B), ((m + 1) % 2 === 0) ? 1 : -1), xp1);
+      Sj = jd(jadd(jsc(A, m), Qj), xp1);
+    }
+    const qA = jm(q, A);
+    const d3 = jd(B, qA);
+    const d4 = jd(jc(zjet(K), ((m + 1) % 2 === 0) ? 1 : -1), qA);
+    const d2 = jd(Qj, jsc(qA, 2));
+    const d1 = jd(Sj, jsc(qA, 2));
+    const qs = jsc(q, sgn);
+    const W = jsc(A, ((sgn === 1 || m % 2 === 0) ? 1 : -1) / (m + 1));
+    const lgi = jsc(jadd(jsc(jlog0(qs), m), jlog0(W)), -1);
+    lgi[0] = cscale(cadd(cadd(cscale(clog(qs[0]), m), clog(W[0])), [Math.log(m + 1), 0]), -1);
+    const out = { d1, d2, d3, d4, lgi, regime: sgn };
+    if (trendT) Object.assign(out, trendT);
+    return out;
+  }
+  function shiftc(e, u0, K, JT) {
+    const Le = e.length, G = new Array(K + 1);
+    for (let k = 0; k <= K; k++) {
+      let acc = [0, 0], up = [1, 0], cb = 1;
+      for (let j = 0; j <= JT; j++) {
+        if (k + j + 1 > Le) break;
+        acc = cadd(acc, cscale(up, cb * e[k + j]));
+        up = cmul(up, u0);
+        cb = cb * (k + j + 1) / (j + 1);
+      }
+      G[k] = acc;
+    }
+    return G;
+  }
+  function jhorner(G, u) {
+    const K = G.length - 1; let J = zjet(K); J[0] = G[K];
+    for (let k = K - 1; k >= 0; k--) { J = jm(J, u); J[0] = cadd(J[0], G[k]); }
+    return J;
+  }
+  // ---------------- the log characteristic function ----------------
+  function logcf(sj, tj, n, phi, cas, par0, forceGeneric) {
+    const K = Math.max(sj.length, tj.length) - 1; sj = pad(sj, K); tj = pad(tj, K);
+    if (!forceGeneric && Math.abs(phi) > 1 && 2 * n * Math.log(Math.abs(phi)) > Math.log(100)) return logcf_exp(sj, tj, n, phi, cas, par0);
+    if (cas === 'DT' || cas === 'ST') return trendcf(sj, tj, n, phi, cas, par0);
+    const m = n - 1, om = 1 - phi;
+    const z = zjet(K), one = jc(z, 1);
+    const q = jc(jsc(sj, [0, -1]), -phi);
+    const p2q = jc(jsc(jsub(jsc(sj, -om), tj), [0, 2]), om * om);          // (1-phi)^2 + 2i((phi-1)s - t)
+    const pm2q = jc(jsc(jsub(jsc(sj, 1 + phi), tj), [0, 2]), (1 + phi) * (1 + phi));   // (1+phi)^2 + 2i((phi+1)s - t)
+    const p = jsub(p2q, jsc(q, 2));
+    let c11, a1, a2, c1n, kap, b1, b2, cnn, beta = null, cst;
+    switch (cas) {
+      case 'DK': c11 = one; a1 = z; a2 = z; c1n = z; kap = z; b1 = z; b2 = q; cnn = one;
+        beta = [z, z, jsc(q, -par0), z, z]; cst = jsc(jc(p, -1), -0.5 * par0 * par0); break;
+      case 'DU': c11 = one; a1 = z; a2 = z; c1n = z; kap = jsc(jadd(jsc(sj, om), tj), [0, 2 / n]);
+        b1 = jsc(sj, [0, 1 / n]); b2 = q; cnn = one;
+        beta = [z, jc(z, par0 * om), z, z, jc(z, par0)]; cst = jc(z, -0.5 * n * par0 * par0); break;
+      case 'SK': c11 = jc(jsc(jsub(jsc(sj, phi), tj), [0, 2]), 1); a1 = z; a2 = q; c1n = z; kap = z; b1 = z; b2 = q; cnn = one;
+        cst = jc(z, 0.5 * Math.log1p(-phi * phi)); break;
+      case 'SU': c11 = jc(jsc(jsub(jsc(sj, phi), tj), [0, 2 * (1 - 1 / n)]), 1);
+        a1 = jsc(jadd(jsc(sj, 1 - 2 * phi), jsc(tj, 2)), [0, 1 / n]); a2 = q; c1n = jsc(sj, [0, 1 / n]);
+        kap = jsc(jadd(jsc(sj, om), tj), [0, 2 / n]); b1 = jsc(sj, [0, 1 / n]); b2 = q; cnn = one;
+        cst = jc(z, 0.5 * Math.log1p(-phi * phi)); break;
+      default: throw new Error('unknown case');
+    }
+    const pr = ttprimsj(p, q, p2q, m, K, undefined, pm2q);
+    const d1 = pr.d1, d2 = pr.d2, d3 = pr.d3, d4 = pr.d4, lgi = pr.lgi;
+    // near a zero of U_m (|q d3| = |U_{m-1}/U_m| large) D is nearly singular relative to its scale and the assembly below
+    // loses about eps t1^2: K is then assembled about the core of size m-1 (asm_m1 of ar1_logcf.m, November 2026)
+    // (only at real (t1,t2), the arguments of the inversion integrals; the moments use imaginary ones, where it is not needed)
+    const realb = sj[0][1] === 0 && tj[0][1] === 0;
+    if (realb && cabs(cmul(q[0], d3[0])) > 4) return asm_m1(p, q, p2q, pm2q, m, K, c11, a1, a2, c1n, kap, b1, b2, cnn, beta, cst);
+    const rho = jc(jm(kap, d1), 1);
+    const cc = jd(kap, rho);
+    const w1 = jd(d1, rho), w2 = jd(d2, rho);
+    const d2sq = jm(d2, d2);
+    const w3 = jsub(d3, jm(cc, d2sq)), w4 = jsub(d4, jm(cc, d2sq));
+    const bil = (u1, u2, u3, v1, v2, v3) => jadd(jadd(jm(jm(u1, v1), w1), jm(jadd(jadd(jm(u1, v2), jm(u2, v1)), jadd(jm(u1, v3), jm(u3, v1))), w2)),
+      jadd(jm(jadd(jm(u2, v2), jm(u3, v3)), w3), jm(jadd(jm(u2, v3), jm(u3, v2)), w4)));
+    const aDa = bil(a1, a2, z, a1, a2, z), aDb = bil(a1, a2, z, b1, z, b2), bDb = bil(b1, z, b2, b1, z, b2);
+    const e1 = jsub(c11, aDa), e2 = jsub(c1n, aDb), e3 = jsub(cnn, bDb);
+    const e4 = jsub(jm(e1, e3), jm(e2, e2));
+    const lrho = jlogc(rho), le4 = jlogc(e4);
+    let Lj = jadd(jsc(jsub(jsub(lgi, lrho), le4), 0.5), cst);
+    if (beta) {
+      const [b0, bc, be1, bem, bn] = beta;
+      const ga = bil(a1, a2, z, bc, be1, bem), gb = bil(b1, z, b2, bc, be1, bem), gg = bil(bc, be1, bem, bc, be1, bem);
+      let num = jadd(jsub(jadd(jm(jm(b0, b0), e3), jm(jm(bn, bn), e1)), jsc(jm(jm(b0, bn), e2), 2)),
+        jadd(jsc(jm(b0, jsub(jm(e2, gb), jm(e3, ga))), 2), jsc(jm(bn, jsub(jm(e2, ga), jm(e1, gb))), 2)));
+      num = jadd(num, jadd(jsub(jm(e3, jm(ga, ga)), jsc(jm(e2, jm(ga, gb)), 2)), jm(e1, jm(gb, gb))));
+      Lj = jadd(Lj, jsc(jadd(gg, jd(num, e4)), 0.5));
+    }
+    return Lj;
+  }
+  // ---------------- the trend cases DT and ST (Online Supplement, Section S7) ----------------
+  // K = [D + Z C Z', q e_m + Z bv; ., 1], Z = [1, l], l = (1..m)' - n/2; |K| = |D| |M| S, M = I + C W, W = diag(d1, wcc)
+  // K = K0 + kappa f f' (f the indicator of the core y_1..y_m): the borders of K0 eliminated about the Toeplitz core
+  // D_{m-1}, |K| = |D_{m-1}| |E| (1 + kappa f'K0^{-1} f), E the 3 x 3 Schur complement for (y_0, y_m, y_n), reduced by
+  // LDL' (accretive pivots); the rank one last, since Delta = D + kappa 1 1' is nearly singular too where U_m is small
+  function asm_m1(p, q, p2q, pm2q, m, K, c11, a1, a2, c1n, kap, b1, b2, cnn, beta, cst) {
+    const z = zjet(K), one = jc(z, 1);
+    const pr = ttprimsj(p, q, p2q, m - 1, K, undefined, pm2q);
+    const d1 = pr.d1, d2 = pr.d2, d3 = pr.d3, d4 = pr.d4;
+    const W = (u, v) => jadd(jadd(jm(jm(u[0], v[0]), d1), jm(jadd(jadd(jm(u[0], v[1]), jm(u[1], v[0])), jadd(jm(u[0], v[2]), jm(u[2], v[0]))), d2)),
+      jadd(jm(jadd(jm(u[1], v[1]), jm(u[2], v[2])), d3), jm(jadd(jm(u[1], v[2]), jm(u[2], v[1])), d4)));
+    const U = [[a1, a2, z], [z, z, q], [b1, z, z]], bm = jadd(b1, b2);
+    const B = [[c11, a1, c1n], [a1, p, bm], [c1n, bm, cnn]];
+    const E = [[], [], []];
+    for (let i = 0; i < 3; i++) for (let j = i; j < 3; j++) { E[i][j] = jsub(B[i][j], W(U[i], U[j])); E[j][i] = E[i][j]; }
+    const dd0 = E[0][0], l10 = jd(E[1][0], dd0), l20 = jd(E[2][0], dd0);
+    const dd1 = jsub(E[1][1], jm(l10, E[0][1])), A12 = jsub(E[1][2], jm(l10, E[0][2])), l21 = jd(A12, dd1);
+    const dd2 = jsub(jsub(E[2][2], jm(l20, E[0][2])), jm(l21, A12));
+    const fs = (x) => { const y1 = jsub(x[1], jm(l10, x[0])); return [x[0], y1, jsub(jsub(x[2], jm(l20, x[0])), jm(l21, y1))]; };
+    const qfE = (x, y) => jadd(jadd(jd(jm(x[0], y[0]), dd0), jd(jm(x[1], y[1]), dd1)), jd(jm(x[2], y[2]), dd2));
+    const fcore = [one, z, z], fB = [z, one, z];
+    const gs = fs([0, 1, 2].map(i => jsub(fB[i], W(U[i], fcore))));
+    const ff = jadd(W(fcore, fcore), qfE(gs, gs));
+    const rhoK = jc(jm(kap, ff), 1);
+    const lsum = jadd(jadd(jlogc(dd0), jlogc(dd1)), jadd(jlogc(dd2), jlogc(rhoK)));
+    let L = jadd(jsc(jsub(pr.lgi, lsum), 0.5), cst);
+    if (beta) {
+      // beta'K^{-1}beta = beta'K0^{-1}beta - kappa (beta'K0^{-1}f)^2/(1 + kappa f'K0^{-1}f); on the new core bc 1 + be1 e_1,
+      // and y_m carries bc + bem
+      const [b0, bc, be1, bem, bn] = beta;
+      const bcore = [bc, be1, z], bB = [b0, jadd(bc, bem), bn];
+      const rs = fs([0, 1, 2].map(i => jsub(bB[i], W(U[i], bcore))));
+      const bt = jadd(W(bcore, bcore), qfE(rs, rs)), bf = jadd(W(bcore, fcore), qfE(rs, gs));
+      L = jadd(L, jsc(jsub(bt, jd(jm(kap, jm(bf, bf)), rhoK)), 0.5));
+    }
+    return L;
+  }
+  function trendcf(sj, tj, n, phi, cas, par0) {
+    const K = sj.length - 1, m = n - 1, om = 1 - phi, z = zjet(K);
+    const q = jc(jsc(sj, [0, -1]), -phi);
+    const p2q = jc(jsc(jsub(jsc(sj, -om), tj), [0, 2]), om * om);
+    const pm2q = jc(jsc(jsub(jsc(sj, 1 + phi), tj), [0, 2]), (1 + phi) * (1 + phi));
+    const p = jsub(p2q, jsc(q, 2));
+    const pr = ttprimsj(p, q, p2q, m, K, undefined, pm2q, true);
+    const Pr = trendasm(sj, tj, n, phi, q, pr.d1, pr.d2, pr.d3, pr.ec, pr.wcc);
+    // where D is nearly singular relative to its scale (|q d3| large) or Delta = D + Z C Z' is (1 + k1 or 1 + k2 small), the
+    // assembly below loses about eps t1^2 (November 2026): K is then assembled about the core of size m-1, the rank-two term
+    // first (trend_m1), where that is well conditioned, and otherwise about D with the border first and the rank-two term
+    // last (trend_alt), as in ar1_logcf.m; D and D_{m-1} are never both nearly singular
+    const nearz = cabs(cmul(q[0], pr.d3[0])) > 4, kk = eigCW(Pr), small = Math.min(cabs(cadd([1, 0], kk[0])), cabs(cadd([1, 0], kk[1]))) < 0.05;
+    if ((nearz || small) && sj[0][1] === 0 && tj[0][1] === 0) {   // real (t1,t2) only, as in logcf
+      const G = [[Pr.C11, Pr.C12, Pr.bv1], [Pr.C12, Pr.C22, Pr.bv2], [Pr.bv1, Pr.bv2, z]];
+      const falt = (cb) => { const r = trend_m1(p, q, p2q, pm2q, m, K, G, cb); return (r.ok || nearz) ? r : trend_alt(p, q, p2q, pm2q, m, K, G, cb); };
+      if (cas === 'ST') {
+        const s2 = (1 - phi) / (1 + phi);
+        const r = falt([jc(z, om), z, jc(z, 1)]);
+        const Cg = jsc(r.Qb, 0.5); Cg[0] = csub(Cg[0], [0.5 * n, 0]);
+        return jsub(jsc(r.lK, -0.5), jsc(jlogc(jc(jsc(Cg, -2 * s2), 1)), 0.5));
+      }
+      let gam = par0[0], gtau = par0.length > 1 ? par0[1] : 0;
+      const u = 1 - phi, v = -(u * (n + 1) / 2 + phi), xi = u * gam + v * gtau;
+      const lam = xi / (u * u / n + 12 * v * v / (n * n * n));
+      gam = lam * u / n; gtau = 12 * lam * v / (n * n * n);
+      const k0 = -(1 + phi) / 2;
+      const r = falt([jc(z, gam * om + gtau * k0), jc(z, gtau * om), jc(z, gam + gtau * m / 2)]);
+      let Lc = jsc(r.lK, -0.5);
+      if (gam !== 0 || gtau !== 0) { const Ex = jsc(r.Qb, 0.5); Ex[0] = csub(Ex[0], [0.5 * (n * gam * gam + gtau * gtau * n * (n * n - 1) / 12), 0]); Lc = jadd(Lc, Ex); }
+      return Lc;
+    }
+    const S = Pr.S;
+    const lM = jlog0(Pr.detM); lM[0] = [Math.log(cabs(Pr.detM[0])), argM(Pr)];
+    let L = jsc(jsub(jsub(pr.lgi, lM), jlogc(S)), 0.5);
+    if (cas === 'ST') {
+      const s2 = (1 - phi) / (1 + phi);
+      const Cg = trendexp(Pr, S, n, phi, 1, 0, z);                  // the exponent at gamma = 1
+      L = jsub(L, jsc(jlogc(jc(jsc(Cg, -2 * s2), 1)), 0.5));
+    } else {
+      let gam = par0[0], gtau = par0.length > 1 ? par0[1] : 0;
+      // the estimator depends on (gamma, gamma_tau) only through xi; use the pair with this xi that minimizes
+      // n gamma^2 + n^3 gamma_tau^2/12, the size of the cancelling mean terms
+      const u = 1 - phi, v = -(u * (n + 1) / 2 + phi), xi = u * gam + v * gtau;
+      const lam = xi / (u * u / n + 12 * v * v / (n * n * n));
+      gam = lam * u / n; gtau = 12 * lam * v / (n * n * n);
+      if (gam !== 0 || gtau !== 0) L = jadd(L, trendexp(Pr, S, n, phi, gam, gtau, z));
+    }
+    return L;
+  }
+  function trendasm(sj, tj, n, phi, q, d1, d2, d3, ec, wcc) {
+    const m = n - 1, om = 1 - phi, k0 = -(1 + phi) / 2, G1 = 1 / n, G2 = 12 / (n * (n * n - 1));
+    const C11 = jadd(jsc(sj, [0, 2 * G1 * om + G2 * k0]), jsc(tj, [0, 2 * G1 + 0.5 * G2]));
+    const C12 = jadd(jsc(sj, [0, -G2 * phi]), jsc(tj, [0, G2]));
+    const C22 = jadd(jsc(sj, [0, 2 * G2 * om]), jsc(tj, [0, 2 * G2]));
+    const bv1 = jsc(sj, [0, G1 + G2 * m / 4]), bv2 = jsc(sj, [0, G2 * m / 2]);
+    const M11 = jc(jm(C11, d1), 1), M12 = jm(C12, wcc), M21 = jm(C12, d1), M22 = jc(jm(C22, wcc), 1);
+    const detM = jsub(jm(M11, M22), jm(M12, M21));
+    const Q11 = jd(jsub(jm(M22, C11), jm(M12, C12)), detM), Q12 = jd(jsub(jm(M22, C12), jm(M12, C22)), detM);
+    const Q21 = jd(jsub(jm(M11, C12), jm(M21, C11)), detM), Q22 = jd(jsub(jm(M11, C22), jm(M21, C12)), detM);
+    const Pr = { d1, d2, d3, ec, wcc, Q11, Q12, Q21, Q22, C11, C12, C22, bv1, bv2, q, detM };
+    Pr.S = jc(jsc(tbil(Pr, bv1, bv2, q, bv1, bv2, q), -1), 1);
+    return Pr;
+  }
+  function trendexp(Pr, S, n, phi, gam, gtau, z) {
+    const om = 1 - phi, k0 = -(1 + phi) / 2, m = n - 1;
+    const bc1 = jc(z, gam * om + gtau * k0), bc2 = jc(z, gtau * om), bn = jc(z, gam + gtau * m / 2);
+    const bDc = tbil(Pr, bc1, bc2, z, bc1, bc2, z);
+    const gb = tbil(Pr, Pr.bv1, Pr.bv2, Pr.q, bc1, bc2, z);
+    const dd = jsub(bn, gb);
+    const E = jsc(jadd(bDc, jd(jm(dd, dd), S)), 0.5);
+    E[0] = csub(E[0], [0.5 * (n * gam * gam + gtau * gtau * n * (n * n - 1) / 12), 0]);
+    return E;
+  }
+  function eigCW(Pr) { // the eigenvalues k1, k2 of C W (constant coefficients)
+    const c11 = Pr.C11[0], c12 = Pr.C12[0], c22 = Pr.C22[0], w1 = Pr.d1[0], w2 = Pr.wcc[0];
+    const tr = cadd(cmul(c11, w1), cmul(c22, w2));
+    const dt = cmul(csub(cmul(c11, c22), cmul(c12, c12)), cmul(w1, w2));
+    const sq = csqrt(csub(cmul(tr, tr), cscale(dt, 4)));
+    return [cscale(cadd(tr, sq), 0.5), cscale(csub(tr, sq), 0.5)];
+  }
+  function argM(Pr) { // continuous argument of |M| = |I + C W| as Arg(1+k1) + Arg(1+k2)
+    const k = eigCW(Pr);
+    return carg(cadd([1, 0], k[0])) + carg(cadd([1, 0], k[1]));
+  }
+  function eig3(A) { // eigenvalues of a complex 3 x 3 matrix: roots of the characteristic cubic (Durand-Kerner)
+    const tr = cadd(cadd(A[0][0], A[1][1]), A[2][2]);
+    const m2 = (i, j) => csub(cmul(A[i][i], A[j][j]), cmul(A[i][j], A[j][i]));
+    const c1 = cadd(cadd(m2(0, 1), m2(0, 2)), m2(1, 2));
+    const det = csub(cadd(cmul(A[0][0], m2(1, 2)), cmul(A[0][2], csub(cmul(A[1][0], A[2][1]), cmul(A[1][1], A[2][0])))),
+      cmul(A[0][1], csub(cmul(A[1][0], A[2][2]), cmul(A[1][2], A[2][0]))));
+    const poly = (x) => csub(cadd(cmul(cmul(x, x), csub(x, tr)), cmul(c1, x)), det);   // x^3 - tr x^2 + c1 x - det
+    const R = Math.max(1, cabs(tr), Math.sqrt(cabs(c1)), Math.cbrt(cabs(det)));
+    let zr = [[0.4 * R, 0.9 * R], cmul([0.4, 0.9], [0.4 * R, 0.9 * R]), cmul(cmul([0.4, 0.9], [0.4, 0.9]), [0.4 * R, 0.9 * R])];
+    for (let it = 0; it < 500; it++) {
+      let mv = 0;
+      zr = zr.map((x, k) => { let den = [1, 0]; for (let j = 0; j < 3; j++) if (j !== k) den = cmul(den, csub(x, zr[j])); const dx = cdiv(poly(x), den); mv = Math.max(mv, cabs(dx)); return csub(x, dx); });
+      if (!(mv > 1e-15 * R)) break;
+    }
+    return zr;
+  }
+  // trend cases about the core of size m-1, D' (y_1..y_{m-1}), where U_m is small (trend_m1 of ar1_logcf.m): the rank-two
+  // term first, Delta' = D' + Z' C Z'' (Woodbury, M' = I + C W'), then the border (y_m, y_n), LDL' with y_n first; on the
+  // smaller core Z_1 = 1, Z_2 = l' - 1/2 (l' its centered index vector), and y_m has z_m = (1, (m-1)/2); vectors on the core
+  // are triples of coefficients of (1, l', e_{m-1}).  Returns log|K| and beta'K^{-1}beta for beta = Y cb.
+  function trend_m1(p, q, p2q, pm2q, m, K, G, cb) {
+    const z = zjet(K), one = jc(z, 1);
+    const pr = ttprimsj(p, q, p2q, m - 1, K, undefined, pm2q, true);
+    const d1 = pr.d1, d2 = pr.d2, d3 = pr.d3, ec = pr.ec, wcc = pr.wcc;
+    const bilD = (u, v) => jadd(jadd(jadd(jm(jm(u[0], v[0]), d1), jm(jm(u[1], v[1]), wcc)), jm(jadd(jm(u[0], v[2]), jm(u[2], v[0])), d2)),
+      jadd(jm(jadd(jm(u[1], v[2]), jm(u[2], v[1])), ec), jm(jm(u[2], v[2]), d3)));
+    const C11 = G[0][0], C12 = G[0][1], C22 = G[1][1], bv1 = G[0][2], bv2 = G[1][2];
+    const Zc = [[one, z, z], [jc(z, -0.5), one, z]];
+    const W11 = d1, W12 = jsc(d1, -0.5), W22 = jadd(wcc, jsc(d1, 0.25));
+    const M11 = jc(jadd(jm(C11, W11), jm(C12, W12)), 1), M12 = jadd(jm(C11, W12), jm(C12, W22));
+    const M21 = jadd(jm(C12, W11), jm(C22, W12)), M22 = jc(jadd(jm(C12, W12), jm(C22, W22)), 1);
+    const detM = jsub(jm(M11, M22), jm(M12, M21));
+    const Q11 = jd(jsub(jm(M22, C11), jm(M12, C12)), detM), Q12 = jd(jsub(jm(M22, C12), jm(M12, C22)), detM);
+    const Q21 = jd(jsub(jm(M11, C12), jm(M21, C11)), detM), Q22 = jd(jsub(jm(M11, C22), jm(M21, C12)), detM);
+    const bilA = (u, w) => { const xu1 = bilD(u, Zc[0]), xu2 = bilD(u, Zc[1]), yw1 = bilD(Zc[0], w), yw2 = bilD(Zc[1], w);
+      return jsub(bilD(u, w), jadd(jm(xu1, jadd(jm(Q11, yw1), jm(Q12, yw2))), jm(xu2, jadd(jm(Q21, yw1), jm(Q22, yw2))))); };
+    const lm = (m - 1) / 2;
+    const Cz1 = jadd(C11, jsc(C12, lm)), Cz2 = jadd(C12, jsc(C22, lm));
+    const cm = [jsub(Cz1, jsc(Cz2, 0.5)), Cz2, q], cn = [jsub(bv1, jsc(bv2, 0.5)), bv2, z];
+    const Kmm = jadd(jadd(p, Cz1), jsc(Cz2, lm)), Kmn = jadd(jadd(q, bv1), jsc(bv2, lm));
+    const pn = jc(jsc(bilA(cn, cn), -1), 1), Emn = jsub(Kmn, bilA(cm, cn)), Emm = jsub(Kmm, bilA(cm, cm));
+    const lmn = jd(Emn, pn), pm = jsub(Emm, jm(lmn, Emn));
+    // the continuous argument of |M'| from its eigenvalue factors
+    const c11 = C11[0], c12 = C12[0], c22 = C22[0], w11 = W11[0], w12 = W12[0], w22 = W22[0];
+    const a11 = cadd(cmul(c11, w11), cmul(c12, w12)), a12 = cadd(cmul(c11, w12), cmul(c12, w22));
+    const a21 = cadd(cmul(c12, w11), cmul(c22, w12)), a22 = cadd(cmul(c12, w12), cmul(c22, w22));
+    const tr = cadd(a11, a22), dt = csub(cmul(a11, a22), cmul(a12, a21)), sq = csqrt(csub(cmul(tr, tr), cscale(dt, 4)));
+    const f1 = cadd([1, 0], cscale(cadd(tr, sq), 0.5)), f2 = cadd([1, 0], cscale(csub(tr, sq), 0.5));
+    const lM = jlog0(detM); lM[0] = [Math.log(cabs(detM[0])), carg(f1) + carg(f2)];
+    const lK = jadd(jadd(jsc(pr.lgi, -1), lM), jadd(jlogc(pn), jlogc(pm)));
+    const ok = cabs(cmul(q[0], d3[0])) <= 4 && Math.min(cabs(f1), cabs(f2)) >= 0.05;   // this partition well conditioned
+    const bc = [jsub(cb[0], jsc(cb[1], 0.5)), cb[1], z], bm = jadd(cb[0], jsc(cb[1], lm)), bn = cb[2];
+    const rn = jsub(bn, bilA(cn, bc)), rm = jsub(bm, bilA(cm, bc)), y2 = jsub(rm, jm(lmn, rn));
+    const Qb = jadd(jadd(bilA(bc, bc), jd(jm(rn, rn), pn)), jd(jm(y2, y2), pm));
+    return { lK, Qb, ok };
+  }
+  // trend cases where Delta = D + Z C Z' is nearly singular and trend_m1 is not well conditioned (trend_alt of ar1_logcf.m;
+  // near a rank drop of u - r v, G H has a nearly double eigenvalue at -1 and the branch below can fail, hence the order of
+  // preference): K = K00 + Y G Y',
+  // K00 = [D, q e_m; q e_m', 1], Y = [Z_1, Z_2, e_n], |K| = |K00| |I + G H|, H = Y'K00^{-1}Y, and beta'K^{-1}beta =
+  // cb'H cb - (H cb)'(I + G H)^{-1} G H cb; the multiple of 2 pi of Arg |I + G H| from the eigenvalues of G H
+  function trend_alt(p, q, p2q, pm2q, m, K, G, cb) {
+    const z = zjet(K), one = jc(z, 1);
+    const pr = ttprimsj(p, q, p2q, m, K, undefined, pm2q, true);
+    const d1 = pr.d1, d2 = pr.d2, d3 = pr.d3, ec = pr.ec, wcc = pr.wcc;
+    const s00 = jc(jsc(jm(jm(q, q), d3), -1), 1), qs = jd(q, s00), qqs = jm(q, qs);
+    const H = [[jadd(d1, jm(qqs, jm(d2, d2))), jm(qqs, jm(d2, ec)), jsc(jm(qs, d2), -1)], [null, jadd(wcc, jm(qqs, jm(ec, ec))), jsc(jm(qs, ec), -1)], [null, null, jd(one, s00)]];
+    for (let i = 1; i < 3; i++) for (let j = 0; j < i; j++) H[i][j] = H[j][i];
+    const lK00 = jadd(jsc(pr.lgi, -1), jlogc(s00));
+    const A = [[], [], []];
+    for (let i = 0; i < 3; i++) for (let j = 0; j < 3; j++) { let a = jadd(jadd(jm(G[i][0], H[0][j]), jm(G[i][1], H[1][j])), jm(G[i][2], H[2][j])); if (i === j) a = jc(a, 1); A[i][j] = a; }
+    const co = (i1, j1, i2, j2) => jsub(jm(A[i1][j1], A[i2][j2]), jm(A[i1][j2], A[i2][j1]));
+    const Cf = [[co(1, 1, 2, 2), jsc(co(1, 0, 2, 2), -1), co(1, 0, 2, 1)], [jsc(co(0, 1, 2, 2), -1), co(0, 0, 2, 2), jsc(co(0, 0, 2, 1), -1)], [co(0, 1, 1, 2), jsc(co(0, 0, 1, 2), -1), co(0, 0, 1, 1)]];
+    const detA = jadd(jadd(jm(A[0][0], Cf[0][0]), jm(A[0][1], Cf[0][1])), jm(A[0][2], Cf[0][2]));
+    const GH0 = [0, 1, 2].map(i => [0, 1, 2].map(j => cadd(cadd(cmul(G[i][0][0], H[0][j][0]), cmul(G[i][1][0], H[1][j][0])), cmul(G[i][2][0], H[2][j][0]))));
+    const ac = eig3(GH0).reduce((s, k) => s + carg(cadd([1, 0], k)), 0), ap = carg(detA[0]);
+    const lA = jlog0(detA); lA[0] = [Math.log(cabs(detA[0])), ap + 2 * Math.PI * Math.round((ac - ap) / (2 * Math.PI))];
+    const lK = jadd(lK00, lA);
+    const hc = [0, 1, 2].map(i => jadd(jadd(jm(H[i][0], cb[0]), jm(H[i][1], cb[1])), jm(H[i][2], cb[2])));
+    const gh = [0, 1, 2].map(i => jadd(jadd(jm(G[i][0], hc[0]), jm(G[i][1], hc[1])), jm(G[i][2], hc[2])));
+    let Qb = jadd(jadd(jm(cb[0], hc[0]), jm(cb[1], hc[1])), jm(cb[2], hc[2]));
+    for (let i = 0; i < 3; i++) { const yi = jd(jadd(jadd(jm(Cf[0][i], gh[0]), jm(Cf[1][i], gh[1])), jm(Cf[2][i], gh[2])), detA); Qb = jsub(Qb, jm(hc[i], yi)); }
+    return { lK, Qb };
+  }
+  function tbil(P, a1, a2, ae, b1, b2, be) { // x'Delta^{-1}y for x = Z(a1,a2)' + ae e_m, y likewise (Woodbury)
+    const xDy = jadd(jadd(jadd(jm(jm(a1, b1), P.d1), jm(jm(a2, b2), P.wcc)), jm(jadd(jm(a1, be), jm(ae, b1)), P.d2)),
+      jadd(jm(jadd(jm(a2, be), jm(ae, b2)), P.ec), jm(jm(ae, be), P.d3)));
+    const xu1 = jadd(jm(a1, P.d1), jm(ae, P.d2)), xu2 = jadd(jm(a2, P.wcc), jm(ae, P.ec));
+    const yu1 = jadd(jm(b1, P.d1), jm(be, P.d2)), yu2 = jadd(jm(b2, P.wcc), jm(be, P.ec));
+    return jsub(xDy, jadd(jm(xu1, jadd(jm(P.Q11, yu1), jm(P.Q12, yu2))), jm(xu2, jadd(jm(P.Q21, yu1), jm(P.Q22, yu2)))));
+  }
+  function logcf_exp(sj, tj, n, phi, cas, par0) {
+    const K = sj.length - 1, m = n - 1, om = 1 - phi;
+    const q = jc(jsc(sj, [0, -1]), -phi);
+    const p2q = jc(jsc(jsub(jsc(sj, -om), tj), [0, 2]), om * om);
+    const p = jsub(p2q, jsc(q, 2));
+    const tau0 = jsub(jm(sj, sj), jsc(tj, [0, 2]));
+    const pm2q = jc(jsc(jsub(jsc(sj, 1 + phi), tj), [0, 2]), (1 + phi) * (1 + phi));
+    let h = jsq(jm(pm2q, p2q));
+    let r1 = jsc(jadd(p, h), 0.5), r2 = jsc(jsub(p, h), 0.5);
+    if (cabs(r2[0]) > cabs(r1[0])) { const t = r1; r1 = r2; r2 = t; h = jsc(h, -1); }
+    const w = jd(q, r1);
+    const zn = jpow(w, 2 * n), zn1 = jpow(w, 2 * n - 2), wn = jpow(jsc(w, -1), n);
+    const den = jc(jsc(zn, -1), 1);
+    const ep = jc(jsc(r1, -1), 1);
+    const em = jd(jsc(tau0, -1), ep);
+    const lgD = jsub(jadd(jsc(jlogc(r1), n), jlogc(den)), jlogc(h));
+    const RD = jd(jsub(em, jm(zn, ep)), den);
+    const d3 = jd(jd(jc(jsc(zn1, -1), 1), r1), den);
+    const d4 = jsc(jd(jm(jpow(w, n - 2), h), jm(jm(r1, r1), den)), (n % 2 === 0) ? 1 : -1);
+    const d2 = jd(jc(jm(q, jadd(d3, d4)), 1), p2q);
+    const d1 = jd(jc(jsc(jm(q, d2), 2), m), p2q);
+    // near a zero of U_m (|q d3| large; there |w| is close to 1 and the explosive cancellation is absent) the closed forms
+    // below lose about eps t1^2: the generic assembly, with its cancellation-free forms, is used instead (ar1_logcf_exp.m)
+    const realb = sj[0][1] === 0 && tj[0][1] === 0;   // real (t1,t2) only, as in logcf
+    if (realb && cabs(cmul(q[0], d3[0])) > 4) return logcf(sj, tj, n, phi, cas, par0, true);
+    const g = jd(jsub(jm(wn, h), jsub(em, jm(zn, ep))), den);
+    const f = jd(jadd(jsc(jadd(jsc(sj, om), jsc(tj, 2)), [0, 1]), jsc(g, om)), p2q);
+    if (cas === 'DK') {
+      return jadd(jsc(jadd(lgD, jlogc(RD)), -0.5), jsc(jd(jm(ep, em), RD), 0.5 * par0 * par0));
+    } else if (cas === 'DU') {
+      const kap = jsc(jadd(jsc(sj, om), tj), [0, 2 / n]);
+      const sig = jsc(sj, [0, 1 / n]);
+      const rho = jc(jm(kap, d1), 1);
+      const qd2 = jm(q, d2);
+      const S = jadd(RD, jd(jsub(jsc(jm(qd2, jadd(jm(sj, f), jm(tj, qd2))), [0, 2 / n]), jm(jm(sig, sig), d1)), rho));
+      const F = jd(jsub(f, jsc(jm(jadd(jsc(sj, om), jsc(tj, 2)), d1), [0, 1 / n])), rho);
+      const w1 = jd(d1, rho);
+      const quad = jc(jadd(jsc(w1, om * om), jd(jm(F, F), S)), -n);
+      return jadd(jsc(jadd(jadd(lgD, jlogc(rho)), jlogc(S)), -0.5), jsc(quad, 0.5 * par0 * par0));
+    }
+    else if (cas === 'DT') {
+      const G1 = 1 / n, G2 = 12 / (n * (n * n - 1)), k0 = -(1 + phi) / 2, a = n * om + 1 + phi;
+      const h1 = jm(q, d2);
+      const lam = jd(jsub(jsub(jadd(jsc(sj, [0, 0.5 * a]), jsc(tj, [0, m])), jsc(g, 0.5 * a)), jsc(RD, n * om)), p2q);
+      const h2 = jsc(jc(jsub(lam, jsc(h1, k0)), m / 2), 1 / om);
+      const wcc = jd(jc(jsc(h2, n), m * (m * m - 1) / 12), p2q);
+      const C11 = jadd(jsc(sj, [0, 2 * G1 * om + G2 * k0]), jsc(tj, [0, 2 * G1 + 0.5 * G2]));
+      const C12 = jadd(jsc(sj, [0, -G2 * phi]), jsc(tj, [0, G2]));
+      const C22 = jadd(jsc(sj, [0, 2 * G2 * om]), jsc(tj, [0, 2 * G2]));
+      const bv1 = jsc(sj, [0, G1 + G2 * m / 4]), bv2 = jsc(sj, [0, G2 * m / 2]);
+      const M11 = jc(jm(C11, d1), 1), M12 = jm(C12, wcc), M21 = jm(C12, d1), M22 = jc(jm(C22, wcc), 1);
+      const detM = jsub(jm(M11, M22), jm(M12, M21));
+      const R11 = jd(M22, detM), R12 = jd(jsc(M12, -1), detM), R21 = jd(jsc(M21, -1), detM), R22 = jd(M11, detM);
+      const s1 = jsub(jadd(jm(C11, h1), jm(C12, h2)), jsc(bv1, 2)), s2 = jsub(jadd(jm(C12, h1), jm(C22, h2)), jsc(bv2, 2));
+      const cw = (x1, x2) => [jm(jadd(jm(x1, C11), jm(x2, C12)), d1), jm(jadd(jm(x1, C12), jm(x2, C22)), wcc)];
+      const qf = (r, y1, y2) => jadd(jm(r[0], jadd(jm(R11, y1), jm(R12, y2))), jm(r[1], jadd(jm(R21, y1), jm(R22, y2))));
+      const hCW = cw(h1, h2), bW = [jm(bv1, d1), jm(bv2, wcc)];
+      const hh = jadd(jsc(h1, 0.5), h2);
+      const hs = jadd(jm(jsc(sj, [0, 1]), jadd(jsc(jm(h1, f), 2 * G1), jsc(jm(lam, jadd(h1, jsc(h2, 2))), G2))),
+        jm(jsc(tj, [0, 2]), jadd(jsc(jm(h1, h1), G1), jsc(jm(hh, hh), G2))));
+      const S = jsub(jsub(jadd(RD, hs), qf(hCW, s1, s2)), qf(bW, bv1, bv2));
+      const lM = jlogc(detM);
+      { const c11 = C11[0], c12 = C12[0], c22 = C22[0], w1 = d1[0], w2 = wcc[0];
+        const tr = cadd(cmul(c11, w1), cmul(c22, w2)), dt = cmul(csub(cmul(c11, c22), cmul(c12, c12)), cmul(w1, w2));
+        const sq = csqrt(csub(cmul(tr, tr), cscale(dt, 4)));
+        const f1 = cadd([1, 0], cscale(cadd(tr, sq), 0.5)), f2 = cadd([1, 0], cscale(csub(tr, sq), 0.5));
+        if (realb && Math.min(cabs(f1), cabs(f2)) < 0.05) return logcf(sj, tj, n, phi, cas, par0, true);   // M nearly singular: generic
+        lM[0] = [Math.log(cabs(detM[0])), carg(f1) + carg(f2)]; }
+      let L = jsc(jadd(jadd(lgD, lM), jlogc(S)), -0.5);
+      const gam = par0[0], gtau = par0.length > 1 ? par0[1] : 0;
+      if (gam !== 0 || gtau !== 0) {
+        const kc1 = gam * om + gtau * k0, kc2 = gtau * om, zz = zjet(K);
+        const kj1 = jc(zz, kc1), kj2 = jc(zz, kc2);
+        const F = jadd(jsub(jsc(f, -gam), jsc(lam, gtau)), jsub(qf(hCW, kj1, kj2), qf(bW, kj1, kj2)));
+        const kW = [jsc(d1, kc1), jsc(wcc, kc2)];
+        const kWCW = [jm(jadd(jm(kW[0], C11), jm(kW[1], C12)), d1), jm(jadd(jm(kW[0], C12), jm(kW[1], C22)), wcc)];
+        const ost = jadd(jsc(sj, om), tj);
+        let E0 = jsc(jc(jadd(jsc(f, 2 * om), jsc(ost, [0, 2 * n])), om * (1 + phi)), gam * gam);
+        E0 = jsub(E0, jsc(jc(jsc(f, 2), a), gam * gtau * (1 + phi)));
+        E0 = jadd(E0, jsc(jadd(jadd(jsc(jc(jsc(f, (1 + phi) * 2 * a), (1 + phi) * a * a), 1 / (4 * om)), jsc(lam, n * om)), jsc(ost, [0, n * (n * n - 1) / 6])), gtau * gtau));
+        E0 = jd(E0, p2q);
+        L = jadd(L, jsc(jadd(jsub(E0, qf(kWCW, kj1, kj2)), jd(jm(F, F), S)), 0.5));
+      }
+      return L;
+    }
+    throw new Error('explosive forms are for the fixed-start cases only');
+  }
+  // ---------------- the explosive forms in scaled arguments (ar1_logcf_exps) ----------------
+  // log E exp(i a ut + i b vt), ut = |phi|^-n u, vt = phi^-2n v: the forms of logcf_exp with t1 = se a, t2 = se^2 b
+  // (se = |phi|^-n, which may underflow to zero), every small quantity carried divided by its order (e-, delta3, S by
+  // se^2; g, f, lam, F by se), and the powers of order n formed from log1p of the small quantities t1/phi and e-
+  // (r1/phi^2 = (1 + i t1/phi)^2/(1 - e-)), so that nothing underflows and the error does not grow with n
+  function clog1p(z) { return [0.5 * Math.log1p(2 * z[0] + z[0] * z[0] + z[1] * z[1]), Math.atan2(z[1], 1 + z[0])]; }
+  function jlog1p(x) { const L = jlog0(jc(x, 1)); L[0] = clog1p(x[0]); return L; }
+  function logcf_exps(aj, bj, n, phi, cas, par0) {
+    const K = Math.max(aj.length, bj.length) - 1; aj = pad(aj, K); bj = pad(bj, K);
+    const m = n - 1, om = 1 - phi, se = Math.exp(-n * Math.log(Math.abs(phi))), se2 = se * se;
+    const sj = jsc(aj, se), tj = jsc(bj, se2);
+    const q = jc(jsc(sj, [0, -1]), -phi);
+    const p2q = jc(jsc(jsub(jsc(sj, -om), tj), [0, 2]), om * om);
+    const p = jsub(p2q, jsc(q, 2));
+    const tau0s = jsub(jm(aj, aj), jsc(bj, [0, 2]));
+    const pm2q = jc(jsc(jsub(jsc(sj, 1 + phi), tj), [0, 2]), (1 + phi) * (1 + phi));
+    let h = jsq(jm(pm2q, p2q));
+    let r1 = jsc(jadd(p, h), 0.5), r2 = jsc(jsub(p, h), 0.5);
+    if (cabs(r2[0]) > cabs(r1[0])) { const t = r1; r1 = r2; r2 = t; h = jsc(h, -1); }
+    const w = jd(q, r1);
+    const ep = jc(jsc(r1, -1), 1);
+    const ems = jd(jsc(tau0s, -1), ep);                               // e-/eps
+    const l1t = jlog1p(jsc(sj, [0, 1 / phi])), l1e = jlog1p(jsc(ems, -se2)), lr = jsub(l1e, l1t);
+    const zns = jexp(jsc(lr, 2 * n));                                 // zeta^n/eps
+    const wns = jsc(jexp(jsc(lr, n)), (phi < 0 && n % 2 === 1) ? -1 : 1);   // (-w)^n/se
+    const zn1 = jsc(jd(zns, jm(w, w)), se2);
+    const den = jc(jsc(zns, -se2), 1);
+    const lgD = jsub(jadd(jsc(jsub(jsc(l1t, 2), l1e), n), jlogc(den)), jlogc(h));   // log|D| + log eps
+    const RD = jd(jsub(ems, jm(zns, ep)), den);
+    const d3 = jd(jd(jc(jsc(zn1, -1), 1), r1), den);
+    const d4 = jsc(jd(jm(wns, h), jm(jm(jm(w, w), jm(r1, r1)), den)), se);
+    const d2 = jd(jc(jm(q, jadd(d3, d4)), 1), p2q);
+    const d1 = jd(jc(jsc(jm(q, d2), 2), m), p2q);
+    const g = jd(jsub(jm(wns, h), jsc(jsub(ems, jm(zns, ep)), se)), den);
+    const f = jd(jadd(jsc(jadd(jsc(aj, om), jsc(bj, 2 * se)), [0, 1]), jsc(g, om)), p2q);
+    if (cas === 'DK') {
+      return jadd(jsc(jadd(lgD, jlogc(RD)), -0.5), jsc(jd(jm(ep, ems), RD), 0.5 * par0 * par0));
+    } else if (cas === 'DU') {
+      const kap = jsc(jadd(jsc(sj, om), tj), [0, 2 / n]);
+      const rho = jc(jm(kap, d1), 1);
+      const qd2 = jm(q, d2);
+      const sg = jsc(aj, [0, 1 / n]);
+      const S = jadd(RD, jd(jsub(jsc(jm(qd2, jadd(jm(aj, f), jm(bj, qd2))), [0, 2 / n]), jm(jm(sg, sg), d1)), rho));
+      const F = jd(jsub(f, jsc(jm(jadd(jsc(aj, om), jsc(bj, 2 * se)), d1), [0, 1 / n])), rho);
+      const w1 = jd(d1, rho);
+      const quad = jc(jadd(jsc(w1, om * om), jd(jm(F, F), S)), -n);
+      return jadd(jsc(jadd(jadd(lgD, jlogc(rho)), jlogc(S)), -0.5), jsc(quad, 0.5 * par0 * par0));
+    } else if (cas === 'DT') {
+      const G1 = 1 / n, G2 = 12 / (n * (n * n - 1)), k0 = -(1 + phi) / 2, a = n * om + 1 + phi;
+      const h1 = jm(q, d2);
+      const lam = jd(jsub(jsub(jadd(jsc(aj, [0, 0.5 * a]), jsc(bj, [0, m * se])), jsc(g, 0.5 * a)), jsc(RD, n * om * se)), p2q);
+      const h2 = jsc(jc(jsub(jsc(lam, se), jsc(h1, k0)), m / 2), 1 / om);
+      const wcc = jd(jc(jsc(h2, n), m * (m * m - 1) / 12), p2q);
+      const C11 = jadd(jsc(aj, [0, 2 * G1 * om + G2 * k0]), jsc(bj, [0, (2 * G1 + 0.5 * G2) * se]));
+      const C12 = jadd(jsc(aj, [0, -G2 * phi]), jsc(bj, [0, G2 * se]));
+      const C22 = jadd(jsc(aj, [0, 2 * G2 * om]), jsc(bj, [0, 2 * G2 * se]));
+      const bv1 = jsc(aj, [0, G1 + G2 * m / 4]), bv2 = jsc(aj, [0, G2 * m / 2]);
+      const M11 = jc(jsc(jm(C11, d1), se), 1), M12 = jsc(jm(C12, wcc), se), M21 = jsc(jm(C12, d1), se), M22 = jc(jsc(jm(C22, wcc), se), 1);
+      const detM = jsub(jm(M11, M22), jm(M12, M21));
+      const R11 = jd(M22, detM), R12 = jd(jsc(M12, -1), detM), R21 = jd(jsc(M21, -1), detM), R22 = jd(M11, detM);
+      const s1 = jsub(jadd(jm(C11, h1), jm(C12, h2)), jsc(bv1, 2)), s2 = jsub(jadd(jm(C12, h1), jm(C22, h2)), jsc(bv2, 2));
+      const cw = (x1, x2) => [jm(jadd(jm(x1, C11), jm(x2, C12)), d1), jm(jadd(jm(x1, C12), jm(x2, C22)), wcc)];
+      const qf = (r, y1, y2) => jadd(jm(r[0], jadd(jm(R11, y1), jm(R12, y2))), jm(r[1], jadd(jm(R21, y1), jm(R22, y2))));
+      const hCW = cw(h1, h2), bW = [jm(bv1, d1), jm(bv2, wcc)];
+      const hh = jadd(jsc(h1, 0.5), h2);
+      const hs = jadd(jm(jsc(aj, [0, 1]), jadd(jsc(jm(h1, f), 2 * G1), jsc(jm(lam, jadd(h1, jsc(h2, 2))), G2))),
+        jm(jsc(bj, [0, 2]), jadd(jsc(jm(h1, h1), G1), jsc(jm(hh, hh), G2))));
+      const S = jsub(jsub(jadd(RD, hs), qf(hCW, s1, s2)), qf(bW, bv1, bv2));
+      const lM = jlogc(detM);
+      { const c11 = cscale(C11[0], se), c12 = cscale(C12[0], se), c22 = cscale(C22[0], se), w1 = d1[0], w2 = wcc[0];
+        const tr = cadd(cmul(c11, w1), cmul(c22, w2)), dt = cmul(csub(cmul(c11, c22), cmul(c12, c12)), cmul(w1, w2));
+        const sq = csqrt(csub(cmul(tr, tr), cscale(dt, 4)));
+        lM[0] = [Math.log(cabs(detM[0])), carg(cadd([1, 0], cscale(cadd(tr, sq), 0.5))) + carg(cadd([1, 0], cscale(csub(tr, sq), 0.5)))]; }
+      let L = jsc(jadd(jadd(lgD, lM), jlogc(S)), -0.5);
+      // noncentral exponent (as AR1_LOGCF_EXPS, November 2026): the effective start
+      // geff = gam - gtau[(n+1)/2 + phi/(1-phi)] and the flat-start border (y0, y_n):
+      // -(geff/om)^2 delta4/(2 S), delta4 = tau + S_DK Xi11 + d1_DK Xi22 - 2 d2_DK Xi12 + det Xi
+      const gam = par0[0], gtau = par0.length > 1 ? par0[1] : 0;
+      const geff = gam - gtau * ((n + 1) / 2 + phi / om);
+      if (geff !== 0) {
+        const ar1 = jadd(jsc(aj, [0, G1 * (1 - 2 * phi) + G2 * (m / 2) * (phi + 0.5)]), jsc(bj, [0, 2 * G1 * se - G2 * (m / 2) * se]));
+        const ar2 = jadd(jsc(aj, [0, G2 * (m / 2) * (2 * phi - 1)]), jsc(bj, [0, -2 * G2 * (m / 2) * se]));
+        const c00 = jadd(jsc(bj, [0, 2 * (G1 + G2 * m * m / 4) * se]), jsc(aj, [0, -2 * phi * (G1 + G2 * m * m / 4)]));
+        const c0n = jsc(aj, [0, G1 - G2 * m * m / 4]);
+        const Rv = (x1, x2) => [jadd(jm(R11, x1), jm(R12, x2)), jadd(jm(R21, x1), jm(R22, x2))];
+        const dot = (x, y1, y2) => jadd(jm(x[0], y1), jm(x[1], y2));
+        const mh2 = jsc(h2, -1);
+        const ch11 = jsub(jm(C11, h1), jm(C12, h2)), ch12 = jsub(jm(C12, h1), jm(C22, h2));
+        const rs1 = jsub(jadd(jm(C11, h1), jm(C12, h2)), bv1), rs2 = jsub(jadd(jm(C12, h1), jm(C22, h2)), bv2);
+        const Rch = Rv(ch11, ch12), Rar = Rv(ar1, ar2), Rr = Rv(rs1, rs2);
+        const X11 = jsub(jsub(jadd(c00, dot(Rch, h1, mh2)), jsc(dot(Rar, h1, mh2), 2)),
+          jsc(jadd(jm(jm(ar1, d1), Rar[0]), jm(jm(ar2, wcc), Rar[1])), se));
+        const X12 = jsub(jadd(c0n, dot(Rr, h1, mh2)),
+          jadd(jm(Rar[0], jadd(h1, jsc(jm(d1, bv1), se))), jm(Rar[1], jadd(h2, jsc(jm(wcc, bv2), se)))));
+        const X22 = jsub(jsub(hs, qf(hCW, s1, s2)), qf(bW, bv1, bv2));            // S - RD
+        const q2 = jm(q, q);
+        const d4s = jd(jm(wns, h), jm(jm(jm(w, w), jm(r1, r1)), den));             // d4/se
+        const dl1 = jadd(jm(q2, jc(jsc(d3, -1), 1)), jsc(tau0s, se * se));
+        const del4 = jsub(jadd(jadd(jadd(jadd(tau0s, jsc(jm(RD, X11), se)), jm(dl1, X22)), jsc(jm(jm(q2, d4s), X12), 2)),
+          jsc(jm(X11, X22), se)), jm(X12, X12));
+        L = jadd(L, jsc(jd(del4, S), -0.5 * (geff / om) * (geff / om)));
+      }
+      return L;
+    }
+    throw new Error('the scaled explosive forms are for the fixed-start cases DK, DU and DT only');
+  }
+  // ---------------- adaptive Gauss-Kronrod (7,15) quadrature ----------------
+  const XGK = [0.991455371120812639, 0.949107912342758525, 0.864864423359769073, 0.741531185599394440, 0.586087235467691130, 0.405845151377397167, 0.207784955007898468, 0];
+  const WGK = [0.022935322010529225, 0.063092092629978553, 0.104790010322250184, 0.140653259715525919, 0.169004726639267903, 0.190350578064785410, 0.204432940075298892, 0.209482141084727828];
+  const WG = [0.129484966168869693, 0.279705391489276668, 0.381830050505118945, 0.417959183673469388];
+  // f returns an array (vector-valued integrand); returns {I: array, err}
+  function gk15(f, a, b, nf) {
+    const c = (a + b) / 2, hl = (b - a) / 2;
+    const fc = f(c); const dim = fc.length;
+    const I = fc.map(v => v * WGK[7]), Ig = fc.map(v => v * WG[3]);
+    for (let j = 0; j < 7; j++) {
+      const x = hl * XGK[j]; const f1 = f(c - x), f2 = f(c + x);
+      for (let d = 0; d < dim; d++) { const s = f1[d] + f2[d]; I[d] += WGK[j] * s; if (j % 2 === 1) Ig[d] += WG[(j - 1) / 2] * s; }
+    }
+    let err = 0; for (let d = 0; d < dim; d++) { I[d] *= hl; Ig[d] *= hl; err = Math.max(err, Math.abs(I[d] - Ig[d])); }
+    nf.n += 15;
+    return { I, err };
+  }
+  function quad(f, a, b, atol, rtol, maxIntervals, n0) {
+    maxIntervals = maxIntervals || 4000; rtol = rtol || 1e-8; n0 = n0 || 10;
+    const nf = { n: 0 };
+    let ivs = [];
+    for (let i = 0; i < n0; i++) { const x0 = a + (b - a) * i / n0, x1 = a + (b - a) * (i + 1) / n0; const r = gk15(f, x0, x1, nf); ivs.push({ a: x0, b: x1, I: r.I, err: r.err }); }
+    const dim = ivs[0].I.length;
+    const total = () => { const I = new Array(dim).fill(0); let err = 0; for (const iv of ivs) { for (let d = 0; d < dim; d++) I[d] += iv.I[d]; err += iv.err; } return { I, err }; };
+    while (ivs.length < maxIntervals) {
+      const t = total();
+      let mx = 0; for (let d = 0; d < dim; d++) mx = Math.max(mx, Math.abs(t.I[d]));
+      if (t.err <= Math.max(atol, rtol * mx)) return { I: t.I, err: t.err, nf: nf.n };
+      // bisect the worst interval
+      let wi = 0; for (let i = 1; i < ivs.length; i++) if (ivs[i].err > ivs[wi].err) wi = i;
+      const iv = ivs[wi]; const mid = (iv.a + iv.b) / 2;
+      const r1 = gk15(f, iv.a, mid, nf), r2 = gk15(f, mid, iv.b, nf);
+      ivs[wi] = { a: iv.a, b: mid, I: r1.I, err: r1.err }; ivs.push({ a: mid, b: iv.b, I: r2.I, err: r2.err });
+      if (iv.err === 0 && r1.err === 0 && r2.err === 0) break;
+    }
+    const t = total(); return { I: t.I, err: t.err, nf: nf.n };
+  }
+  // integral over [0, inf) via z = t/(1-t)
+  function quadInf(g, atol, rtol) {
+    const f = (t) => { if (t >= 1) return g(Infinity).map(() => 0); const z = t / (1 - t); const w = 1 / ((1 - t) * (1 - t)); return g(z).map(v => (isFinite(v) ? v * w : 0)); };
+    return quad(f, 0, 1, atol, rtol, 1500);
+  }
+  // ---------------- the ratio engines ----------------
+  function jexp(a) { return jsc(jexp0(a), cexp(a[0])); }
+  function scale(h) {
+    const Lt = h([[0, 0]], [[0, 0], [1, 0], [0, 0]]);
+    const Ev = Lt[1][1], Vv = -2 * Lt[2][0];
+    const sdv = isFinite(Vv) ? Math.sqrt(Math.max(Vv, 0)) : Infinity;   // Var v may overflow (explosive region)
+    const Ls = h([[0, 0], [1, 0], [0, 0]], [[0, 0]]);
+    const Eu = Ls[1][1], Vu = -2 * Ls[2][0];
+    return { Eu, Ev, sdv, Vu };
+  }
+  const factorial = (m) => { let r = 1; for (let i = 2; i <= m; i++) r *= i; return r; };
+  // int_0^b f decade by decade (the algebraic tails of the limits along x = -c need every scale resolved)
+  function quadDecades(f, b, atol, rtol) {
+    const ends = []; for (let k = 1; Math.pow(10, k) < b / 3; k++) ends.push(Math.pow(10, k)); ends.push(b);
+    let I = 0, err = 0, a = 0, small = 0;
+    for (const e of ends) {
+      const r = quad(f, a, e, atol / 10, rtol, 2000); I += r.I[0]; err += r.err; a = e;
+      // the contributions of successive decades decrease at least like 10^{-1/2} (algebraic tails) and usually much
+      // faster: two consecutive negligible decades mean the rest is negligible as well
+      small = (Math.abs(r.I[0]) + r.err <= atol / 20) ? small + 1 : 0;
+      if (small >= 2) break;
+    }
+    return { I, err };
+  }
+  // Slowly decaying tails (the limits along x = -c): the integral is taken over [0,S] and completed by the asymptotic
+  // expansion int_S^inf g(s) e^{-i w0 s} ds = e^{-i w0 S} sum_k g^(k)(S)/(i w0)^(k+1) in the derivatives of the
+  // slowly varying g = phi e^{i w0 s} (/s for the cdf), from a jet of order Kt at S; opts = {S, w0} from limopts.
+  const Kt = 8;
+  function cdf(h, r, sc0, tol, opts) {
+    tol = tol || 1e-8; opts = opts || {};
+    const { Eu, Ev, sdv, Vu } = sc0 || scale(h);
+    let vv = Vu + r * r * sdv * sdv; if (!isFinite(vv)) vv = Vu;
+    const sc = 1 / Math.sqrt(vv);
+    const integ = (z) => { if (!(z > 0) || !isFinite(z)) return 0; const s = z * sc; const L = h([[s, 0]], [[-r * s, 0]])[0]; const y = Math.exp(L[0]) * Math.sin(L[1]) / z; return isFinite(y) ? y : (L[0] < -700 ? 0 : NaN); };
+    // the removable singularity at the origin: the Taylor polynomial of Im phi(s,-rs)/z in z, exact coefficients from a jet
+    const Kp = 8, xj = zjet(Kp); xj[1] = [sc, 0];
+    const phj = jexp(h(xj, jsc(xj, -r)));
+    const pp = []; for (let k = 1; k <= Kp; k++) pp.push(phj[k][1]);
+    let z0 = 0.1;
+    for (let kk = 0; kk < 40; kk++) { if (Math.abs(pp[Kp - 1]) * Math.pow(z0, Kp - 1) + Math.abs(pp[Kp - 2]) * Math.pow(z0, Kp - 2) <= tol / 100) break; z0 /= 2; }
+    const poly = (z) => { let y = 0; for (let k = Kp - 1; k >= 0; k--) y = y * z + pp[k]; return y; };
+    const dy = Math.abs(poly(z0) - integ(z0));                 // rounding noise of the characteristic function
+    const tq = Math.max(tol, 3 * dy), rq = Math.max(tol, tq);
+    const patched = (z) => [z < z0 ? poly(z) : integ(z)];
+    let I, err, T = 0, et = 0;
+    if (opts.S) {
+      let S = opts.S;
+      for (let dbl = 0; dbl < 6; dbl++) {
+        const lam = 1 / sc, x = zjet(Kt); x[1] = [lam, 0]; const sj = x.slice(); sj[0] = [S, 0];
+        const ph = jexp(h(sj, jsc(sj, -r)));
+        const g = jd(jm(ph, jexp(jsc(x, [0, opts.w0]))), sj);
+        let sum = [0, 0];
+        for (let k = 0; k <= Kt; k++) { const gk = cscale(g[k], factorial(k) / Math.pow(lam, k)); const term = cdiv(gk, cpow([0, opts.w0], k + 1)); if (k < Kt) sum = cadd(sum, term); else et = cabs(term); }
+        T = sum[1];
+        if (et <= tol / 10 || dbl === 5) break; S *= 2;
+      }
+      const res = quadDecades(patched, S / sc, tq, rq); I = res.I; err = res.err;
+    } else {
+      const res = quadInf(patched, tq, rq); I = res.I[0]; err = res.err;
+    }
+    const F = 0.5 - (I + T) / Math.PI, e = (err + et + 3 * dy) / Math.PI;
+    const Fc = (F < 0 && F >= -e - tol) ? 0 : (F > 1 && F <= 1 + e + tol) ? 1 : F;
+    return opts.full ? { F: Fc, err: e, raw: F } : Fc;
+  }
+  function pdf(h, r, sc0, tol, opts) {
+    tol = tol || 1e-8; opts = opts || {};
+    const { Ev, sdv, Vu } = sc0 || scale(h);
+    let vv = Vu + r * r * sdv * sdv; if (!isFinite(vv)) vv = Vu;
+    const sc = 1 / Math.sqrt(vv);
+    const integ = (z) => { if (!(z > 0) || !isFinite(z)) return [0]; const s = z * sc; const L = h([[s, 0]], [[-r * s, 0], [1, 0]]); const e = cexp(L[0]); const y = sc * cmul(e, L[1])[1]; return [isFinite(y) ? y : (L[0][0] < -700 ? 0 : NaN)]; };
+    // rounding noise from second differences on a fine grid
+    const sd2 = (z1) => { const y = []; for (let k = 0; k < 5; k++) y.push(integ(z1 * (1 + 1e-6 * k))[0]); const d = []; for (let k = 0; k < 3; k++) d.push(y[k] - 2 * y[k + 1] + y[k + 2]); const m = (d[0] + d[1] + d[2]) / 3; return Math.sqrt(((d[0] - m) ** 2 + (d[1] - m) ** 2 + (d[2] - m) ** 2) / 2) / Math.sqrt(6); };
+    let dy = Math.max(sd2(0.3), sd2(1)); if (!isFinite(dy)) dy = 0;
+    const fs = Math.max(1, Ev / Math.sqrt(Math.max(Vu, 1e-300)));   // the scale of the density; tol is relative to it
+    const tq = Math.max(tol * fs, 3 * dy), rq = Math.max(tol, tq / fs);
+    let I, err, T = 0, et = 0;
+    if (opts.S) {
+      let S = opts.S;
+      for (let dbl = 0; dbl < 6; dbl++) {
+        // H(s) = phi_t(s,-rs); its s-derivatives at S from jets of x -> phi(S + lam x, -r(S + lam x) + xi x) at K+1 points xi
+        // on a circle: the xi^1 coefficient of the k-th derivative is k lam^(k-1) H^(k-1)(S)
+        const lam = 1 / sc, rho = 1 / Ev, M = Kt + 1;
+        const x = zjet(Kt); x[1] = [1, 0]; const sj = jsc(x, lam); sj[0] = [S, 0];
+        const a1 = []; for (let k = 0; k <= Kt; k++) a1.push([0, 0]);
+        for (let mm = 0; mm < M; mm++) {
+          const xi = [rho * Math.cos(2 * Math.PI * mm / M), rho * Math.sin(2 * Math.PI * mm / M)];
+          const ph = jexp(h(sj, jadd(jsc(sj, -r), jsc(x, xi))));
+          for (let k = 0; k <= Kt; k++) a1[k] = cadd(a1[k], cdiv(cscale(ph[k], factorial(k) / M), xi));
+        }
+        const H = []; for (let k = 1; k <= Kt; k++) H.push(cscale(a1[k], 1 / (k * Math.pow(lam, k - 1))));   // H^(0..Kt-1)
+        const iw = [0, opts.w0]; let sum = [0, 0];
+        const binom = (nn, kk) => factorial(nn) / (factorial(kk) * factorial(nn - kk));
+        for (let k = 0; k < Kt; k++) { let acc = [0, 0]; for (let l = 0; l <= k; l++) acc = cadd(acc, cscale(cmul(cpow(iw, k - l), H[l]), binom(k, l))); const term = cdiv(acc, cpow(iw, k + 1)); if (k < Kt - 1) sum = cadd(sum, term); else et = cabs(term); }
+        T = sum[1];
+        if (et <= tol / 10 || dbl === 5) break; S *= 2;
+      }
+      const res = quadDecades(integ, S / sc, tq, rq); I = res.I; err = res.err;
+    } else {
+      const res = quadInf(integ, tq, rq); I = res.I[0]; err = res.err;
+    }
+    const f = (I + T) / Math.PI, e = (err + et + 3 * dy) / Math.PI;
+    const fc = (f < 0 && f >= -e - tol) ? 0 : f;
+    return opts.full ? { f: fc, err: e, raw: f } : fc;
+  }
+  function icdf(h, pr, sc0, tol, opts) {
+    if (!(pr > 0 && pr < 1)) throw new Error('probabilities must be in (0,1)');
+    const S = sc0 || scale(h);
+    const sd0 = Math.sqrt(Math.max(S.Vu, 0)) / S.Ev + Math.abs(S.Eu) / S.Ev;
+    const g = (x) => cdf(h, x, S, tol, opts) - pr;
+    const c0 = S.Eu / S.Ev; let d = 2 * sd0, lo = c0 - d, hi = c0 + d, glo = g(lo), ghi = g(hi), it = 0;
+    while (glo > 0 && it < 60) { lo -= d; d *= 2; glo = g(lo); it++; }
+    while (ghi < 0 && it < 120) { hi += d; d *= 2; ghi = g(hi); it++; }
+    if (!(isFinite(glo) && isFinite(ghi)) || glo > 0 || ghi < 0) throw new Error('could not bracket the quantile');
+    // Brent's method
+    let a = lo, b = hi, fa = glo, fb = ghi, c = a, fc = fa, dd = b - a, e = dd;
+    const xtol = 1e-11 * sd0;
+    for (let it = 0; it < 200; it++) {
+      if (fb * fc > 0) { c = a; fc = fa; dd = b - a; e = dd; }
+      if (Math.abs(fc) < Math.abs(fb)) { a = b; b = c; c = a; fa = fb; fb = fc; fc = fa; }
+      const tol1 = 2 * 2.2e-16 * Math.abs(b) + 0.5 * xtol, xm = 0.5 * (c - b);
+      if (Math.abs(xm) <= tol1 || fb === 0) return b;
+      if (Math.abs(e) >= tol1 && Math.abs(fa) > Math.abs(fb)) {
+        const s = fb / fa; let pp, qq;
+        if (a === c) { pp = 2 * xm * s; qq = 1 - s; } else { const q1 = fa / fc, r = fb / fc; pp = s * (2 * xm * q1 * (q1 - r) - (b - a) * (r - 1)); qq = (q1 - 1) * (r - 1) * (s - 1); }
+        if (pp > 0) qq = -qq; pp = Math.abs(pp);
+        if (2 * pp < Math.min(3 * xm * qq - Math.abs(tol1 * qq), Math.abs(e * qq))) { e = dd; dd = pp / qq; } else { dd = xm; e = dd; }
+      } else { dd = xm; e = dd; }
+      a = b; fa = fb;
+      b += (Math.abs(dd) > tol1) ? dd : (xm > 0 ? tol1 : -tol1);
+      fb = g(b);
+    }
+    return b;
+  }
+  // moments E[(u/v - c)^j], j = 1..k, all at once (Sawa's representation, integration in u = log v)
+  function moments(h, k, c, sc0, tol) {
+    tol = tol || 1e-11;
+    const { Eu, Ev, Vu } = sc0 || scale(h);
+    // the pair is standardized (u/sd(u), v/E[v]) so that the tolerance refers to O(1) moments; a center far from
+    // E[u]/E[v] is handled by computing about mu0 = E[u]/E[v] and shifting with the binomial expansion
+    const su = (Vu > 0 && isFinite(Vu)) ? Math.sqrt(Vu) : Math.max(Math.abs(Eu), 1);
+    if (!(Ev > 0 && isFinite(Ev))) throw new Error('E[v] is not a positive finite number');
+    const ht = (sj, tj) => h(jsc(sj, 1 / su), jsc(tj, 1 / Ev));
+    let ct = c * Ev / su; const mu0 = Eu / su, shift = Math.abs(ct - mu0) > 3, ct0 = ct; if (shift) ct = mu0;
+    const fact = [1, 1, 2, 6, 24, 120, 720, 5040, 40320];
+    const binom = (nn, kk) => fact[nn] / (fact[kk] * fact[nn - kk]);
+    const lEv = Math.log(Ev);
+    const integ = (u) => {
+      const v = Math.exp(u);
+      // the jet variable is rescaled by rho = sqrt(1 + v), the inverse of the spread of the standardized numerator
+      // under the tilt exp(-s2 v): at the second scale (v of order E[v], phi^{2n} in the explosive region) that spread
+      // is of order |phi|^{-n}, and without the rescaling the coefficient of order j of the jet, of order |phi|^{-jn},
+      // underflows (orders 3 and 4 beyond phi^{2n} of about 1e200 and 1e150); the factor rho^j is removed in logarithms
+      const rho = Math.sqrt(1 + v), lrho = Math.log(rho);
+      const sj = zjet(k); sj[1] = [0, -rho];
+      const tj = zjet(k); tj[0] = [0, v]; tj[1] = [0, ct * rho];
+      const L = ht(sj, tj);
+      // log E exp(-s2 v) is real and <= 0; far beyond the second scale (u > log E[v] + 10) the trend assembly with a
+      // drift in the trend can lose all digits there, where the integrand is negligible, and is then not used
+      if (u > lEv + 10 && !(L[0][0] <= 1e-8 && Math.abs(L[0][1]) <= 1e-6 * (1 + Math.abs(L[0][0])) && L.every(c => isFinite(c[0]) && isFinite(c[1])))) return new Array(k).fill(0);
+      const kap = [null]; for (let i = 1; i <= k; i++) kap[i] = cscale(L[i], fact[i]);
+      const D = [[1, 0]];
+      for (let p = 1; p <= k; p++) { let acc = [0, 0]; for (let i = 1; i <= p; i++) acc = cadd(acc, cscale(cmul(kap[i], D[p - i]), binom(p - 1, i - 1))); D[p] = acc; }
+      const out = new Array(k);
+      // the logarithms of the derivative factor and of the weight are combined before exponentiating, so that a huge
+      // D against a tiny exp(Re L) neither overflows nor underflows before the moment itself does (explosive region)
+      for (let j = 1; j <= k; j++) { const Dj = D[j][0]; const g = Dj === 0 ? 0 : Math.sign(Dj) * Math.exp(j * u + L[0][0] + Math.log(Math.abs(Dj)) - j * lrho - Lam[j - 1]); out[j - 1] = isFinite(g) ? g : NaN; }
+      if (wantLog) { for (let j = 1; j <= k; j++) { const Dj = D[j][0]; out[j - 1] = Dj === 0 ? -Infinity : j * u + L[0][0] + Math.log(Math.abs(Dj)) - j * lrho; } }
+      return out;
+    };
+    // in the explosive region the moments of the standardized ratio grow like |phi|^{(j-1)n} (they are dominated by
+    // the far tail, where phihat - phi is of order one) and the integral of order j overflows for large j n log|phi|;
+    // each order is therefore divided by the peak of its integrand (in logarithms), when that peak exceeds e^50, and
+    // the factor is restored in logarithms at the end (elsewhere Lam = 0 and nothing changes)
+    let Lam = new Array(k).fill(0), wantLog = true;
+    { const ub0 = Math.min(Math.log(Number.MAX_VALUE) - 4, Math.max(40, lEv + 40)), mx = new Array(k).fill(-Infinity);
+      for (let i = 0; i <= 400; i++) { const lg = integ(-40 + (ub0 + 40) * i / 400); for (let j = 0; j < k; j++) if (isFinite(lg[j]) && lg[j] > mx[j]) mx[j] = lg[j]; }
+      Lam = mx.map(v => v > 50 ? v : 0); wantLog = false; }
+    // the second scale of the integrand, where the decay s2^{-rank(v)/2} sets in, is at s2 of order one on the
+    // original scale, u = log E[v] (in the explosive region 2n log|phi| beyond the first); the window reaches 40
+    // beyond it and is widened while the omitted tails, estimated from the decay of the integrand over the last
+    // two units at each end, are not negligible (near the moment-existence boundary the decay rate is only 1/2)
+    const tailEst = (g0, g2) => { if (g0 === 0) return 0; const rate = Math.log(g2 / g0) / 2; return (isFinite(rate) && rate > 0) ? 2 * g0 / rate : Infinity; };
+    let ua = -40, ub = Math.min(Math.log(Number.MAX_VALUE) - 4, Math.max(40, Math.log(Ev) + 40));
+    for (let ext = 0; ext < 32; ext++) {
+      const ga = integ(ua), ga2 = integ(ua + 2), gb = integ(ub), gb2 = integ(ub - 2); let ta = 0, tb = 0;
+      for (let j = 0; j < k; j++) { ta = Math.max(ta, tailEst(Math.abs(ga[j]), Math.abs(ga2[j]))); tb = Math.max(tb, tailEst(Math.abs(gb[j]), Math.abs(gb2[j]))); }
+      if (ta <= tol / 10 && tb <= tol / 10) break;
+      const oa = ua, ob = ub;
+      if (ta > tol / 10) ua = Math.max(-700, ua - 20);
+      if (tb > tol / 10) ub = Math.min(Math.log(Number.MAX_VALUE) - 4, ub + 20);
+      if (ua === oa && ub === ob) break;
+    }
+    const res = quad(integ, ua, ub, tol, tol, 6000, Math.max(40, Math.ceil((ub - ua) / 2)));
+    // the scale factor (sd(u)/E[v])^j is of order |phi|^{-jn} in the explosive region and underflows long before the
+    // moment itself (of order |phi|^{-n}) does: combine the logarithms
+    const lsc = Math.log(su / Ev);
+    let m = res.I.map((v, j) => v === 0 ? 0 : Math.sign(v) * Math.exp(Math.log(Math.abs(v)) + Lam[j] - Math.log(fact[j]) + (j + 1) * lsc));
+    if (shift) {
+      const d = (mu0 - ct0) * (su / Ev); const ms = [1].concat(m), out = [];
+      for (let j = 1; j <= k; j++) { let acc = 0; for (let i = 0; i <= j; i++) acc += binom(j, i) * ms[i] * Math.pow(d, j - i); out.push(acc); }
+      m = out;
+    }
+    return m;
+  }
+  // ---------------- limiting distributions (local to unity, phi = 1 + c/n) ----------------
+  function jcos(a) { // cos and sin of a jet
+    const K = a.length - 1, c = zjet(K), sn = zjet(K);
+    const a0 = a[0]; const e1 = cexp([-a0[1], a0[0]]), e2 = cexp([a0[1], -a0[0]]); // e^{i a0}, e^{-i a0}
+    c[0] = cscale(cadd(e1, e2), 0.5); sn[0] = cdiv(csub(e1, e2), [0, 2]);
+    for (let k = 1; k <= K; k++) { let ac = [0, 0], as = [0, 0]; for (let j = 1; j <= k; j++) { ac = csub(ac, cscale(cmul(a[j], sn[k - j]), j / k)); as = cadd(as, cscale(cmul(a[j], c[k - j]), j / k)); } c[k] = ac; sn[k] = as; }
+    return [c, sn];
+  }
+  function jser(cf, z) { let y = zjet(z.length - 1); for (let k = cf.length - 1; k >= 0; k--) { y = jm(y, z); y[0] = cadd(y[0], [cf[k], 0]); } return y; }
+  const fact = (m) => { let r = 1; for (let i = 2; i <= m; i++) r *= i; return r; };
+  function jtrig(zeta) {
+    const z0 = zeta[0];
+    if (cabs(z0) >= 4) {
+      const th = jsq(zeta); const [cz, sz] = jcos(th); const th2 = jsc(th, 0.5); const [ch, sh] = jcos(th2);
+      const C = cz, S = jd(sz, th), Ch = ch, Sh = jd(sh, th2), ShmCh = jd(jsub(Sh, ch), zeta);
+      return { C, S, Sh, Ch, ShmCh };
+    }
+    const KM = 26; const cb = [], cs = [], csh = [], cch = [], cd = [];
+    for (let k = 0; k <= KM; k++) { const sg = (k % 2 === 0) ? 1 : -1; cb.push(sg / fact(2 * k)); cs.push(sg / fact(2 * k + 1)); csh.push(sg / (Math.pow(4, k) * fact(2 * k + 1))); cch.push(sg / (Math.pow(4, k) * fact(2 * k))); const kk = k + 1; cd.push(((kk % 2 === 0) ? -1 : 1) * 2 * kk / (Math.pow(4, kk) * fact(2 * kk + 1))); }
+    return { C: jser(cb, zeta), S: jser(cs, zeta), Sh: jser(csh, zeta), Ch: jser(cch, zeta), ShmCh: jser(cd, zeta) };
+  }
+  function argcos(z) { // continuous argument of cos(theta) as a function of zeta = theta^2 (paper, Theorem 2 of the limits)
+    const th = csqrt(z); const tr = th[0], ti = th[1];
+    // principal argument of cos th = cosh(ti)cos(tr) - i sinh(ti)sin(tr), scaled by 2e^{-|ti|} so that it cannot overflow
+    const e = Math.exp(-2 * Math.abs(ti));
+    const cth = [Math.cos(tr) * (1 + e), -Math.sin(tr) * Math.sign(ti) * (1 - e)];
+    let a = carg(cth); const target = -Math.sign(ti) * tr;
+    return a + 2 * Math.PI * Math.round((target - a) / (2 * Math.PI));
+  }
+  // continuous phase of tau4/theta^2 = 4 W rho_inf S_inf as the sum of the principal arguments of
+  // W = (theta/2)cot(theta/2) (Re W > 0), rho_inf (limit of the rank-one factor, off the negative axis)
+  // and S_inf (limit of the border Schur complement, Re >= 0); see the paper, Section 6.2.  D2 = tan(theta/2)/theta, zc0 = theta^2 + c^2
+  const D1coef = (() => { const KM = 40, sn = [], cs = [], a = []; for (let k = 0; k <= KM; k++) { const sg = (k % 2 === 0) ? 1 : -1; sn.push(sg / fact(2 * k + 1)); cs.push(sg / fact(2 * k)); }
+    for (let i = 0; i <= KM; i++) { let acc = sn[i]; for (let j = 1; j <= i; j++) acc -= cs[j] * a[i - j]; a.push(acc); } return a; })();
+  function argtau4(z0, zc0, D2, T0) {
+    let D1;
+    if (cabs(z0) < 4) { const w = cscale(z0, 0.25); let d = [0, 0]; for (let i = D1coef.length - 1; i >= 1; i--) d = cadd(cmul(d, w), [D1coef[i] / 4, 0]); D1 = d; }
+    else D1 = cdiv(csub(cscale(D2, 2), [1, 0]), z0);
+    const rho = cadd([1, 0], cmul(zc0, D1));
+    const Sinf = cdiv(cmul(T0, D2), cscale(rho, 2));
+    const W = cdiv([1, 0], cscale(D2, 2));
+    return carg(W) + carg(rho) + carg(Sinf);
+  }
+  function nquot(zeta, sj, c, tau1, tau2) { // N/zeta by series, |zeta| < 4 only
+    const K = zeta.length - 1;
+    const tau10 = jadd(tau1, jsc(zeta, 2 * c)), tau20 = jsub(tau2, zeta);
+    const KM = 26; const a = [], b = [], s = [];
+    for (let k = 0; k <= KM; k++) { const sg = (k % 2 === 0) ? 1 : -1; a.push(2 * sg / fact(2 * k + 2)); b.push(sg / fact(2 * k)); s.push(sg / fact(2 * k + 1)); }
+    let acc = zjet(K);
+    for (let kk = KM; kk >= 1; kk--) {
+      const nk = jc(jadd(jsc(tau10, 2 * a[kk]), jsc(tau20, 4 * s[kk])), -4 * c * a[kk - 1] - 4 * c * c * b[kk] + 4 * s[kk - 1]);
+      acc = jadd(jm(acc, zeta), nk);
+    }
+    return acc;
+  }
+  function logp(a) { return jlogc(a); }   // log with the principal argument of the constant term
+  // vartheta - c without cancellation (vartheta = sqrt(-theta^2), Re >= 0): for c >= 0 as -zc/(vartheta + c)
+  function vtmc(vt, zc, c) { return c >= 0 ? jd(jsc(zc, -1), jc(vt, c)) : jc(vt, -c); }
+  // vartheta - om (om = c + i t1) without cancellation: on the explosive side (c > 0, scale t1 = O(e^-c),
+  // t2 = O(e^-2c)) vartheta - c and i t1 are O(e^-c) and their difference O(e^-2c); there it is formed as
+  // tau0/(vartheta + om) (vartheta^2 - om^2 = tau0) when |vartheta + om| > |vartheta - om|
+  function vtmo(vt, zc, c, om, sj, tau0) {
+    const nu = jsub(vtmc(vt, zc, c), jsc(sj, [0, 1]));
+    if (c > 0) { const vpo = jadd(vt, om); if (cabs(vpo[0]) > cabs(nu[0])) return jd(tau0, vpo); }
+    return nu;
+  }
+  function limlogcf(sj, tj, c, cas, par) {
+    // For |theta^2| < 4 the even functions of theta are evaluated by series; elsewhere through vartheta = (-theta^2)^{1/2}
+    // and E = e^{-vartheta}, in forms in which no O(1) quantity is a difference of quantities of order e^{vartheta}
+    // (the naive assembly loses a factor e^{2c} at the origin for c > 0); see ar1lim_logcf.m
+    const K = Math.max(sj.length, tj.length) - 1; sj = pad(sj, K); tj = pad(tj, K);
+    const om = jc(jsc(sj, [0, 1]), c);
+    const zc = jsub(jsc(tj, [0, 2]), jsc(sj, [0, 2 * c]));              // theta^2 + c^2
+    const zeta = jc(zc, -c * c);
+    const tau0 = jsub(jm(sj, sj), jsc(tj, [0, 2]));
+    const small = cabs(zeta[0]) < 4;
+    let L;
+    if (cas[1] === 'T') return trendlim(sj, tj, c, cas, par, om, zc, tau0, cabs(zeta[0]) < 16);
+    if (cas[1] === 'K') {
+      let lC, lg, Kf;
+      if (small) {
+        const { C, S } = jtrig(zeta);
+        const f = jsub(C, jm(om, S));
+        const g = jc(jsc(jd(jm(om, S), C), -1), 1);
+        lC = jlog0(C); lC[0] = [Math.log(cabs(C[0])), argcos(zeta[0])];
+        lg = logp(g);
+        Kf = jsc(jd(jm(tau0, S), jsc(f, 2)), -1);
+      } else {
+        const vt = jsq(jsc(zeta, -1));
+        const E2 = jexp(jsc(vt, -2));
+        const nu = vtmo(vt, zc, c, om, sj, tau0);
+        const Bk = jadd(nu, jm(E2, jadd(vt, om)));   // (vartheta - om) + E^2 (vartheta + om)
+        const oe = jc(E2, 1);
+        lC = jc(jadd(vt, jlog0(oe)), -Math.log(2)); lC[0] = [vt[0][0] + Math.log(cabs(oe[0])) - Math.log(2), argcos(zeta[0])];
+        lg = logp(jd(Bk, jm(vt, oe)));
+        Kf = jsc(jd(jm(tau0, jc(jsc(E2, -1), 1)), jsc(Bk, 2)), -1);
+      }
+      L = jsub(jsc(om, -0.5), jsc(jadd(lC, lg), 0.5));
+      if (cas[0] === 'D') L = jadd(L, jsc(Kf, par * par));
+      else L = jsub(L, jsc(logp(jc(jsc(Kf, 1 / c), 1)), 0.5));
+    } else {
+      const tau1 = jsc(jadd(jadd(jm(sj, sj), jsc(sj, [0, c * c])), jsc(tj, [0, -2 * c])), 2);
+      const tau2 = jc(jsub(jsc(sj, [0, (c - 2) * c]), tau0), c * c * c);
+      let lS, T0, Q, D2;
+      if (small) {
+        const { C, S, Sh, ShmCh } = jtrig(zeta);
+        const Nz = nquot(zeta, sj, c, tau1, tau2);
+        T0 = jd(Nz, jm(Sh, Sh));
+        lS = logp(Sh);
+        Q = jsc(jd(jm(jm(tau0, ShmCh), Sh), Nz), 2);
+        D2 = cdiv(cmul(Sh[0], Sh[0]), cscale(S[0], 2));
+      } else {
+        const vt = jsq(jsc(zeta, -1));
+        const E = jexp(jsc(vt, -1)), E2 = jm(E, E);
+        const nu = vtmo(vt, zc, c, om, sj, tau0);   // vartheta - c = nu + i s: no O(e^-c) terms cancel
+        const Q0 = jadd(jadd(jsc(jm(sj, sj), (2 - c) * (1 + c)), jsc(tj, [0, 2 * c * (c - 1)])), jsub(jm(nu, tau2), jsc(jm(sj, tau0), [0, 1])));
+        const vt2 = jm(vt, vt);
+        const Den = jadd(jsub(Q0, jsc(jm(E, tau1), 2)), jm(E2, jsub(jsub(tau1, jsc(vt2, c * c)), jm(tau2, vt))));
+        const omE = jc(jsc(E, -1), 1);
+        T0 = jsc(jd(Den, jm(vt2, jm(omE, omE))), -2);
+        lS = jsub(jadd(jsc(vt, 0.5), jlog0(omE)), jlog0(vt));
+        const Sh0 = cmul(cexp([0, vt[0][1] / 2]), cdiv(omE[0], vt[0]));
+        lS[0] = [vt[0][0] / 2 + Math.log(cabs(omE[0])) - Math.log(cabs(vt[0])), carg(Sh0)];
+        const br = jsub(jc(jsc(vt, -0.5), 1), jm(E, jc(jsc(vt, 0.5), 1)));
+        Q = jd(jm(jm(tau0, br), omE), Den);
+        D2 = cdiv(omE[0], cmul(cadd(E[0], [1, 0]), vt[0]));
+      }
+      const lT = jlog0(T0); lT[0] = [Math.log(cabs(T0[0])), argtau4(zeta[0], zc[0], D2, T0[0])];
+      L = jc(jsub(jsub(jsc(om, -0.5), lS), jsc(lT, 0.5)), Math.log(2));
+      if (cas[0] === 'D') L = jsub(L, jsc(Q, par * par));
+      else L = jsub(L, jsc(logp(jc(jsc(Q, -c), 1)), 0.5));
+    }
+    return L;
+  }
+  // Cases DT and ST of the limit (Online Supplement, Section S7.5): with vartheta^2 = c^2 - zc, E = e^{-vartheta},
+  // h1 = (vartheta-2) + E(vartheta+2), h2 = -(vartheta^2-6vartheta+12) + E(vartheta^2+6vartheta+12),
+  // psi = exp(-(om+vartheta)/2) [D3/(2 vartheta^8)]^{-1/2} exp(varkappa^2 tau0 h1 h2/(2 D3)); see ar1lim_logcf.m (TRENDLIM)
+  function bpoly(u, c, sg) { // B0(vartheta) expanded about vartheta = c (sg = 1) or -c (sg = -1), u = vartheta -/+ c
+    const c4 = c ** 4 - 8 * c ** 3 + 32 * c * c - 72 * c + 72;
+    let b0, b1, b2;
+    if (sg > 0) {
+      b0 = c * (c - 2) ** 2 * (c * c - 6 * c + 12) ** 2;
+      b1 = 3 * c ** 6 - 40 * c ** 5 + 232 * c ** 4 - 744 * c ** 3 + 1344 * c * c - 1152 * c + 288;
+      b2 = 3 * c ** 5 - 32 * c ** 4 + 152 * c ** 3 - 408 * c * c + 576 * c - 288;
+    } else {
+      b0 = -(c ** 7);
+      b1 = 3 * c ** 6 - 8 * c ** 5 + 8 * c ** 4 + 24 * c ** 3 - 96 * c * c + 288;
+      b2 = -3 * c ** 5 + 16 * c ** 4 - 40 * c ** 3 + 24 * c * c + 144 * c - 288;
+    }
+    return jc(jm(jc(jm(jc(jsc(u, c4), b2), u), b1), u), b0);
+  }
+  function trendser(zv, c) { // series in zv = vartheta^2 (|zv| < 16) of e^{vt/2}h1/vt^3, e^{vt/2}h2/vt^5, e^{vt}G/vt^8
+    const KM = 40, a1 = [], a2 = [], ag = [];
+    for (let j = 1; j <= KM + 2; j++) a1.push(4 * j / (Math.pow(4, j) * fact(2 * j + 1)));
+    for (let j = 2; j <= KM + 3; j++) a2.push((12 / fact(2 * j) - 4 / fact(2 * j - 1) - 12 / fact(2 * j + 1)) / Math.pow(4, j));
+    const gam = [24 * c * c * (c - 2) * (c * c - 3 * c + 6), -24 * c * c * (c - 2) * (c * c - 3 * c + 6),
+      8 * (c ** 5 - 4 * c ** 4 + 6 * c ** 3 + 6 * c * c - 36 * c + 36), -(c ** 5) + 24 * c ** 3 - 120 * c * c + 288 * c - 288,
+      c ** 4 - 8 * c ** 3 + 32 * c * c - 72 * c + 72];
+    for (let k = 4; k <= KM + 4; k++) { let acc = 0; for (let j = 0; j <= 4; j++) acc += 2 * gam[j] / fact(2 * k - j); ag.push(acc); }
+    const z0 = zv[0]; let ch = [0, 0], shc = [0, 0];
+    for (let k = KM; k >= 0; k--) { ch = cadd(cmul(ch, z0), [1 / (Math.pow(4, k) * fact(2 * k)), 0]); shc = cadd(cmul(shc, z0), [1 / (Math.pow(2, 2 * k + 1) * fact(2 * k + 1)), 0]); }
+    return { f1: jser(a1, zv), f2: jser(a2, zv), Ge: jser(ag, zv), ch, shc };
+  }
+  function trendlim(sj, tj, c, cas, par, om, zc, tau0, small) {
+    const K = sj.length - 1;
+    const is = jsc(sj, [0, 1]);
+    const Kb = jadd(jsc(tau0, -4 * (c * c - 3 * c + 3)), jsc(is, c * (c - 2) * (c * c - 6 * c + 12)));
+    const zv = jc(jsc(zc, -1), c * c);                                // vartheta^2
+    let Lr, Q, g11, gll;
+    if (small) {
+      const { f1, f2, Ge, ch, shc } = trendser(zv, c);
+      const f12 = jm(f1, f2);
+      const Psi = jadd(jm(f12, Kb), Ge);
+      Lr = jsub(jsc(om, -0.5), jsc(logp(Psi), 0.5)); Lr[0] = cadd(Lr[0], [0.5 * Math.log(2), 0]);
+      Q = jd(jm(tau0, f12), jsc(Psi, 2));
+      g11 = cdiv(f1[0], cscale(ch, 2)); gll = cdiv(cscale(f2[0], -1), cscale(shc, 24));
+    } else {
+      const vt = jsq(zv);
+      const E = jexp(jsc(vt, -1)), E2 = jm(E, E);
+      let vmc, vpc, Bp, Bm;
+      if (c >= 0) { vmc = jd(jsc(zc, -1), jc(vt, c)); vpc = jc(vt, c); Bp = bpoly(vmc, c, 1); Bm = bpoly(jsc(vmc, -1), c, -1); }
+      else { vpc = jd(jsc(zc, -1), jc(vt, -c)); vmc = jc(vt, -c); Bp = bpoly(vpc, c, -1); Bm = bpoly(jsc(vpc, -1), c, 1); }
+      const B1 = jc(jsc(zv, (c - 3) * (c * c - 4 * c + 6)), -6 * (c ** 3 - 5 * c * c + 12 * c - 12));
+      const h1 = jadd(jc(vt, -2), jm(E, jc(vt, 2)));
+      const h2 = jadd(jsc(jc(jsub(zv, jsc(vt, 6)), 12), -1), jm(E, jc(jadd(zv, jsc(vt, 6)), 12)));
+      const h12 = jm(h1, h2);
+      let D3;
+      if (c > 0) {
+        // explosive side (Online Supplement, Section S7.5.3): with i t1 = (vt-c) - tau0/(vt+om),
+        // h1 h2 = -P3 + 8(vt^2-6)E + Pp E^2 and B0(vt) - K1 P3 = 8(vt-c)Qc^2, every term is O(e^{-2c})
+        const K1 = c * (c - 2) * (c * c - 6 * c + 12);
+        const Pp = jc(jm(vt, jc(jadd(zv, jsc(vt, 8)), 24)), 24);        // vt^3 + 8vt^2 + 24vt + 24
+        const Qc = jc(jsc(vt, c - 3), -3 * (c - 2));                     // (c-3)vt - 3(c-2)
+        const vQ = jm(vmc, Qc);
+        const T1 = jsc(jm(vQ, vQ), 8);
+        const T2 = jsc(jm(vmc, jadd(jsc(jm(jc(zv, -6), E), 8), jm(Pp, E2))), K1);
+        const one = zjet(K); one[0] = [1, 0];
+        const T3 = jsc(jm(jm(tau0, h12), jc(jsc(jd(one, jadd(vt, om)), K1), 4 * (c * c - 3 * c + 3))), -1);
+        D3 = jsub(jadd(jadd(T1, T2), jadd(T3, jsc(jm(zc, jm(B1, E)), 8))), jm(vpc, jm(Bm, E2)));
+      } else {
+        const G = jsub(jadd(jm(vmc, Bp), jsc(jm(zc, jm(B1, E)), 8)), jm(vpc, jm(Bm, E2)));
+        D3 = jadd(jm(h12, Kb), G);
+      }
+      Lr = jsub(jsc(jadd(om, vt), -0.5), jsc(jsub(logp(D3), jsc(logp(vt), 8)), 0.5)); Lr[0] = cadd(Lr[0], [0.5 * Math.log(2), 0]);
+      Q = jd(jm(tau0, h12), jsc(D3, 2));
+      const v0 = vt[0], e0 = E[0];
+      g11 = cdiv(h1[0], cmul(cpow(v0, 3), cadd([1, 0], e0)));
+      gll = cdiv(cscale(h2[0], -1), cscale(cmul(cpow(v0, 4), csub([1, 0], e0)), 12));
+    }
+    // the continuous phase: that of case DK (par = 0) minus half the principal arguments of the three factors
+    const L0 = limlogcf([sj[0]], [tj[0]], c, 'DK', 0)[0];
+    const z1 = zc[0], s1 = sj[0];
+    const tr = cmul(z1, cadd(g11, cscale(gll, 12)));
+    const dt = cmul(cadd(cscale(cmul(z1, z1), 12), cscale(cmul(s1, s1), 144)), cmul(g11, gll));
+    const sq = csqrt(csub(cmul(tr, tr), cscale(dt, 4)));
+    const k1 = cscale(cadd(tr, sq), 0.5), k2 = cscale(csub(tr, sq), 0.5);
+    const rho = cdiv(cexp(cscale(csub(L0, Lr[0]), 2)), cadd(cadd([1, 0], tr), dt));
+    const ph = L0[1] - 0.5 * (carg(cadd([1, 0], k1)) + carg(cadd([1, 0], k2)) + carg(rho));
+    let L = Lr.slice(); L[0] = [Lr[0][0], ph];
+    if (cas === 'DT') { if (par !== 0) L = jadd(L, jsc(Q, par * par)); }
+    else L = jsub(L, jsc(logp(jc(jsc(Q, c * c * c), 1)), 0.5));   // varkappa ~ N(0,-c^3/2)
+    return L;
+  }
+  function limmaker(c, cas, par) { return (sj, tj) => limlogcf(sj, tj, c, cas, par); }
+  // quadrature options of the limits: finite interval plus asymptotic tail, w0 the slope of the dominant phase
+  function limopts(c, cas, par) { const w0 = cas === 'DK' ? (1 + par * par) / 2 : 0.5; return { w0, S: 400 / w0 }; }
+  function limpdf(h, x, c, S, cas, par) { return pdf(h, x, S, 1e-8, limopts(c, cas || 'DU', par || 0)); }
+  function limcdf(h, x, c, S, cas, par) { return cdf(h, x, S, 1e-8, limopts(c, cas || 'DU', par || 0)); }
+  // ---------------- the AR(1) wrappers ----------------
+  function maker(n, phi, cas, par0) { return (sj, tj) => logcf(sj, tj, n, phi, cas, par0); }
+  function makerS(n, phi, cas, par0) { return (aj, bj) => logcf_exps(aj, bj, n, phi, cas, par0); }
+  function kmax(cas, n, par0) { if (cas === 'DK') return par0 === 0 ? n - 2 : Infinity; if (cas === 'SK') return n - 1; if (cas === 'DT' || cas === 'ST') return n - 3; return n - 2; }
+  // explosive limit: density and cdf of Z1/Z2, Z2 ~ N(z0 sqrt(phi^2-1), 1)
+  function erf(x) { // Abramowitz-Stegun 7.1.26 is too crude; use a series/continued fraction via erfc
+    const t = 1 / (1 + 0.5 * Math.abs(x));
+    const y = 1 - t * Math.exp(-x * x - 1.26551223 + t * (1.00002368 + t * (0.37409196 + t * (0.09678418 + t * (-0.18628806 + t * (0.27886807 + t * (-1.13520398 + t * (1.48851587 + t * (-0.82215223 + t * 0.17087277)))))))));
+    return x >= 0 ? y : -y;
+  }
+  function explimPdf(x, phi, z0) { // exponents combined: e^{-q} e^{w} overflows for q > 700
+    if (!isFinite(x)) return 0;
+    const q = z0 * z0 * (phi * phi - 1) / 2, u = q / (1 + x * x);
+    return (Math.exp(-q) + Math.sqrt(Math.PI * u) * Math.exp(-q * x * x / (1 + x * x)) * erf(Math.sqrt(u))) / (Math.PI * (1 + x * x));
+  }
+  function explimCdf(x, phi, z0) {
+    if (!isFinite(x)) return x > 0 ? 1 : 0;
+    if (z0 === 0) return 0.5 + Math.atan(x) / Math.PI;
+    const r = quad((y) => [explimPdf(y, phi, z0)], 0, Math.abs(x), 1e-12, 1e-10, 2000);
+    return 0.5 + Math.sign(x) * r.I[0];
+  }
+  // ---------------- the density in the smallest samples, by integrating out the last observation ----------------
+  // (ar1_pdf_rank2.m and ar1_pdf_rank3.m of the MATLAB programs; Section S6 of the Online Supplement)
+  // With z the lags residualized on the regressors, v = z'z and N = sum z_t z_{t+1} + z_n w, w = y_n - (fitted line at
+  // n+1), the density of phihat at x is E[v p(w*|z)/|z_n|], w* = -(Q(z) - x v)/z_n, a d-dimensional Gaussian integral
+  // (d = 2 or 3 random dimensions of z).  The innermost integral is taken in log|z_n| by a fixed Gauss-Legendre rule;
+  // the outer ones by tanh-sinh on panels that end at a logarithmic singularity (roots of kappa0 = Q - x v at z_n = 0)
+  // and Gauss-Legendre elsewhere.
+  function gaussLeg(m) { // Golub-Welsch by symmetric QR (small m)
+    const x = [], w = [];
+    for (let i = 1; i <= m; i++) { // Newton on Legendre polynomials
+      let z = Math.cos(Math.PI * (i - 0.25) / (m + 0.5)), pp = 0;
+      for (let it = 0; it < 100; it++) { let p1 = 1, p2 = 0; for (let j = 1; j <= m; j++) { const p3 = p2; p2 = p1; p1 = ((2 * j - 1) * z * p2 - (j - 1) * p3) / j; } pp = m * (z * p1 - p2) / (z * z - 1); const z1 = z; z = z1 - p1 / pp; if (Math.abs(z - z1) < 1e-16) break; }
+      x.push(-z); w.push(2 / ((1 - z * z) * pp * pp));
+    }
+    const idx = x.map((v, i) => i).sort((a, b) => x[a] - x[b]); return { x: idx.map(i => x[i]), w: idx.map(i => w[i]) };
+  }
+  function jacobiEig(Ain) { // symmetric eigen-decomposition (cyclic Jacobi), small matrices
+    const n = Ain.length, A = Ain.map(r => r.slice()), V = A.map((r, i) => r.map((_, j) => (i === j ? 1 : 0)));
+    for (let sweep = 0; sweep < 100; sweep++) {
+      let off = 0; for (let i = 0; i < n; i++) for (let j = i + 1; j < n; j++) off += A[i][j] * A[i][j];
+      if (off < 1e-32) break;
+      for (let p = 0; p < n; p++) for (let q = p + 1; q < n; q++) {
+        if (Math.abs(A[p][q]) < 1e-300) continue;
+        const th = (A[q][q] - A[p][p]) / (2 * A[p][q]), t = Math.sign(th || 1) / (Math.abs(th) + Math.sqrt(th * th + 1)), c = 1 / Math.sqrt(t * t + 1), s = t * c;
+        for (let k = 0; k < n; k++) { const akp = A[k][p], akq = A[k][q]; A[k][p] = c * akp - s * akq; A[k][q] = s * akp + c * akq; }
+        for (let k = 0; k < n; k++) { const apk = A[p][k], aqk = A[q][k]; A[p][k] = c * apk - s * aqk; A[q][k] = s * apk + c * aqk; }
+        for (let k = 0; k < n; k++) { const vkp = V[k][p], vkq = V[k][q]; V[k][p] = c * vkp - s * vkq; V[k][q] = s * vkp + c * vkq; }
+      }
+    }
+    return { val: A.map((r, i) => r[i]), vec: V };
+  }
+  function condSetup(n, phi, cas, par0) {
+    const stat = cas[0] === 'S', m = n + (stat ? 1 : 0);
+    const mu = new Array(n + 1).fill(0), L = []; for (let i = 0; i <= n; i++) L.push(new Array(m).fill(0));
+    let alpha = 0, delta = 0, y0 = 0;
+    if (cas === 'DK') y0 = par0; else if (cas === 'DU') alpha = par0;
+    else if (cas === 'DT') { const g = Array.isArray(par0) ? par0[0] : par0, gt = Array.isArray(par0) ? (par0[1] || 0) : 0; delta = gt; alpha = g - delta * (n + 1) / 2; }
+    if (stat) L[0][0] = 1 / Math.sqrt(1 - phi * phi); else mu[0] = y0;
+    for (let t = 1; t <= n; t++) { mu[t] = alpha + delta * t + phi * mu[t - 1]; for (let j = 0; j < m; j++) L[t][j] = phi * L[t - 1][j]; L[t][(stat ? 1 : 0) + t - 1] += 1; }
+    const p = cas[1] === 'K' ? 0 : cas[1] === 'U' ? 1 : 2;
+    const X = []; for (let t = 1; t <= n; t++) X.push(p === 0 ? [] : p === 1 ? [1] : [1, t]);
+    const xn1 = p === 0 ? [] : p === 1 ? [1] : [1, n + 1];
+    // P = X (X'X)^{-1} X', row weights c' = xn1 (X'X)^{-1} X'
+    let XtXi = null;
+    if (p === 1) XtXi = [[1 / n]];
+    if (p === 2) { let s0 = n, s1 = 0, s2 = 0; for (let t = 1; t <= n; t++) { s1 += t; s2 += t * t; } const det = s0 * s2 - s1 * s1; XtXi = [[s2 / det, -s1 / det], [-s1 / det, s0 / det]]; }
+    const Pm = [], cr = new Array(n).fill(0);
+    for (let i = 0; i < n; i++) { Pm.push(new Array(n).fill(0)); }
+    if (p > 0) {
+      for (let i = 0; i < n; i++) for (let j = 0; j < n; j++) { let s = 0; for (let a = 0; a < p; a++) for (let b = 0; b < p; b++) s += X[i][a] * XtXi[a][b] * X[j][b]; Pm[i][j] = s; }
+      for (let j = 0; j < n; j++) { let s = 0; for (let a = 0; a < p; a++) for (let b = 0; b < p; b++) s += xn1[a] * XtXi[a][b] * X[j][b]; cr[j] = s; }
+    }
+    // lags l_i = y_{i}, i = 0..n-1; z = (I - P) l
+    const Gz = [], muz = [];
+    for (let i = 0; i < n; i++) { const row = new Array(m).fill(0); let mz = 0; for (let j = 0; j < n; j++) { const cij = (i === j ? 1 : 0) - Pm[i][j]; mz += cij * mu[j]; for (let k = 0; k < m; k++) row[k] += cij * L[j][k]; } Gz.push(row); muz.push(mz); }
+    const gw = L[n].slice(); let muw = mu[n];
+    for (let j = 0; j < n; j++) { muw -= cr[j] * mu[j]; for (let k = 0; k < m; k++) gw[k] -= cr[j] * L[j][k]; }
+    // rank decomposition z = muz + Bz eta via the eigenvectors of Gz Gz'
+    const CC = []; for (let i = 0; i < n; i++) { CC.push([]); for (let j = 0; j < n; j++) { let s = 0; for (let k = 0; k < m; k++) s += Gz[i][k] * Gz[j][k]; CC[i].push(s); } }
+    const eg = jacobiEig(CC); const ord = eg.val.map((v, i) => i).sort((a, b) => eg.val[b] - eg.val[a]);
+    const lmax = eg.val[ord[0]]; const sel = ord.filter(i => eg.val[i] > 1e-12 * lmax); const d = sel.length;   // eigenvalues of Gz Gz' (squared singular values); a zero one comes out near 1e-16
+    const Bz = [], cw = new Array(d).fill(0);
+    for (let i = 0; i < n; i++) Bz.push(sel.map(k => eg.vec[i][k] * Math.sqrt(eg.val[k])));
+    // cw = V' gw with V = Gz' U / sigma
+    for (let a = 0; a < d; a++) { const k = sel[a], sg = Math.sqrt(eg.val[k]); let s = 0; for (let j = 0; j < m; j++) { let gzu = 0; for (let i = 0; i < n; i++) gzu += Gz[i][j] * eg.vec[i][k]; s += gzu / sg * gw[j]; } cw[a] = s; }
+    let gg = 0; for (const v of gw) gg += v * v; let cc2 = 0; for (const v of cw) cc2 += v * v; const sw = Math.sqrt(Math.max(gg - cc2, 0));
+    const r = Bz[n - 1], nr = Math.hypot(...r), e1 = r.map(v => v / nr);
+    // orthonormal complement of e1 in R^d
+    const E = []; const basis = []; for (let a = 0; a < d; a++) { const e = new Array(d).fill(0); e[a] = 1; basis.push(e); }
+    const Q = [e1];
+    for (const e of basis) { let v = e.slice(); for (const q of Q) { let dt = 0; for (let a = 0; a < d; a++) dt += v[a] * q[a]; for (let a = 0; a < d; a++) v[a] -= dt * q[a]; } const nv = Math.hypot(...v); if (nv > 1e-8 && Q.length < d) { Q.push(v.map(x => x / nv)); } }
+    for (let a = 1; a < d; a++) E.push(Q[a]);
+    const bt = Bz.map(row => row.reduce((s, v, a) => s + v * e1[a], 0));
+    const Bg = Bz.map(row => E.map(ev => row.reduce((s, v, a) => s + v * ev[a], 0)));   // n x (d-1)
+    const ct = cw.reduce((s, v, a) => s + v * e1[a], 0), cg = E.map(ev => cw.reduce((s, v, a) => s + v * ev[a], 0));
+    const tau0 = -muz[n - 1] / nr, z0 = muz.map((v, i) => v + bt[i] * tau0), db = bt.map(v => v / nr);
+    // z_n = 0 exactly on the gam plane (the gam directions are orthogonal to z_n): rounding here would turn the
+    // double root of kappa0 (e.g. case DK, n = 3, phihat = -1/2) into a small positive minimum
+    z0[n - 1] = 0; for (let a = 0; a < d - 1; a++) Bg[n - 1][a] = 0;
+    const hi = Math.log(nr * (Math.abs(tau0) + 14));
+    return { n, d, muz, bt, Bg, ct, cg, muw, sw, nr, tau0, z0, db, hi };
+  }
+  const zKz = (a, b, x) => { let q = 0, v = 0; for (let i = 0; i < a.length; i++) { v += a[i] * b[i]; if (i + 1 < a.length) q += 0.5 * (a[i] * b[i + 1] + a[i + 1] * b[i]); } return q - x * v; };
+  function condRules(opts) {
+    const ng = opts.fast ? 8 : 10, gi = gaussLeg(ng), go = gaussLeg(8), h = opts.fast ? 1 / 4 : 1 / 8;
+    const xt = [], wt = [], wtc = [];
+    for (let k = -Math.round(3 / h); k <= Math.round(3 / h); k++) { const t = k * h, u = Math.PI / 2 * Math.sinh(t); xt.push(Math.tanh(u)); const w = h * Math.PI / 2 * Math.cosh(t) / (Math.cosh(u) ** 2); wt.push(w); wtc.push(k % 2 === 0 ? 2 * w : 0); }
+    const tr = opts.fast ? [-10, -6, -4, -2.5, -1.5, -0.5, 0.5, 1.5, 3, 5] : [-10, -7, -5, -3.5, -2.5, -1.5, -0.75, 0, 0.75, 1.5, 2.5, 4, 6];
+    const tp = opts.fast ? [0, 0.5, 1, 1.5, 2, 3, 4, 6, 9] : [0, 0.4, 0.8, 1.2, 1.6, 2.2, 3, 4, 5.5, 7.5, 10];
+    const nf = opts.fast ? 6 : 8;
+    return { gi, go, xt, wt, wtc, tr, tp, nf };
+  }
+  // tau-integral (both sides of z_n = 0) for one column; k = [kappa0, k1, k2], vv = [v0, v1, v2]
+  function tauInt(P, R, k, vv, mw0) {
+    const cc = Math.max(k[0] !== 0 ? Math.log(Math.abs(k[0])) : -1e9, -730), aa = Math.min(cc - 10, P.hi - 1), hi = P.hi;
+    const br = [aa, hi]; for (const t of R.tr) br.push(cc + t); for (const t of R.tp) br.push(hi - t);
+    const lof = Math.min(cc + R.tr[R.tr.length - 1], hi), hif = Math.max(hi - R.tp[R.tp.length - 1], aa), Lf = Math.max(hif - lof, 0);
+    for (let j = R.nf - 1; j >= 0; j--) { const w = Lf / 2 * Math.pow(2, -j); br.push(lof + w, hif - w); }
+    for (let i = 0; i < br.length; i++) br[i] = Math.min(Math.max(br[i], aa), hi);
+    br.sort((a, b) => a - b);
+    const gx = R.gi.x, gw = R.gi.w, s2 = 2 * P.sw * P.sw, cst = 1 / (2 * Math.PI * P.sw * P.nr);
+    let s = 0;
+    for (let p = 0; p + 1 < br.length; p++) {
+      const a = br[p], wd = br[p + 1] - a; if (wd <= 0) continue;
+      for (let q = 0; q < gx.length; q++) {
+        const sig = a + wd * (gx[q] + 1) / 2, wq = wd * gw[q] / 2, e = Math.exp(sig);
+        for (const sg of [-1, 1]) {
+          const beta = sg * e, tau = P.tau0 + beta / P.nr;
+          const ws = -(k[0] / beta + k[1] + k[2] * beta), v = vv[0] + (vv[1] + vv[2] * beta) * beta, mw = mw0 + P.ct * beta / P.nr, dw = ws - mw;
+          const y = Math.exp(-tau * tau / 2 - dw * dw / s2) * v * cst;
+          if (isFinite(y)) s += wq * y;
+        }
+      }
+    }
+    return s;
+  }
+  function vertexForm(a2, a1, a0) {
+    if (Math.abs(a2) > 1e-14 * Math.max(Math.abs(a2), Math.abs(a1), Math.abs(a0))) {
+      const gc = -a1 / (2 * a2), dq = gc * gc - a0 / a2;
+      return { kf: (g) => a2 * ((g - gc) * (g - gc) - dq), sp: dq > 0 ? [gc - Math.sqrt(dq), gc, gc + Math.sqrt(dq)] : [gc] };
+    }
+    return { kf: (g) => a1 * g + a0, sp: a1 !== 0 ? [-a0 / a1] : [] };
+  }
+  const GRID = [-9, -6.5, -4.5, -3, -2, -1, 0, 1, 2, 3, 4.5, 6.5, 9];
+  function hybridRule(sing, R) {
+    sing = sing.filter(s => s > -9 && s < 9);
+    const g = GRID.filter(q => Math.abs(q) === 9 || sing.every(s => Math.abs(q - s) >= 1));
+    const br = Array.from(new Set(g.concat(sing))).sort((a, b) => a - b);
+    const X = [], W = [], Wc = [];
+    for (let p = 0; p + 1 < br.length; p++) {
+      const a = br[p], b = br[p + 1]; if (b - a < 1e-15) continue;
+      const isS = sing.some(s => Math.abs(a - s) < 1e-15 || Math.abs(b - s) < 1e-15);
+      if (isS) { for (let q = 0; q < R.xt.length; q++) { X.push((a + b) / 2 + (b - a) / 2 * R.xt[q]); W.push((b - a) / 2 * R.wt[q]); Wc.push((b - a) / 2 * R.wtc[q]); } }
+      else { for (let q = 0; q < R.go.x.length; q++) { X.push((a + b) / 2 + (b - a) / 2 * R.go.x[q]); const w = (b - a) / 2 * R.go.w[q]; W.push(w); Wc.push(w); } }
+    }
+    return { X, W, Wc };
+  }
+  // density of phihat at xh (a value of phihat itself) for d = 2 or 3; returns {f, err}; opts.xlo: phihat is the
+  // unevaluated sum xh + xlo (the rounding error of r + phi from pdfAR), so that its distance from x0 is exact
+  function pdfCond(xh, n, phi, cas, par0, opts) {
+    opts = opts || {};
+    const P = opts.setup || condSetup(n, phi, cas, par0), R = opts.rules || condRules(opts), nn = P.n, d = P.d;
+    if (d < 2 || d > 3) throw new Error('pdfCond: the residualized lags have ' + d + ' random dimensions');
+    const x = xh, z0 = P.z0, db = P.db;
+    const k2 = zKz(db, db, x), v2 = db.reduce((s, v) => s + v * v, 0);
+    const colOf = (G) => { // G: gam vector (length d-1) in the (possibly rotated) basis Bgr
+      const zc = z0.map((v, i) => v + P.Bgr[i].reduce((s, b, a) => s + b * G[a], 0));
+      return { zc, k1: 2 * zKz(zc, db, x), v0: zc.reduce((s, v) => s + v * v, 0), v1: 2 * zc.reduce((s, v, i) => s + v * db[i], 0), mw0: P.muw + P.ct * P.tau0 + P.cgr.reduce((s, c, a) => s + c * G[a], 0) };
+    };
+    const phiN = (g) => Math.exp(-g * g / 2) / Math.sqrt(2 * Math.PI);
+    // kappa0(gam) = gam'A gam + 2 b'gam + c; at a singular point x0 it vanishes identically, and -(x - x0) v is used
+    const Bg = P.Bg, dm = d - 1;
+    const colv = (j) => Bg.map(r => r[j]);
+    let A = [], b = [], c;
+    const x0 = cas[1] === 'K' ? 0 : cas[1] === 'U' ? -0.5 : -2 / 3;
+    // dx = phihat - x0 with a single rounding: xh - x0 is exact near x0 (Sterbenz), -2/3 = fl(-2/3) - 2^-53/3
+    const x0lo = cas[1] === 'T' ? -Math.pow(2, -53) / 3 : 0, dx = (x - x0) + ((opts.xlo || 0) - x0lo);
+    // whether kappa0 vanishes identically at x0 is structural (ar1_pdf_rank2): in cases DU, SU, DT, ST always, in
+    // case DK only with z0 = 0 (a relative threshold on the computed coefficients mistook z0 = 1e-12 for z0 = 0)
+    const p0 = Array.isArray(par0) ? par0[0] : par0;
+    const sing0 = d === 2 && (cas !== 'DK' || p0 === 0);
+    if (sing0 && dx === 0) return { f: Infinity, err: Infinity };   // the singular point itself: exactly there only
+    if (d === 2) {
+      // kappa0 = q0 - dx v along z_n = 0 (K = K0 - (x - x0) I): q0 vanishes in the singular configurations, and its
+      // gam^2 coefficient vanishes in every case and is set to zero, so that its rounding does not compete
+      const g0 = colv(0), gg = g0.reduce((s, v) => s + v * v, 0), zg = z0.reduce((s, v, t) => s + v * g0[t], 0), zz = z0.reduce((s, v) => s + v * v, 0);
+      A.push([-dx * gg]); b.push((sing0 ? 0 : zKz(z0, g0, x0)) - dx * zg); c = (sing0 ? 0 : zKz(z0, z0, x0)) - dx * zz;
+    } else {
+      for (let i = 0; i < dm; i++) { A.push([]); const gi = colv(i); for (let j = 0; j < dm; j++) { const gj = colv(j); A[i].push(zKz(gi, gj, x)); } b.push(zKz(z0, gi, x)); }
+      c = zKz(z0, z0, x);
+    }
+    let I = 0, Ic = 0;
+    if (d === 2) {
+      P.Bgr = Bg; P.cgr = P.cg;
+      const vf = vertexForm(A[0][0], 2 * b[0], c), rl = hybridRule(vf.sp, R);
+      for (let q = 0; q < rl.X.length; q++) { const g = rl.X[q], cl = colOf([g]); const s = phiN(g) * tauInt(P, R, [vf.kf(g), cl.k1, k2], [cl.v0, cl.v1, v2], cl.mw0); I += rl.W[q] * s; Ic += rl.Wc[q] * s; }
+    } else {
+      // rotate (gam1, gam2) so that gam2 carries the larger curvature of kappa0
+      const a11 = A[0][0], a12 = A[0][1], a22 = A[1][1], th = 0.5 * Math.atan2(2 * a12, a11 - a22);
+      let u1 = [Math.cos(th), Math.sin(th)], u2 = [-Math.sin(th), Math.cos(th)];   // eigenvectors
+      const l1 = a11 * u1[0] * u1[0] + 2 * a12 * u1[0] * u1[1] + a22 * u1[1] * u1[1], l2 = a11 * u2[0] * u2[0] + 2 * a12 * u2[0] * u2[1] + a22 * u2[1] * u2[1];
+      if (Math.abs(l1) > Math.abs(l2)) { const t = u1; u1 = u2; u2 = t; }
+      const W = [u1, u2];   // columns: new basis
+      const Ar = [[0, 0], [0, 0]], br2 = [0, 0];
+      for (let i = 0; i < 2; i++) { for (let j = 0; j < 2; j++) { let s = 0; for (let p = 0; p < 2; p++) for (let q = 0; q < 2; q++) s += W[i][p] * A[p][q] * W[j][q]; Ar[i][j] = s; } br2[i] = W[i][0] * b[0] + W[i][1] * b[1]; }
+      P.Bgr = Bg.map(r => [r[0] * W[0][0] + r[1] * W[0][1], r[0] * W[1][0] + r[1] * W[1][1]]);
+      P.cgr = [P.cg[0] * W[0][0] + P.cg[1] * W[0][1], P.cg[0] * W[1][0] + P.cg[1] * W[1][1]];
+      const dc = [Ar[0][1] ** 2 - Ar[1][1] * Ar[0][0], 2 * (Ar[0][1] * br2[1] - Ar[1][1] * br2[0]), br2[1] ** 2 - Ar[1][1] * c];
+      const rt = []; if (Math.abs(dc[0]) > 1e-300) { const D = dc[1] * dc[1] - 4 * dc[0] * dc[2]; if (D >= 0) { const sq = Math.sqrt(D); rt.push((-dc[1] - sq) / (2 * dc[0]), (-dc[1] + sq) / (2 * dc[0])); } } else if (dc[1] !== 0) rt.push(-dc[2] / dc[1]);
+      const r1 = hybridRule(rt, R);
+      for (let q1 = 0; q1 < r1.X.length; q1++) {
+        const g1 = r1.X[q1], a2 = Ar[1][1], a1 = 2 * (Ar[0][1] * g1 + br2[1]), a0 = (Ar[0][0] * g1 + 2 * br2[0]) * g1 + c;
+        const vf = vertexForm(a2, a1, a0), r2 = hybridRule(vf.sp, R);
+        let M = 0, Mc = 0;
+        for (let q2 = 0; q2 < r2.X.length; q2++) { const g2 = r2.X[q2], cl = colOf([g1, g2]); const s = phiN(g2) * tauInt(P, R, [vf.kf(g2), cl.k1, k2], [cl.v0, cl.v1, v2], cl.mw0); M += r2.W[q2] * s; Mc += r2.Wc[q2] * s; }
+        I += r1.W[q1] * phiN(g1) * M; Ic += r1.Wc[q1] * phiN(g1) * Mc;
+      }
+    }
+    return { f: I, err: (I - Ic) * (I - Ic) / Math.max(Math.abs(I), 1e-300) + 1e-11 * Math.abs(I) };
+  }
+  // the density of phihat - phi at r for the model, with the routing of ar1_pdf: Inf at a singular point, the
+  // conditioning for n = 3 (DK, DU, SU), n = 4 (DT, ST) and n = 4 in case DK with z0 ~= 0, the inversion otherwise
+  function pdfAR(n, phi, cas, par0, h, r, S, opts) {
+    opts = opts || {};
+    // phihat = r + phi as the exact unevaluated sum ph + plo (TwoSum): pdfCond returns Inf only where phihat is the
+    // singular point exactly, and the finite density at every other point, however close (ar1_pdf; until
+    // November 2026 a band of 8 eps around the singular point returned Inf also at distinct doubles)
+    const ph = r + phi, bb = ph - r, plo = (r - (ph - bb)) + (phi - bb), istr = cas[1] === 'T';
+    const p0 = Array.isArray(par0) ? par0[0] : par0;
+    if ((n === 3 && (cas === 'DK' || cas === 'DU' || cas === 'SU')) || (n === 4 && istr) || (n === 4 && cas === 'DK' && p0 !== 0 && opts.rank3 !== false)) {
+      const key = n + cas + phi + JSON.stringify(par0) + (opts.fast ? 'f' : '');
+      if (!pdfAR.cache || pdfAR.cache.key !== key) pdfAR.cache = { key, setup: condSetup(n, phi, cas, par0), rules: condRules(opts) };
+      return pdfCond(ph, n, phi, cas, par0, { fast: opts.fast, setup: pdfAR.cache.setup, rules: pdfAR.cache.rules, xlo: plo }).f;
+    }
+    return pdf(h, r, S);
+  }
+
+  return { C, logcf, logcf_exp, logcf_exps, makerS, ttprimsj, scale, cdf, pdf, icdf, moments, maker, kmax, explimPdf, explimCdf, quad, quadInf, quadDecades, limlogcf, limmaker, limopts, limpdf, limcdf, jpow, condSetup, pdfCond, pdfAR };
+})();
+if (typeof module !== 'undefined') module.exports = AR1;
+
+</script>
+<script>
+(function () {
+  // ---------- theme ----------
+  const root = document.documentElement;
+  const thBtns = { auto: document.getElementById('th-auto'), light: document.getElementById('th-light'), dark: document.getElementById('th-dark') };
+  function setTheme(mode, save) {
+    if (mode === 'auto') root.removeAttribute('data-theme'); else root.setAttribute('data-theme', mode);
+    for (const k in thBtns) thBtns[k].setAttribute('aria-pressed', String(k === mode));
+    if (save) { try { localStorage.setItem('ar1-theme', mode); } catch (e) {} }
+    requestAnimationFrame(drawAll);
+  }
+  for (const k in thBtns) thBtns[k].addEventListener('click', () => setTheme(k, true));
+  let saved = null; try { saved = localStorage.getItem('ar1-theme'); } catch (e) {}
+  setTheme(saved === 'light' || saved === 'dark' ? saved : 'auto', false);
+  if (window.matchMedia) window.matchMedia('(prefers-color-scheme: dark)').addEventListener('change', () => requestAnimationFrame(drawAll));
+
+  // ---------- worker ----------
+  const coreSrc = document.getElementById('core').textContent;
+  const workerSrc = coreSrc + `
+    self.onmessage = function (ev) {
+      const m = ev.data; const t0 = Date.now();
+      try {
+        const post = (stage) => self.postMessage({ id: m.id, stage });
+        const { cas, n, phi, par0, norm, showLim } = m;
+        let h = AR1.maker(n, phi, cas, par0), S = AR1.scale(h);
+        // the density, routed as in ar1_pdf: Inf only at a singular point itself, by integrating out the last
+        // observation for n = 3 (DK, DU, SU) and n = 4 (DT, ST, and DK with z0 ~= 0, three random dimensions), where
+        // the inversion integrand decays slowly, and by the inversion otherwise
+        let pdfx = (r) => AR1.pdfAR(n, phi, cas, par0, h, r, S);
+        let cn = 1, cname = '1';
+        const expl = Math.abs(phi) > 1;
+        const heavy = expl && n * (Math.abs(phi) - 1) > 30;   // Cauchy-like regime beyond local to unity: |phi|^n large (the same for phi and -phi)
+        // auto: the explosive scale when |phi|^n is large; n at and near either unit root, |phi| = 1,
+        // that is when n ||phi| - 1| <= 30 (the local-to-unity range on either side of +1 and of -1); 1 otherwise
+        const pick = norm === 'auto' ? (heavy ? 'exp' : (n * Math.abs(Math.abs(phi) - 1) <= 30 ? 'n' : 'none')) : norm;
+        if (pick === 'sqrtn') { cn = Math.sqrt(n); }
+        else if (pick === 'n') { cn = n; }
+        else if (pick === 'exp') { if (!expl) throw new Error('The explosive normalization needs |phi| > 1.'); cn = Math.pow(Math.abs(phi), n) / (phi * phi - 1); }   // |phi|^n, not phi^n: for phi < -1 the finite-sample distribution of phi^n (phihat - phi) alternates with the parity of n (a term of order n |phi|^-n with the sign of -phi^-(n+1)), while with |phi|^n it moves smoothly to the limit, which is the same for both
+        // beyond the range of double precision for phihat - phi itself (phi^{2n} > 1e300) the statistic
+        // X_n = |phi|^n (phihat - phi)/(phi^2 - 1) is computed exactly from the characteristic function in scaled
+        // arguments (ar1_logcf_exps; Section 4.3 of the paper), which has no limit on n: the internal variable is
+        // then r = |phi|^n (phihat - phi) = (phi^2 - 1) X_n, and the normalization is |phi|^n/(phi^2 - 1) whatever is selected
+        const lg2n = expl ? 2 * n * Math.log10(Math.abs(phi)) : 0;
+        const scaledMode = lg2n > 300 && cas[0] === 'D';
+        const normForced = scaledMode && pick !== 'exp';
+        if (scaledMode) {
+          h = AR1.makerS(n, phi, cas, par0); S = AR1.scale(h);
+          pdfx = (r) => AR1.pdf(h, r, S);
+          cn = 1 / (phi * phi - 1);
+        }
+        post('quantiles');
+        const pl = heavy ? 0.025 : 0.005;
+        let lo = AR1.icdf(h, pl, S), hi = AR1.icdf(h, 1 - pl, S);
+        {
+          // extend each end until the density has fallen to 0.3% of its value at the median,
+          // so that a short, steep tail is not cut off while still visibly nonzero.  This applies
+          // in the explosive region too: there the far tails are Cauchy-like, but with a large
+          // effective start (Z2 in the limit Z1/Z2 far from zero) the body is close to normal,
+          // and its 2.5% and 97.5% quantiles lie where the density is still about 15% of its peak
+          const fref = Math.max(pdfx(AR1.icdf(h, 0.5, S)), pdfx((lo + hi) / 2));
+          let step = (hi - lo) / 12;
+          for (let k = 0; k < 30 && pdfx(hi) > 0.003 * fref; k++) hi += step;
+          for (let k = 0; k < 30 && pdfx(lo) > 0.003 * fref; k++) lo -= step;
+        }
+        if (!heavy) {
+          // and, when the tails are heavy (explosive phi with n(phi-1) below the Cauchy-like
+          // threshold, where the 0.5% and 99.5% quantiles lie far out in a flat tail), pull each
+          // end in until the density is at least 1% of its reference value, but not inside
+          // the 5% and 95% quantiles
+          const fref = Math.max(pdfx(AR1.icdf(h, 0.5, S)), pdfx((lo + hi) / 2));
+          const q05r = AR1.icdf(h, 0.05, S), q95r = AR1.icdf(h, 0.95, S), step = (hi - lo) / 100;
+          for (let k = 0; k < 95 && hi - step > q95r && pdfx(hi) < 0.01 * fref; k++) hi -= step;
+          for (let k = 0; k < 95 && lo + step < q05r && pdfx(lo) < 0.01 * fref; k++) lo += step;
+        }
+        const med = AR1.icdf(h, 0.5, S), q05 = AR1.icdf(h, 0.05, S), q95 = AR1.icdf(h, 0.95, S), q01 = AR1.icdf(h, 0.01, S), q99 = AR1.icdf(h, 0.99, S);
+        // stage 1: a uniform grid; stage 2: extra points where F is steep (equally
+        // spaced probability levels inverted on the stage-1 cdf), so that a sharp
+        // peak is resolved
+        const N1 = 81, N2 = 80; let pts = [];
+        post('density and distribution function');
+        for (let i = 0; i < N1; i++) { const r = lo + (hi - lo) * i / (N1 - 1); pts.push({ r, f: pdfx(r), F: AR1.cdf(h, r, S) }); }
+        const dx = (hi - lo) / (N1 - 1); const extra = [];
+        for (let k = 0; k < N2; k++) {
+          const p = pl + (1 - 2 * pl) * (k + 0.5) / N2;
+          for (let i = 0; i < N1 - 1; i++) { const a = pts[i], b = pts[i + 1];
+            if (a.F <= p && p < b.F && b.F > a.F) { const r = a.r + (p - a.F) / (b.F - a.F) * (b.r - a.r); if (Math.min(r - a.r, b.r - r) > 0.08 * dx) extra.push(r); break; } }
+        }
+        for (const r of extra) pts.push({ r, f: pdfx(r), F: AR1.cdf(h, r, S) });
+        pts = pts.filter(p => isFinite(p.f));   // a grid point exactly at a singular point of the density
+        pts.sort((a, b) => a.r - b.r);
+        // the plotted variable c_n (phihat - phi); when c_n < 0 (phi < -1, odd n) the order reverses and F becomes 1 - F
+        let x = pts.map(p => p.r * cn), f = pts.map(p => p.f / Math.abs(cn)), F = pts.map(p => p.F);
+        if (cn < 0) { x.reverse(); f.reverse(); F = F.map(v => 1 - v).reverse(); }
+        post('moments');
+        const km = AR1.kmax(cas, n, par0);
+        // moments of the plotted variable c_n (phihat - phi): mean c_n E[phihat - phi], standard deviation |c_n| sd(phihat),
+        // and the skewness and excess kurtosis of phihat (the skewness changes sign with c_n)
+        let stats = { mean: null, sd: null, skew: null, kurt: null, kmax: km };
+        // beyond phi^{2n} = 1e300 the moment integral is not evaluated (Section 4.3 of the paper)
+        if (scaledMode) stats.beyond = true;
+        else if (km >= 1) {
+          const m1 = AR1.moments(h, 1, 0, S)[0]; stats.mean = cn * m1;
+          const k = Math.min(4, km);
+          if (k >= 2) { const cm = AR1.moments(h, k, m1, S); stats.sd = Math.abs(cn) * Math.sqrt(cm[1]);
+            if (k >= 3) stats.skew = Math.sign(cn) * cm[2] / Math.pow(cm[1], 1.5);
+            if (k >= 4) stats.kurt = cm[3] / (cm[1] * cm[1]) - 3; }
+        }
+        // in the explosive region all four moments can be evaluated up to phi^{2n} of about 1e300 (Section 4.3 of the paper):
+        // the jet variable is rescaled at the second scale of the integrand and each order is normalized by its peak (moments)
+        // limiting or asymptotic distribution, rescaled to the plotted variable c_n(phihat - phi)
+        let limit = null;
+        if (showLim) {
+          const c = n * (phi - 1);
+          const lurOK = phi > 0 && Math.abs(c) <= 30 && !(cas[0] === 'S' && c >= 0);
+          if (lurOK) {
+            post('limiting distribution');
+            // DT: varkappa = sqrt(n)[c(gamma - gamma_tau (n+1)/2) + n phi gamma_tau] (Online Supplement, Proposition S7.5)
+            const parl = cas === 'DK' ? par0 / Math.sqrt(n) : cas === 'DU' ? Math.sqrt(n) * par0
+              : cas === 'DT' ? Math.sqrt(n) * (c * (par0[0] - par0[1] * (n + 1) / 2) + n * phi * par0[1]) : 0;
+            const hl = AR1.limmaker(c, cas, parl), Sl = AR1.scale(hl);
+            const xl = [], fl = [], Fl = [];
+            for (let i = 0; i < x.length; i += 2) { const y = x[i] * n / cn; xl.push(x[i]); fl.push(AR1.limpdf(hl, y, c, Sl, cas, parl) * n / cn); Fl.push(AR1.limcdf(hl, y, c, Sl, cas, parl)); }
+            limit = { kind: 'lur', c, parl, x: xl, f: fl, F: Fl };
+          } else if (cas[0] === 'D' && expl) {
+            // White (1958), Anderson (1959); with an intercept, Wang and Yu (2015, Theorem 2.3(b)): z0 is replaced by gamma/(phi-1)
+            // with a trend, the effective start -a, a = [gamma - gamma_tau (n+1)/2]/(1-phi) - phi gamma_tau/(1-phi)^2
+            const g = Math.pow(Math.abs(phi), n) / (phi * phi - 1);   // the limit of g (phihat - phi) is Z1/Z2 for either sign of the power, by the symmetry of Z1
+            const z0e = cas === 'DK' ? par0 : cas === 'DU' ? par0 / (phi - 1)
+              : -((par0[0] - par0[1] * (n + 1) / 2) / (1 - phi) - phi * par0[1] / ((1 - phi) * (1 - phi)));
+            const gc = scaledMode ? 1 : g / cn;   // positive: g and cn carry the same sign (in scaled mode x is X_n itself)
+            limit = { kind: 'explim', x, z0e, f: x.map(v => AR1.explimPdf(v * gc, phi, z0e) * gc), F: x.map(v => AR1.explimCdf(v * gc, phi, z0e)) };
+          } else if (Math.abs(phi) < 1) {
+            const s2 = (1 - phi * phi) / n * cn * cn, sd = Math.sqrt(s2);
+            limit = { kind: 'normal', x, f: x.map(v => Math.exp(-v * v / (2 * s2)) / (sd * Math.sqrt(2 * Math.PI))), F: x.map(v => 0.5 * erfc_(-v / (sd * Math.SQRT2))) };
+          }
+        }
+        const qq = cn >= 0 ? { q05: q05 * cn, q95: q95 * cn, q01: q01 * cn, q99: q99 * cn } : { q05: q95 * cn, q95: q05 * cn, q01: q99 * cn, q99: q01 * cn };
+        self.postMessage({ id: m.id, done: true, x, f, F, stats, limit, cn: scaledMode ? null : cn, pick: scaledMode ? 'exp' : pick, scaledMode, normForced, lg2n, npts: pts.length, med: med * cn, q05: qq.q05, q95: qq.q95, q01: qq.q01, q99: qq.q99, ms: Date.now() - t0 });
+      } catch (err) { self.postMessage({ id: m.id, error: err.message }); }
+    };
+    function erfc_(x) { const t = 1 / (1 + 0.5 * Math.abs(x));
+      const y = t * Math.exp(-x * x - 1.26551223 + t * (1.00002368 + t * (0.37409196 + t * (0.09678418 + t * (-0.18628806 + t * (0.27886807 + t * (-1.13520398 + t * (1.48851587 + t * (-0.82215223 + t * 0.17087277)))))))));
+      return x >= 0 ? y : 2 - y; }
+  `;
+  const blobUrl = URL.createObjectURL(new Blob([workerSrc], { type: 'text/javascript' }));
+  let worker = null, reqId = 0, running = false, pending = null;
+  function newWorker() { if (worker) worker.terminate(); worker = new Worker(blobUrl); worker.onmessage = onResult; worker.onerror = (e) => { status.textContent = 'error: ' + e.message; running = false; }; }
+  newWorker();
+
+  // ---------- controls ----------
+  const $ = (id) => document.getElementById(id);
+  const status = $('status');
+  const ctl = { cas: 'DU', n: 50, phi: 0.9, par: 0, par2: 0, norm: 'auto', showLim: true };
+  const caseBtns = Array.from(document.querySelectorAll('#cases button'));
+  function setCase(c) { ctl.cas = c; caseBtns.forEach(b => b.setAttribute('aria-pressed', String(b.dataset.cas === c)));
+    const stat = c[0] === 'S'; const ps = $('phi-slider'), pn = $('phi');
+    ps.min = stat ? -0.9999 : -1.5; ps.max = stat ? 0.9999 : 1.5; ps.step = stat ? 0.0001 : 0.005; pn.min = stat ? -0.9999 : -3; pn.max = stat ? 0.9999 : 3;
+    if (stat && Math.abs(ctl.phi) >= 1) { ctl.phi = ctl.phi > 0 ? 0.99 : -0.99; pn.value = ctl.phi; }
+    ps.value = Math.max(parseFloat(ps.min), Math.min(parseFloat(ps.max), ctl.phi));
+    const pf = $('par-field'), pl = $('par-label');
+    if (c === 'DK') { pf.hidden = false; pl.innerHTML = '\\(z_0 = y_0/\\sigma\\) (standardized fixed start)'; }
+    else if (c === 'DU') { pf.hidden = false; pl.innerHTML = '\\(\\gamma = [\\alpha-(1-\\phi)y_0]/\\sigma\\)'; }
+    else if (c === 'DT') { pf.hidden = false; pl.innerHTML = '\\(\\gamma = [\\alpha+\\delta\\tfrac{n+1}{2}-(1-\\phi)y_0]/\\sigma\\) (intercept)'; }
+    else pf.hidden = true;
+    $('par2-field').hidden = c !== 'DT';
+    if (!pf.hidden) typeset([pl]);
+    if (c === 'DT') typeset([$('par2-field')]);
+    schedule(); }
+  caseBtns.forEach(b => b.addEventListener('click', () => setCase(b.dataset.cas)));
+  function link(numId, sliderId, key, toSlider, fromSlider, clamp) {
+    const num = $(numId), sl = $(sliderId);
+    num.addEventListener('input', () => { const v = clamp(parseFloat(num.value)); if (isFinite(v)) { ctl[key] = v; sl.value = toSlider(v); schedule(); } });
+    num.addEventListener('change', () => { const v = clamp(parseFloat(num.value)); if (isFinite(v)) { num.value = v; ctl[key] = v; sl.value = toSlider(v); schedule(); } });
+    sl.addEventListener('input', () => { const v = fromSlider(parseFloat(sl.value)); ctl[key] = v; num.value = v; schedule(); });
+  }
+  link('n', 'n-slider', 'n', v => Math.log10(v), v => Math.max(5, Math.round(Math.pow(10, v))), v => Math.min(100000, Math.max(5, Math.round(v))));
+  link('phi', 'phi-slider', 'phi', v => Math.max(-1.5, Math.min(1.5, v)), v => Math.round(v * 10000) / 10000,
+       v => ctl.cas[0] === 'S' ? Math.max(-0.9999, Math.min(0.9999, v)) : Math.max(-3, Math.min(3, v)));
+  link('par', 'par-slider', 'par', v => Math.max(-3, Math.min(3, v)), v => Math.round(v * 100) / 100, v => Math.max(-10, Math.min(10, v)));
+  link('par2', 'par2-slider', 'par2', v => Math.max(-0.5, Math.min(0.5, v)), v => Math.round(v * 1000) / 1000, v => Math.max(-10, Math.min(10, v)));
+  $('norm').addEventListener('change', () => { const r = document.querySelector('#norm input:checked'); if (r) { ctl.norm = r.value; schedule(); } });
+  $('showlim').addEventListener('change', () => { ctl.showLim = $('showlim').checked; schedule(); });
+
+  let timer = null;
+  function schedule() { syncNorm(); clearTimeout(timer); timer = setTimeout(run, 250); }
+  // the explosive normalization |phi|^n/(phi^2 - 1) is defined for |phi| > 1 only (phi^2 - 1 vanishes at |phi| = 1 and is
+  // negative inside): the option is disabled otherwise, and a selection of it falls back to auto
+  function syncNorm() {
+    const lab = $('norm-exp'), inp = lab.querySelector('input'), ok = Math.abs(ctl.phi) > 1;
+    inp.disabled = !ok; lab.classList.toggle('off', !ok);
+    lab.title = ok ? '' : 'Available for |phi| > 1 only: phi^2 - 1 vanishes at |phi| = 1 and is negative for |phi| < 1.';
+    if (!ok && ctl.norm === 'exp') { ctl.norm = 'auto'; document.querySelector('#norm input[value="auto"]').checked = true; }
+  }
+  function run() {
+    syncNorm();
+    if (ctl.cas[0] === 'S' && Math.abs(ctl.phi) >= 1) { status.textContent = 'A stationary start requires |phi| < 1.'; return; }
+    if (ctl.n < 5) { status.textContent = 'n must be at least 5.'; return; }
+    const par0 = ctl.cas === 'DT' ? [ctl.par, ctl.par2] : ctl.cas === 'ST' ? [] : (ctl.cas[0] === 'D') ? ctl.par : 0;
+    const msg = { id: ++reqId, cas: ctl.cas, n: ctl.n, phi: ctl.phi, par0, norm: ctl.norm, showLim: ctl.showLim };
+    if (running) { newWorker(); }
+    running = true; status.textContent = 'computing...';
+    worker.postMessage(msg);
+  }
+  let last = null;
+  function onResult(ev) {
+    const m = ev.data; if (m.id !== reqId) return;
+    if (m.stage) { status.textContent = 'computing ' + m.stage + '...'; return; }
+    running = false;
+    if (m.error) { status.textContent = m.error; last = null; drawAll(); $('note').textContent = 'No result: ' + m.error; return; }
+    last = m;
+    const nice = (v, d) => v === null || v === undefined || !isFinite(v) ? '–' : fmt(v, d);
+    $('v-mean').textContent = nice(m.stats.mean); $('v-sd').textContent = nice(m.stats.sd);
+    $('v-skew').textContent = nice(m.stats.skew); $('v-kurt').textContent = nice(m.stats.kurt);
+    $('v-med').textContent = nice(m.med); $('v-q05').textContent = nice(m.q05); $('v-q95').textContent = nice(m.q95); $('v-q01').textContent = nice(m.q01); $('v-q99').textContent = nice(m.q99);
+    const casName = { DK: 'fixed start, intercept known', DU: 'fixed start, intercept unknown', SK: 'stationary start, intercept known', SU: 'stationary start, intercept unknown',
+      DT: 'fixed start, intercept and trend', ST: 'stationary start, intercept and trend' }[ctl.cas];
+    m.ctex = { none: '', sqrtn: '\\sqrt{n}', n: 'n', exp: '\\frac{|\\phi|^n}{\\phi^2-1}' }[m.pick] || '';
+    if (m.limit) {
+      if (m.limit.kind === 'lur') m.limit.name = 'local-to-unity limit, \\(c = n(\\phi-1) = ' + texnum(m.limit.c) + '\\)' + (ctl.cas === 'DK' ? ', \\(\\gamma_0 = z_0/\\sqrt{n}\\)' : ctl.cas === 'DU' ? ', \\(\\varkappa = \\sqrt{n}\\,\\gamma\\)'
+        : ctl.cas === 'DT' ? ', \\(\\varkappa_\\tau = ' + texnum(m.limit.parl) + '\\)' : '') + (m.limit.c === 0 ? ' (Dickey\u2013Fuller)' : '');
+      else if (m.limit.kind === 'explim') m.limit.name = 'limit \\(Z_1/Z_2\\), \\(Z_1\\sim N(0,1)\\), \\(Z_2\\sim N(' + (ctl.cas === 'DK' ? 'z_0' : 'z_0^*') + '\\sqrt{\\phi^2-1},\\,1)\\)' + (ctl.cas === 'DU' ? ', \\(z_0^* = \\gamma/(\\phi-1) = ' + texnum(m.limit.z0e) + '\\)' : ctl.cas === 'DT' ? ', effective start \\(z_0^* = ' + texnum(m.limit.z0e) + '\\)' : '');
+      else m.limit.name = 'normal approximation \\(N(0,\\,(1-\\phi^2)/n)\\)';
+    }
+    const parTex = ctl.cas === 'DK' ? ', \\ z_0 = ' + ctl.par : ctl.cas === 'DU' ? ', \\ \\gamma = ' + ctl.par : ctl.cas === 'DT' ? ', \\ \\gamma = ' + ctl.par + ', \\ \\gamma_\\tau = ' + ctl.par2 : '';
+    const vartex = m.ctex ? m.ctex + '\\,(\\hat\\phi-\\phi)' : '\\hat\\phi-\\phi';
+    $('varline').innerHTML = 'variable: \\(' + vartex + '\\) &nbsp;|&nbsp; ' + ctl.cas + ': ' + casName + ', \\(n = ' + ctl.n + ', \\ \\phi = ' + ctl.phi + parTex + '\\)';
+    $('mt').innerHTML = 'Moments of the plotted variable \\(' + vartex + '\\)';
+    $('qt').innerHTML = 'Quantiles of the plotted variable \\(' + vartex + '\\)' + (m.cn === null ? ' with \\(c_n = ' + m.ctex + '\\)' : m.cn !== 1 ? ' with \\(c_n = ' + m.ctex + ' = ' + texnum(m.cn) + '\\)' : '');
+    let note = '';
+    if (m.scaledMode) note += 'Here \\(\\phi^{2n} = 10^{' + Math.round(m.lg2n) + '}\\), beyond the range of double precision for \\(\\hat\\phi-\\phi\\) itself (about \\(10^{300}\\)); the exact distribution of \\(|\\phi|^n(\\hat\\phi-\\phi)/(\\phi^2-1)\\) is computed from the characteristic function in scaled arguments, which has no limit on \\(n\\) (Section 4.3 of the paper). ' + (m.normForced ? 'This normalization is used whatever is selected, since \\(\\hat\\phi-\\phi\\) is not representable. ' : '') + 'The moments of the plotted variable are not computed beyond \\(10^{300}\\): its mean is of order \\(\\sqrt n\\), but its standard deviation, skewness and excess kurtosis grow like \\(n^{1/4}|\\phi|^{n/2}\\), \\(n^{-1/4}|\\phi|^{n/2}\\) and \\(n^{-1/2}|\\phi|^{n}\\) (Section 4.3 of the paper), here of order \\(10^{' + Math.round(0.25 * Math.log10(ctl.n) + m.lg2n / 4) + '}\\), \\(10^{' + Math.round(-0.25 * Math.log10(ctl.n) + m.lg2n / 4) + '}\\) and \\(10^{' + Math.round(-0.5 * Math.log10(ctl.n) + m.lg2n / 2) + '}\\), beyond the range of double precision for \\(\\phi^{2n}\\) above about \\(10^{1200}\\), \\(10^{1200}\\) and \\(10^{600}\\). ';
+    else if (m.stats.rangeK) note += 'Moments of order ' + m.stats.rangeK + ' and above are beyond the range of double precision here (\\(\\phi^{2n} = 10^{' + Math.round(2 * ctl.n * Math.log10(Math.abs(ctl.phi))) + '}\\); orders 1 to 4 can be evaluated up to about \\(10^{300}, 10^{300}, 10^{200}, 10^{150}\\), Section 4.3 of the paper). ';
+    if (m.stats.kmax < 4) note += 'Moments of order above ' + m.stats.kmax + ' do not exist in this case at \\(n = ' + ctl.n + '\\) (the denominator has rank ' + (m.stats.kmax + 1) + '). ';
+    const heavyN = Math.abs(ctl.phi) > 1 && ctl.n * (Math.abs(ctl.phi) - 1) > 30;
+    if (!heavyN) note += 'The plotted range runs from the 0.5% to the 99.5% quantile, extended until the density falls below 0.3% of its value at the median, or, when the tails are heavy, pulled in to where the density is 1% of that value. ';
+    if (heavyN) note += 'In the explosive region \\(\\hat\\phi-\\phi\\) is of order \\(|\\phi|^{-n}\\); the plotted range runs from the 2.5% to the 97.5% quantile, extended until the density falls below 0.3% of its value at the median; the far tails are Cauchy-like, and the moments of \\(\\hat\\phi\\) are dominated by them. ';
+    if (ctl.cas === 'DU' && Math.abs(ctl.phi) === 1 && ctl.par !== 0) note += 'With \\(\\phi = 1\\) and \\(\\gamma \\ne 0\\) this is a random walk with drift \\(\\gamma\\sigma\\). ';
+    { const p0 = ctl.cas === 'DK' ? ctl.par : 1, small = (ctl.n === 3 && ['DK', 'DU', 'SU'].includes(ctl.cas)) || (ctl.n === 4 && ['DT', 'ST'].includes(ctl.cas));
+      if (small) note += 'For this sample size the lags, residualized on the regressors, have only two random dimensions; the density is computed by integrating out the last observation (Online Supplement, Section S6), since the inversion integrand decays slowly. ' +
+        ((ctl.n === 3 && ((ctl.cas === 'DK' && p0 === 0) || ctl.cas !== 'DK')) || ctl.n === 4 ? 'The density has a logarithmic singularity at \\(\\hat\\phi = ' + (ctl.n === 4 ? '-2/3' : ctl.cas === 'DK' ? '0' : '-1/2') + '\\). ' : ''); }
+    if (ctl.cas === 'DT') note += 'The distribution depends on \\((\\gamma,\\gamma_\\tau)\\) only through the effective start \\(\\xi = (1-\\phi)\\gamma - [(1-\\phi)\\tfrac{n+1}{2}+\\phi]\\gamma_\\tau\\); at \\(\\phi = 1\\) the drift \\(\\gamma\\) is removed by the trend and only \\(\\gamma_\\tau\\) (a quadratic trend in \\(y_t\\)) matters. The local-to-unity limit has \\(\\varkappa_\\tau = \\sqrt{n}\\,[c(\\gamma-\\gamma_\\tau\\tfrac{n+1}{2})+n\\phi\\gamma_\\tau]\\) (Online Supplement, Section S7). ';
+    if (!m.limitOnly) note += 'Density and distribution function on ' + m.npts + ' points (denser where the distribution function is steep) plus five quantiles' + (m.scaledMode ? '' : ' and four moments') + '; every value is an exact inversion integral evaluated with \\(O(1)\\) cost per node, independent of \\(n\\).';
+    $('note').innerHTML = note;
+    typeset([$('varline'), $('mt'), $('qt'), $('note')]);
+    status.textContent = m.ms + ' ms';
+    curRow = texRow(m);
+    renderTex();
+    drawAll();
+  }
+  function typeset(els) { if (window.MathJax && MathJax.typesetPromise) MathJax.typesetPromise(els).catch(() => {}); }
+  function texnum(v) {
+    if (v === null || v === undefined || !isFinite(v)) return '--';
+    const a = Math.abs(v);
+    if (a === 0) return '0';
+    if (a < 1e-3 || a >= 1e5) { const e = Math.floor(Math.log10(a)); const mant = v / Math.pow(10, e); return Number(mant.toPrecision(4)) + ' \\times 10^{' + e + '}'; }
+    return Number(v.toPrecision(5)).toString();
+  }
+  // ---------- LaTeX table ----------
+  let rows = [], curRow = null;
+  function texRow(m) {
+    const par = ctl.cas === 'DK' || ctl.cas === 'DU' ? String(ctl.par) : ctl.cas === 'DT' ? '(' + ctl.par + ',' + ctl.par2 + ')' : '--';
+    const cnv = m.cn === 1 ? '1' : m.ctex;
+    const cells = ['\\textsf{' + ctl.cas + '}', String(ctl.n), String(ctl.phi), par, texnum(m.stats.mean), texnum(m.stats.sd), texnum(m.stats.skew), texnum(m.stats.kurt), cnv, texnum(m.q01), texnum(m.q05), texnum(m.med), texnum(m.q95), texnum(m.q99)];
+    return cells.map((v, i) => (i >= 1 && v !== '--') ? '$' + v + '$' : v).join(' & ') + ' \\\\';
+  }
+  function renderTex() {
+    const head = '% exact finite-sample distribution of the AR(1) least squares estimator (Bao and Kan)\n' +
+      '\\begin{tabular}{llllrrrrlrrrrr}\n\\toprule\n' +
+      'Case & $n$ & $\\phi$ & $z_0$, $\\gamma$ or $(\\gamma,\\gamma_\\tau)$ & $\\mathrm{E}[c_n(\\hat\\phi-\\phi)]$ & $\\mathrm{sd}[c_n(\\hat\\phi-\\phi)]$ & skewness & excess kurtosis & $c_n$ & \\multicolumn{5}{c}{quantiles of $c_n(\\hat\\phi-\\phi)$}\\\\\n' +
+      '\\cmidrule(lr){10-14}\n & & & & & & & & & 0.01 & 0.05 & 0.50 & 0.95 & 0.99\\\\\n\\midrule\n';
+    const body = rows.concat(curRow ? [curRow + '   % current'] : []).join('\n');
+    $('latex').value = head + body + '\n\\bottomrule\n\\end{tabular}';
+  }
+  $('tex-add').addEventListener('click', () => { if (curRow) { rows.push(curRow); renderTex(); $('tex-status').textContent = rows.length + ' row' + (rows.length > 1 ? 's' : '') + ' kept'; } });
+  $('tex-clear').addEventListener('click', () => { rows = []; renderTex(); $('tex-status').textContent = ''; });
+  $('tex-copy').addEventListener('click', () => {
+    const ta = $('latex'); const done = () => { $('tex-status').textContent = 'copied'; };
+    const fallback = () => { ta.focus(); ta.select(); try { document.execCommand('copy'); done(); } catch (e) { $('tex-status').textContent = 'select the text and copy it'; } };
+    if (navigator.clipboard && navigator.clipboard.writeText) navigator.clipboard.writeText(ta.value).then(done, fallback); else fallback();
+  });
+  function fmt(v, d) { d = d || 5; const a = Math.abs(v); if (a !== 0 && (a < 1e-3 || a >= 1e6)) return v.toExponential(4); return Number(v.toPrecision(5)).toString(); }
+
+  // ---------- plotting ----------
+  function cssVar(name) { return getComputedStyle(root).getPropertyValue(name).trim(); }
+  function niceStep(span, target) { const raw = span / target, p = Math.pow(10, Math.floor(Math.log10(raw))), r = raw / p; return (r < 1.5 ? 1 : r < 3.5 ? 2 : r < 7.5 ? 5 : 10) * p; }
+  // linear interpolation of a sampled curve (xs increasing); null outside the sampled range
+  function interp(xs, ys, v) {
+    const n = xs.length; if (!n || v < xs[0] || v > xs[n - 1]) return null;
+    let lo = 0, hi = n - 1; while (hi - lo > 1) { const m = (lo + hi) >> 1; if (xs[m] <= v) lo = m; else hi = m; }
+    if (hi === lo) return ys[lo];
+    const w = (v - xs[lo]) / (xs[hi] - xs[lo]); return ys[lo] + w * (ys[hi] - ys[lo]);
+  }
+  function draw(canvas, x, series, yFixed, hx) {
+    const dpr = window.devicePixelRatio || 1; const W = canvas.clientWidth, H = canvas.clientHeight || 300;
+    canvas.width = Math.round(W * dpr); canvas.height = Math.round(H * dpr);
+    const ctx = canvas.getContext('2d'); ctx.setTransform(dpr, 0, 0, dpr, 0, 0); ctx.clearRect(0, 0, W, H);
+    const fg = cssVar('--fg'), muted = cssVar('--muted'), grid = cssVar('--grid'), line = cssVar('--line');
+    const ml = 52, mr = 14, mt = 10, mb = 24; const pw = W - ml - mr, ph = H - mt - mb;
+    canvas._st = (x && x.length) ? { x, series, yFixed, ml, pw, x0: x[0], x1: x[x.length - 1] } : null;
+    if (!x || !x.length) { ctx.fillStyle = muted; ctx.font = '13px ' + cssVar('--sans'); ctx.fillText('computing…', ml + 8, mt + 20); return; }
+    const x0 = x[0], x1 = x[x.length - 1];
+    let y0 = 0, y1 = yFixed ? 1 : 0; if (!yFixed) for (const s of series) for (const v of s.y) if (isFinite(v)) y1 = Math.max(y1, v); if (!yFixed) y1 *= 1.06; if (y1 <= 0) y1 = 1;
+    const X = (v) => ml + (v - x0) / (x1 - x0) * pw, Y = (v) => mt + ph - (v - y0) / (y1 - y0) * ph;
+    ctx.font = '11px ' + cssVar('--mono'); ctx.fillStyle = muted; ctx.strokeStyle = grid; ctx.lineWidth = 1;
+    const sx = niceStep(x1 - x0, 6), sy = niceStep(y1 - y0, 5);
+    for (let v = Math.ceil(x0 / sx) * sx; v <= x1 + 1e-12 * sx; v += sx) { const px = Math.round(X(v)) + 0.5; ctx.beginPath(); ctx.moveTo(px, mt); ctx.lineTo(px, mt + ph); ctx.stroke(); const lab = fmtTick(v, sx); ctx.textAlign = 'center'; ctx.fillText(lab, px, mt + ph + 16); }
+    for (let v = y0; v <= y1 + 1e-12 * sy; v += sy) { const py = Math.round(Y(v)) + 0.5; ctx.beginPath(); ctx.moveTo(ml, py); ctx.lineTo(ml + pw, py); ctx.stroke(); ctx.textAlign = 'right'; ctx.fillText(fmtTick(v, sy), ml - 6, py + 4); }
+    ctx.strokeStyle = line; ctx.strokeRect(ml + 0.5, mt + 0.5, pw, ph);
+    if (x0 < 0 && x1 > 0) { ctx.strokeStyle = line; ctx.setLineDash([2, 3]); ctx.beginPath(); ctx.moveTo(Math.round(X(0)) + 0.5, mt); ctx.lineTo(Math.round(X(0)) + 0.5, mt + ph); ctx.stroke(); ctx.setLineDash([]); }
+    ctx.save(); ctx.beginPath(); ctx.rect(ml, mt, pw, ph); ctx.clip();
+    for (const s of series) {
+      ctx.strokeStyle = s.color; ctx.lineWidth = s.dash ? 1.5 : 2; ctx.setLineDash(s.dash ? [6, 4] : []);
+      if (s.fill) { ctx.beginPath(); ctx.moveTo(X(x[0]), Y(0)); for (let i = 0; i < x.length; i++) ctx.lineTo(X(x[i]), Y(s.y[i])); ctx.lineTo(X(x[x.length - 1]), Y(0)); ctx.closePath(); ctx.fillStyle = s.color; ctx.globalAlpha = 0.12; ctx.fill(); ctx.globalAlpha = 1; }
+      const xs = s.x || x;
+      ctx.beginPath(); for (let i = 0; i < xs.length; i++) { const px = X(xs[i]), py = Y(s.y[i]); if (i === 0) ctx.moveTo(px, py); else ctx.lineTo(px, py); } ctx.stroke();
+    }
+    ctx.restore(); ctx.setLineDash([]);
+    // hover: a crosshair at hx and a dot on each curve at its interpolated value
+    if (hx !== undefined && hx !== null && hx >= x0 && hx <= x1) {
+      const px = Math.round(X(hx)) + 0.5;
+      ctx.strokeStyle = muted; ctx.globalAlpha = 0.7; ctx.beginPath(); ctx.moveTo(px, mt); ctx.lineTo(px, mt + ph); ctx.stroke(); ctx.globalAlpha = 1;
+      for (const s of series) {
+        const v = interp(s.x || x, s.y, hx); if (v === null || !isFinite(v)) continue;
+        ctx.beginPath(); ctx.arc(X(hx), Math.min(mt + ph, Math.max(mt, Y(v))), 4, 0, 2 * Math.PI);
+        ctx.fillStyle = cssVar('--panel'); ctx.fill(); ctx.strokeStyle = s.color; ctx.lineWidth = 2; ctx.stroke();
+      }
+    }
+    // the axis label is typeset by MathJax in the .xlabel element below the canvas
+  }
+  // the readout under each chart: x and the value of every curve there
+  function hoverSetup(canvas, readEl, letter) {
+    function at(ev) {
+      const st = canvas._st; if (!st) return;
+      const r = canvas.getBoundingClientRect(); const px = (ev.clientX - r.left);
+      const hx = Math.min(st.x1, Math.max(st.x0, st.x0 + (px - st.ml) / st.pw * (st.x1 - st.x0)));
+      draw(canvas, st.x, st.series, st.yFixed, hx);
+      let txt = 'x = ' + fmt(hx);
+      st.series.forEach((s, i) => { const v = interp(s.x || st.x, s.y, hx); if (v !== null && isFinite(v)) txt += (i ? '<span class="lim">' : '<span>') + (i ? 'limit ' : 'exact ') + letter + ' = ' + fmt(v) + '</span>'; });
+      readEl.innerHTML = txt;
+    }
+    function off() { const st = canvas._st; if (st) draw(canvas, st.x, st.series, st.yFixed); readEl.innerHTML = ''; }
+    canvas.addEventListener('mousemove', at);
+    canvas.addEventListener('touchmove', e => { if (e.touches[0]) at(e.touches[0]); }, { passive: true });
+    canvas.addEventListener('touchstart', e => { if (e.touches[0]) at(e.touches[0]); }, { passive: true });
+    canvas.addEventListener('mouseleave', off);
+  }
+  hoverSetup($('pdf'), $('rd-pdf'), 'f');
+  hoverSetup($('cdf'), $('rd-cdf'), 'F');
+  function fmtTick(v, step) { const d = Math.max(0, -Math.floor(Math.log10(step)) ); if (Math.abs(v) < 1e-12) return '0'; if (Math.abs(v) >= 1e5 || Math.abs(step) < 1e-4) return v.toExponential(1); return v.toFixed(d); }
+  let lastLegend = null, lastXl = null;
+  function drawAll() {
+    const acc = cssVar('--accent'), lim = cssVar('--limit');
+    if (!last) { draw($('pdf'), null, [], false); draw($('cdf'), null, [], true); return; }
+    const sp = [], sc = [];
+    if (last.limitOnly) { if (last.limitShown) { sp.push({ y: last.f, color: lim, dash: true }); sc.push({ y: last.F, color: lim, dash: true }); } }
+    else { sp.push({ y: last.f, color: acc, fill: true }); sc.push({ y: last.F, color: acc }); }
+    if (last.limit) { sp.push({ x: last.limit.x, y: last.limit.f, color: lim, dash: true }); sc.push({ x: last.limit.x, y: last.limit.F, color: lim, dash: true }); }
+    draw($('pdf'), last.x, sp, false); draw($('cdf'), last.x, sc, true);
+    const lg = (last.limitOnly ? (last.limitShown ? '<span class="lim">limit \\(Z_1/Z_2\\); the exact distribution is beyond the range of double precision</span>' : '<span>the exact distribution is beyond the range of double precision</span>') : '<span>exact</span>') + (last.limit ? '<span class="lim">' + last.limit.name + '</span>' : '');
+    if (lg !== lastLegend) { $('leg-pdf').innerHTML = lg; $('leg-cdf').innerHTML = lg; typeset([$('leg-pdf'), $('leg-cdf')]); lastLegend = lg; }
+    const xl = '\\(' + (last.ctex ? last.ctex + '\\,(\\hat\\phi-\\phi)' : '\\hat\\phi-\\phi') + '\\)';
+    if (xl !== lastXl) { $('xl-pdf').innerHTML = xl; $('xl-cdf').innerHTML = xl; typeset([$('xl-pdf'), $('xl-cdf')]); lastXl = xl; }
+  }
+  window.addEventListener('resize', () => requestAnimationFrame(drawAll));
+  setCase('DU');
+})();
+</script>
+
+</body>
+</html>

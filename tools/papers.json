@@ -596,5 +596,25 @@
    ]
   ],
   "info": "with Jiening Pan and Shengzhe Tang, 2026."
+ },
+ {
+  "sec": "wp",
+  "title": "Exact Finite-Sample Distribution and Moments of the Least Squares Estimator in First-Order Autoregressions: O(1) Algorithms",
+  "url": "papers/AR_BK.pdf",
+  "extras": [
+   [
+    "Online Supplement",
+    "papers/AR_BK_supp.pdf"
+   ],
+   [
+    "Matlab Programs",
+    "papers/ar1_matlab.zip"
+   ],
+   [
+    "Visual Demo",
+    "papers/ar1_demo.html"
+   ]
+  ],
+  "info": "with <a href=\"http://web.ics.purdue.edu/~ybao/\">Yong Bao</a>, 2026."
  }
 ]
