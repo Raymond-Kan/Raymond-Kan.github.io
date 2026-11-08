@@ -14,7 +14,7 @@
    charts (density | cdf). Cool-grey neutrals, one blue for densities, one rust for cdfs. */
 :root {
   --bg: #F4F6F9; --surface: #FFFFFF; --surface2: #EEF2F6; --fg: #19222D; --muted: #5C6978; --line: #D6DDE6;
-  --grid: #E7ECF2; --pdf: #2B63B0; --pdf-fill: rgba(43,99,176,0.12); --cdf: #BC5A24; --accent: #2B63B0;
+  --grid: #E7ECF2; --pdf: #2B63B0; --pdf-fill: rgba(43,99,176,0.12); --cdf: #BC5A24; --accent: #2B63B0; --lim: #2E8B57;
   --focus: #7FA6E6; --ok: #2E7D4F; --warn: #B7791F;
   --font-display: "KaTeX_Main", "Latin Modern Roman", "Computer Modern", "Times New Roman", serif;
   --font-body: "IBM Plex Sans", "Segoe UI", Helvetica, Arial, sans-serif;
@@ -22,11 +22,11 @@
 }
 @media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) {
   --bg: #0F1419; --surface: #161C23; --surface2: #1D252E; --fg: #E4E9EF; --muted: #98A4B3; --line: #2A3441;
-  --grid: #222B36; --pdf: #7DB0F0; --pdf-fill: rgba(125,176,240,0.16); --cdf: #F0A36E; --accent: #7DB0F0;
+  --grid: #222B36; --pdf: #7DB0F0; --pdf-fill: rgba(125,176,240,0.16); --cdf: #F0A36E; --accent: #7DB0F0; --lim: #6CCB8E;
   --focus: #5F8FD8; --ok: #6CC391; --warn: #E0B050; color-scheme: dark; } }
 :root[data-theme="dark"] {
   --bg: #0F1419; --surface: #161C23; --surface2: #1D252E; --fg: #E4E9EF; --muted: #98A4B3; --line: #2A3441;
-  --grid: #222B36; --pdf: #7DB0F0; --pdf-fill: rgba(125,176,240,0.16); --cdf: #F0A36E; --accent: #7DB0F0;
+  --grid: #222B36; --pdf: #7DB0F0; --pdf-fill: rgba(125,176,240,0.16); --cdf: #F0A36E; --accent: #7DB0F0; --lim: #6CCB8E;
   --focus: #5F8FD8; --ok: #6CC391; --warn: #E0B050; color-scheme: dark; }
 :root[data-theme="light"] { color-scheme: light; }
 
@@ -88,13 +88,17 @@ button.primary:focus-visible { outline: 2px solid var(--focus); outline-offset: 
 section.panel { display: grid; gap: 10px; }
 .panel-head { display: flex; flex-wrap: wrap; gap: 6px 22px; align-items: baseline; justify-content: space-between; }
 .stats { display: flex; flex-wrap: wrap; gap: 4px 18px; font-size: 13.5px; color: var(--muted); }
-.stats b { font-family: var(--font-mono); font-weight: 400; font-size: 15px; color: var(--fg); font-variant-numeric: tabular-nums; }
+.stats b { font-weight: 400; font-size: 14px; color: var(--fg); }
+.stats .katex { font-size: 1.08em; }
 .charts { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; }
 @media (max-width: 760px) { .charts { grid-template-columns: 1fr; } h1 { font-size: 26px; } }
 figure { margin: 0; background: var(--surface); border: 1px solid var(--line); border-radius: 12px; padding: 12px 12px 8px; min-width: 0; }
 figure figcaption { display: flex; justify-content: space-between; gap: 10px; font-size: 13px; color: var(--muted); padding: 0 4px 6px; }
+figure figcaption > .tex .katex, figure figcaption > span > .tex .katex { font-size: 1.12em; }
 figure figcaption .logtog { margin-left: 10px; font-size: 12px; color: var(--muted); cursor: pointer; }
 figure figcaption .logtog input { accent-color: var(--accent); vertical-align: -1px; }
+.notes p.eqs { text-align: center; overflow-x: auto; margin: 2px 0 6px; }
+.notes p.eqs .katex-display { margin: 0.3em 0; }
 figure figcaption .read { font-family: var(--font-mono); font-variant-numeric: tabular-nums; color: var(--fg); min-height: 1.3em; }
 svg.chart { width: 100%; height: auto; display: block; overflow: visible; }
 svg.chart text { font-family: var(--font-mono); font-size: 12.5px; fill: var(--muted); }
@@ -103,12 +107,18 @@ svg.chart .fo { font-family: var(--font-mono); font-size: 12.5px; color: var(--m
 svg.chart .fo .katex { white-space: nowrap; }
 svg.chart .fo .katex { font-size: 1em; }
 svg.chart .fo.fo-pop { color: var(--cdf); }
+svg.chart .fo.fo-legend { font-size: 11.5px; color: var(--fg); opacity: 0.85; }
 svg.chart .grid line { stroke: var(--grid); stroke-width: 1; }
 svg.chart .axis line { stroke: var(--line); }
 svg.chart .curve { fill: none; stroke-width: 2; stroke-linejoin: round; stroke-linecap: round; }
 svg.chart .curve.pdf { stroke: var(--pdf); }
 svg.chart .curve.cdf { stroke: var(--cdf); }
 svg.chart .area { fill: var(--pdf-fill); }
+svg.chart .curve.lim { stroke: var(--lim); stroke-width: 1.8; stroke-dasharray: 6 4; }
+svg.chart .legend text { font-size: 11px; fill: var(--fg); opacity: 0.85; }
+svg.chart .legend line.lim { stroke: var(--lim); stroke-width: 1.8; stroke-dasharray: 6 4; }
+svg.chart .legend line.ex { stroke-width: 2; }
+.panel-head .stats .lim { display: contents; color: var(--lim); }
 svg.chart .mean { stroke: var(--fg); stroke-dasharray: 3 4; opacity: 0.6; }
 svg.chart .pop { stroke: var(--cdf); stroke-dasharray: 1.5 3; opacity: 0.8; }
 svg.chart .pt { fill: var(--surface); stroke-width: 1.5; }
@@ -142,6 +152,14 @@ svg.chart .note { font-size: 11.5px; fill: var(--muted); }
         <span class="seg" id="quality-seg" role="group" aria-label="Quadrature precision">
           <button type="button" data-quality="standard" aria-pressed="true" title="relative accuracy about 1e-4">Standard</button>
           <button type="button" data-quality="high" aria-pressed="false" title="relative accuracy about 1e-6, roughly 3x slower">High</button>
+        </span>
+      </label>
+      <label>Limit
+        <span class="seg" id="limit-seg" role="group" aria-label="Limiting distribution to overlay">
+          <button type="button" data-limit="off" aria-pressed="false" title="no limiting distribution">Off</button>
+          <button type="button" data-limit="auto" aria-pressed="true" title="local-to-unit-root limit when T(1 - phi) is at most 40 and phi > 0, fixed-phi limit otherwise">Auto</button>
+          <button type="button" data-limit="fixed" aria-pressed="false" title="fixed-phi asymptotics: normal, and chi-squared for R^2 under the null">Fixed-ϕ</button>
+          <button type="button" data-limit="lur" aria-pressed="false" title="local-to-unit-root asymptotics, phi = 1 + c/T, with the predictor started at its stationary distribution">LUR</button>
         </span>
       </label>
     </div>
@@ -198,30 +216,47 @@ svg.chart .note { font-size: 11.5px; fill: var(--muted); }
   <section class="panel" id="panel-b">
     <div class="panel-head"><h2>Slope estimate <span class="tex" data-tex="\hat\beta"></span></h2><div class="stats" id="stats-b"></div></div>
     <div class="charts">
-      <figure><figcaption><span>Density of <span class="tex" data-tex="\hat\beta"></span></span><span class="read" id="read-b-pdf"></span></figcaption><svg class="chart" id="ch-b-pdf" viewBox="0 0 560 300" role="img" aria-label="Density of the slope estimate"></svg></figure>
-      <figure><figcaption><span>Cdf of <span class="tex" data-tex="\hat\beta"></span></span><span class="read" id="read-b-cdf"></span></figcaption><svg class="chart" id="ch-b-cdf" viewBox="0 0 560 300" role="img" aria-label="Cdf of the slope estimate"></svg></figure>
+      <figure><figcaption><span class="tex" data-tex="\text{Density of }\hat\beta"></span><span class="read" id="read-b-pdf"></span></figcaption><svg class="chart" id="ch-b-pdf" viewBox="0 0 560 300" role="img" aria-label="Density of the slope estimate"></svg></figure>
+      <figure><figcaption><span class="tex" data-tex="\text{Cdf of }\hat\beta"></span><span class="read" id="read-b-cdf"></span></figcaption><svg class="chart" id="ch-b-cdf" viewBox="0 0 560 300" role="img" aria-label="Cdf of the slope estimate"></svg></figure>
     </div>
   </section>
 
   <section class="panel" id="panel-t">
     <div class="panel-head"><h2>The <span class="tex" data-tex="t"></span>-ratio <span class="tex" data-tex="t(\hat\beta)"></span></h2><div class="stats" id="stats-t"></div></div>
     <div class="charts">
-      <figure><figcaption><span>Density of <span class="tex" data-tex="t(\hat\beta)"></span></span><span class="read" id="read-t-pdf"></span></figcaption><svg class="chart" id="ch-t-pdf" viewBox="0 0 560 300" role="img" aria-label="Density of the t-ratio"></svg></figure>
-      <figure><figcaption><span>Cdf of <span class="tex" data-tex="t(\hat\beta)"></span></span><span class="read" id="read-t-cdf"></span></figcaption><svg class="chart" id="ch-t-cdf" viewBox="0 0 560 300" role="img" aria-label="Cdf of the t-ratio"></svg></figure>
+      <figure><figcaption><span class="tex" data-tex="\text{Density of }t(\hat\beta)"></span><span class="read" id="read-t-pdf"></span></figcaption><svg class="chart" id="ch-t-pdf" viewBox="0 0 560 300" role="img" aria-label="Density of the t-ratio"></svg></figure>
+      <figure><figcaption><span class="tex" data-tex="\text{Cdf of }t(\hat\beta)"></span><span class="read" id="read-t-cdf"></span></figcaption><svg class="chart" id="ch-t-cdf" viewBox="0 0 560 300" role="img" aria-label="Cdf of the t-ratio"></svg></figure>
     </div>
   </section>
 
   <section class="panel" id="panel-r">
     <div class="panel-head"><h2>Regression <span class="tex" data-tex="R^2"></span></h2><div class="stats" id="stats-r"></div></div>
     <div class="charts">
-      <figure><figcaption><span>Density of <span class="tex" data-tex="R^2"></span> <label class="logtog"><input type="checkbox" id="log-r-pdf"> log scale</label></span><span class="read" id="read-r-pdf"></span></figcaption><svg class="chart" id="ch-r-pdf" viewBox="0 0 560 300" role="img" aria-label="Density of R squared"></svg></figure>
-      <figure><figcaption><span>Cdf of <span class="tex" data-tex="R^2"></span></span><span class="read" id="read-r-cdf"></span></figcaption><svg class="chart" id="ch-r-cdf" viewBox="0 0 560 300" role="img" aria-label="Cdf of R squared"></svg></figure>
+      <figure><figcaption><span><span class="tex" data-tex="\text{Density of }R^2"></span> <label class="logtog"><input type="checkbox" id="log-r-pdf"> log scale</label></span><span class="read" id="read-r-pdf"></span></figcaption><svg class="chart" id="ch-r-pdf" viewBox="0 0 560 300" role="img" aria-label="Density of R squared"></svg></figure>
+      <figure><figcaption><span class="tex" data-tex="\text{Cdf of }R^2"></span><span class="read" id="read-r-cdf"></span></figcaption><svg class="chart" id="ch-r-cdf" viewBox="0 0 560 300" role="img" aria-label="Cdf of R squared"></svg></figure>
     </div>
   </section>
 
   <div class="notes">
     <p>The distribution of <span class="tex" data-tex="b = (\sigma_v/\sigma_u)(\hat\beta-\beta)"></span> depends only on <span class="tex" data-tex="(T,\phi,\rho_{uv})"></span>, and <span class="tex" data-tex="\hat\beta = \beta + (\sigma_u/\sigma_v)\,b"></span>. The <span class="tex" data-tex="t"></span>-ratio and <span class="tex" data-tex="R^2"></span> are scale invariant and depend on <span class="tex" data-tex="(T,\phi,\rho_{uv})"></span> and the normalized slope <span class="tex" data-tex="\tilde\beta = \beta\,\sigma_v/\sigma_u"></span> only. The density of <span class="tex" data-tex="R^2"></span> is unbounded at the origin for every <span class="tex" data-tex="T"></span>: <span class="tex" data-tex="f(z) \sim A\,z^{-1/2}"></span> with <span class="tex" data-tex="A = \sqrt{T-2}\,f_t(0)"></span>.</p>
     <p>Each curve point is the exact inversion integral (one univariate integral for <span class="tex" data-tex="\hat\beta"></span>; a triple integral for <span class="tex" data-tex="t(\hat\beta)"></span> and <span class="tex" data-tex="R^2"></span>, with the outer variable truncated where a certified Chernoff bound puts less than <span class="tex" data-tex="10^{-10}"></span> of the mass) evaluated with the paper’s <span class="tex" data-tex="O(1)"></span> closed-form integrand on contours shifted to the exponential tilt that centres the integrand, so the quadrature is non-oscillatory for any <span class="tex" data-tex="T"></span>. Means and standard deviations come from the exact moment formulas (gamma-integral linearisation of the moment generating function). Standard quadrature settings give about four significant digits; High gives about six. The <span class="tex" data-tex="\hat\beta"></span> curve carries 81 computed points, the others about 60, drawn through with Akima (densities) and monotone cubic (cdfs) interpolation. Hover a chart to read values.</p>
+    <p><b>Limiting distributions.</b> The dashed curve is an asymptotic approximation to the exact distribution. <i>Fixed-<span class="tex" data-tex="\phi"></span></i> holds <span class="tex" data-tex="\phi"></span> fixed, <span class="tex" data-tex="|\phi| < 1"></span>, as <span class="tex" data-tex="T\to\infty"></span>; writing <span class="tex" data-tex="\tilde\beta = \beta\,\sigma_v/\sigma_u"></span> and <span class="tex" data-tex="\rho^2 = \tilde\beta^2/(\tilde\beta^2 + 1 - \phi^2)"></span> for the population <span class="tex" data-tex="R^2"></span>, the limits are normal,</p>
+    <p class="eqs">
+      <span class="eq tex" data-tex="\begin{gathered}
+      \hat\beta \;\approx\; \mathrm{N}\!\left(\beta,\ \frac{\sigma_u^2}{\sigma_v^2}\,\frac{1-\phi^2}{T}\right),\qquad
+      t(\hat\beta) \;\approx\; \mathrm{N}\!\left(\frac{\sqrt{T}\,\tilde\beta}{\sqrt{1-\phi^2}},\ V(t)\right),\\[4pt]
+      V(t) = 1 + \frac{2\rho_{uv}\,\phi\,\tilde\beta}{1-\phi^2} + \frac{\tilde\beta^2}{1-\phi^2}\left[\frac{1+\phi^2}{2(1-\phi^2)} + \frac12 - \rho_{uv}^2\right],
+      \end{gathered}"></span>
+    </p>
+    <p>so that under the null <span class="tex" data-tex="t(\hat\beta) \approx \mathrm{N}(0,1)"></span>; and for <span class="tex" data-tex="R^2"></span>, under the null <span class="tex" data-tex="T R^2 \approx \chi^2_1"></span>, with mean <span class="tex" data-tex="1/T"></span> and variance <span class="tex" data-tex="2/T^2"></span>, while under the alternative</p>
+    <p class="eqs">
+      <span class="eq tex" data-tex="\begin{gathered}
+      R^2 \;\approx\; \mathrm{N}\!\left(\rho^2,\ \frac{V(R^2)}{T}\right),\qquad
+      V(R^2) = \frac{4\rho^2(1-\rho^2)\left[(1-\rho^2) - (\phi - \rho_r)^2\right]}{1-\phi^2},\\[4pt]
+      \rho_r = \frac{\tilde\beta^2\phi + \tilde\beta\,\rho_{uv}(1-\phi^2)}{\tilde\beta^2 + 1 - \phi^2},
+      \end{gathered}"></span>
+    </p>
+    <p>where <span class="tex" data-tex="\rho_r"></span> is the first-order autocorrelation of the return (Kan, Pan and Tang, Section 6.1). The approximating family is discontinuous at <span class="tex" data-tex="\beta = 0"></span>: the <span class="tex" data-tex="R^2"></span> limit switches from the scaled <span class="tex" data-tex="\chi^2_1"></span> to a normal whose variance vanishes as <span class="tex" data-tex="\tilde\beta \to 0"></span>, so it is a poor description when the signal <span class="tex" data-tex="T\rho^2"></span> is small. <i>LUR</i> is the local-to-unit-root limit, <span class="tex" data-tex="\phi = 1 + c/T"></span> with <span class="tex" data-tex="c = T(\phi-1)"></span> held fixed, in which the predictor converges to an Ornstein–Uhlenbeck process started, as <span class="tex" data-tex="z_0"></span> is, at its stationary distribution: <span class="tex" data-tex="T(\hat\beta-\beta)(\sigma_v/\sigma_u) \Rightarrow I/B"></span>, <span class="tex" data-tex="t(\hat\beta) \Rightarrow T\tilde\beta\sqrt{B} + I/\sqrt{B}"></span> and <span class="tex" data-tex="R^2 \approx t^2/(T-2+t^2)"></span>, with <span class="tex" data-tex="B = \int_0^1 J^2"></span> and <span class="tex" data-tex="I = \int_0^1 J\,dW_1"></span> for the demeaned process <span class="tex" data-tex="J"></span>. These limits are computed exactly, not simulated, by inverting the closed-form joint moment generating function of <span class="tex" data-tex="(I,B)"></span> (a single integral for <span class="tex" data-tex="\hat\beta"></span>, a double integral for <span class="tex" data-tex="t(\hat\beta)"></span> and <span class="tex" data-tex="R^2"></span>), to about six digits here; their means and standard deviations are integrals of the same function at real and imaginary arguments. <i>Auto</i> shows the LUR limit when <span class="tex" data-tex="\phi > 0"></span> and <span class="tex" data-tex="T(1-\phi) \le 40"></span>, and the fixed-<span class="tex" data-tex="\phi"></span> limit otherwise; the choice it made is named in each panel. Neither family is uniformly good: the fixed-<span class="tex" data-tex="\phi"></span> limit fails as <span class="tex" data-tex="\phi"></span> approaches one, and the LUR limit of <span class="tex" data-tex="\hat\beta"></span> drifts off when <span class="tex" data-tex="T(1-\phi)"></span> is large.</p>
   </div>
 </div>
 
@@ -1427,7 +1462,534 @@ if (typeof globalThis !== 'undefined') globalThis.PREDREG = module.exports;
   if (typeof module !== 'undefined' && module.exports) module.exports = API;
 })(typeof globalThis !== 'undefined' ? globalThis : this);
 
-// worker.js — Web Worker message handler (appended after predreg.js and compute.js in the worker bundle)
+// lur.js — exact local-to-unit-root limits of the predictive regression.
+// Port of the MATLAB programs lpr_* (folder lur_exact; see the technical note
+// "Exact local-to-unit-root distributions in predictive regression").
+//
+// phi = 1 + c/T with c < 0; J the demeaned Ornstein-Uhlenbeck process started
+// at its stationary distribution (or at zero); B = int J^2, I = int J dW1 with
+// corr(W1, W2) = rho.  Limits:  T b => I/B;  t(betahat) => bf sqrt(B) + I/sqrt(B)
+// under beta~ = bf/T;  R^2 ~ t^2/(nu + t^2).
+//
+// Complex numbers are [re, im] pairs.  Exposed as LUR (globalThis) / module.exports.
+(function (root) {
+  'use strict';
+
+  // ---------- complex helpers ----------
+  const cabs = (a, b) => Math.hypot(a, b);
+  function cdivRI(ar, ai, br, bi) {            // (ar + i ai) / (br + i bi)
+    if (Math.abs(br) >= Math.abs(bi)) { const r = bi / br, d = br + bi * r; return [(ar + ai * r) / d, (ai - ar * r) / d]; }
+    const r = br / bi, d = br * r + bi; return [(ar * r + ai) / d, (ai * r - ar) / d];
+  }
+  function csqrtRI(a, b) {                     // principal branch
+    if (a === 0 && b === 0) return [0, 0];
+    const m = Math.sqrt((Math.abs(a) + Math.hypot(a, b)) / 2);
+    if (a >= 0) return [m, b / (2 * m)];
+    const n = Math.abs(b) / (2 * m); return [n, b >= 0 ? m : -m];
+  }
+  const wrapAngle = x => Math.atan2(Math.sin(x), Math.cos(x));
+
+  // ---------- Faddeeva function w(z) = exp(-z^2) erfc(-i z), Weideman (1994), N = 36 ----------
+  const FAD = (function () {
+    const N = 36, M = 2 * N, M2 = 2 * M, L = Math.sqrt(N / Math.SQRT2);
+    const f = new Float64Array(M2);              // f[0] = 0, f[k] for k = -M+1..M-1 -> index k+M
+    for (let k = -M + 1; k <= M - 1; k++) { const th = k * Math.PI / M, t = L * Math.tan(th / 2); f[k + M] = Math.exp(-t * t) * (L * L + t * t); }
+    // a = real(fft(fftshift(f)))/M2, then a = flipud(a(2:N+1)); fftshift moves index M (k = 0) to the front
+    const a = new Float64Array(N);
+    for (let j = 1; j <= N; j++) {
+      let s = 0;
+      for (let n = 0; n < M2; n++) { const v = f[(n + M) % M2]; if (v !== 0) s += v * Math.cos(2 * Math.PI * j * n / M2); }
+      a[N - j] = s / M2;
+    }
+    return { a, L };
+  })();
+  function faddeevaUp(zr, zi) {                // Im z >= 0
+    const L = FAD.L, a = FAD.a;
+    // Z = (L + i z)/(L - i z); i z = (-zi, zr)
+    const nr = L - zi, ni = zr, dr = L + zi, di = -zr;
+    const Z = cdivRI(nr, ni, dr, di);
+    let pr = a[0], pi = 0;
+    for (let k = 1; k < a.length; k++) { const t = pr * Z[0] - pi * Z[1] + a[k]; pi = pr * Z[1] + pi * Z[0]; pr = t; }
+    // w = 2 p/(L - i z)^2 + (1/sqrt(pi))/(L - i z)
+    const d2r = dr * dr - di * di, d2i = 2 * dr * di;
+    const q1 = cdivRI(2 * pr, 2 * pi, d2r, d2i), q2 = cdivRI(1 / Math.sqrt(Math.PI), 0, dr, di);
+    return [q1[0] + q2[0], q1[1] + q2[1]];
+  }
+  function faddeeva(zr, zi) {
+    if (zi >= 0) return faddeevaUp(zr, zi);
+    // w(z) = 2 exp(-z^2) - w(-z)
+    const e = Math.exp(-(zr * zr - zi * zi)), ph = -2 * zr * zi;
+    const u = faddeevaUp(-zr, -zi);
+    return [2 * e * Math.cos(ph) - u[0], 2 * e * Math.sin(ph) - u[1]];
+  }
+  function erfc(x) { if (x >= 0) { const w = faddeevaUp(0, x); return Math.exp(-x * x) * w[0]; } return 2 - erfc(-x); }
+  const normcdf = x => 0.5 * erfc(-x / Math.SQRT2);
+  const normpdf = x => Math.exp(-0.5 * x * x) / Math.sqrt(2 * Math.PI);
+
+  // ---------- log D(s,t): the Fredholm determinant, E exp(sR + tB) = D^(-1/2) ----------
+  // Returns {L: principal log D, th: theta = sqrt(k^2 - 2t), Lr: log D - (theta - kappa)} as [re,im].
+  const FACT = [1]; for (let j = 1; j <= 36; j++) FACT[j] = FACT[j - 1] * j;
+  function phis(thr, thi, er, ei) {             // f1 = (1-e)/th, f2 = (th-1+e)/th^2, f3 = (2th-3+4e-e^2)/(2th^3)
+    if (Math.hypot(thr, thi) < 0.5) {
+      let s1r = 0, s1i = 0, s2r = 0, s2i = 0, s3r = 0, s3i = 0, pr = 1, pi = 0;
+      for (let j = 0; j <= 30; j++) {
+        const sg = (j % 2 === 0) ? 1 : -1;
+        const c1 = sg / FACT[j + 1], c2 = sg / FACT[j + 2], c3 = (4 * ((j + 3) % 2 === 0 ? 1 : -1) - Math.pow(-2, j + 3)) / (2 * FACT[j + 3]);
+        s1r += c1 * pr; s1i += c1 * pi; s2r += c2 * pr; s2i += c2 * pi; s3r += c3 * pr; s3i += c3 * pi;
+        const t = pr * thr - pi * thi; pi = pr * thi + pi * thr; pr = t;
+      }
+      return [s1r, s1i, s2r, s2i, s3r, s3i];
+    }
+    const f1 = cdivRI(1 - er, -ei, thr, thi);
+    const th2r = thr * thr - thi * thi, th2i = 2 * thr * thi;
+    const f2 = cdivRI(thr - 1 + er, thi + ei, th2r, th2i);
+    const th3r = th2r * thr - th2i * thi, th3i = th2r * thi + th2i * thr;
+    const e2r = er * er - ei * ei, e2i = 2 * er * ei;
+    const f3 = cdivRI(2 * thr - 3 + 4 * er - e2r, 2 * thi + 4 * ei - e2i, 2 * th3r, 2 * th3i);
+    return [f1[0], f1[1], f2[0], f2[1], f3[0], f3[1]];
+  }
+  function logd(sr, si, tr, ti, k, stationary) {
+    const th = csqrtRI(k * k - 2 * tr, -2 * ti), thr = th[0], thi = th[1];
+    const dl = cdivRI(2 * tr, 2 * ti, k + thr, thi);                   // delta = kappa - theta
+    const dlr = dl[0], dli = dl[1];
+    const ee = Math.exp(-thr), er = ee * Math.cos(-thi), ei = ee * Math.sin(-thi);
+    const ph = phis(thr, thi, er, ei);
+    let Lrr, Lri;
+    if (stationary) {
+      const a = cdivRI(1, 0, 2 * thr, 2 * thi), bb = cdivRI(er, ei, 2 * thr, 2 * thi), g = cdivRI(ph[0], ph[1], 2 * thr, 2 * thi), v = cdivRI(ph[2], ph[3], thr, thi);
+      const h00 = [dlr + sr, dli + si], h11 = [dlr - sr, dli - si], h22 = [2 * tr, 2 * ti], h02 = [-sr, -si], h12 = [sr, si];
+      const m = (x, y) => [x[0] * y[0] - x[1] * y[1], x[0] * y[1] + x[1] * y[0]];
+      const ad = (...zs) => { let r = 0, i = 0; for (const z of zs) { r += z[0]; i += z[1]; } return [r, i]; };
+      const n11 = ad([1, 0], m(a, h00), m(g, h02)), n12 = ad(m(bb, h11), m(g, h12)), n13 = ad(m(a, h02), m(bb, h12), m(g, h22));
+      const n21 = ad(m(bb, h00), m(g, h02)), n22 = ad([1, 0], m(a, h11), m(g, h12)), n23 = ad(m(bb, h02), m(a, h12), m(g, h22));
+      const n31 = ad(m(g, h00), m(v, h02)), n32 = ad(m(g, h11), m(v, h12)), n33 = ad([1, 0], m(g, h02), m(g, h12), m(v, h22));
+      const c1 = m(n11, ad(m(n22, n33), [-m(n23, n32)[0], -m(n23, n32)[1]]));
+      const c2 = m(n12, ad(m(n21, n33), [-m(n23, n31)[0], -m(n23, n31)[1]]));
+      const c3 = m(n13, ad(m(n21, n32), [-m(n22, n31)[0], -m(n22, n31)[1]]));
+      const dt = [c1[0] - c2[0] + c3[0], c1[1] - c2[1] + c3[1]];
+      const q = [1 - dlr / k, -dli / k];
+      Lrr = Math.log(cabs(q[0], q[1])) + Math.log(cabs(dt[0], dt[1]));
+      Lri = Math.atan2(q[1], q[0]) + Math.atan2(dt[1], dt[0]);
+    } else {
+      const f1 = [ph[0], ph[1]];
+      const a = [(f1[0] * (1 + er) - f1[1] * ei) / 2, (f1[0] * ei + f1[1] * (1 + er)) / 2];
+      const g = [(f1[0] * f1[0] - f1[1] * f1[1]) / 2, f1[0] * f1[1]];
+      const v = [ph[4], ph[5]];
+      const h11 = [dlr - sr, dli - si], h22 = [2 * tr, 2 * ti], h12 = [sr, si];
+      const m = (x, y) => [x[0] * y[0] - x[1] * y[1], x[0] * y[1] + x[1] * y[0]];
+      const n11 = [1 + m(a, h11)[0] + m(g, h12)[0], m(a, h11)[1] + m(g, h12)[1]];
+      const n12 = [m(a, h12)[0] + m(g, h22)[0], m(a, h12)[1] + m(g, h22)[1]];
+      const n21 = [m(g, h11)[0] + m(v, h12)[0], m(g, h11)[1] + m(v, h12)[1]];
+      const n22 = [1 + m(g, h12)[0] + m(v, h22)[0], m(g, h12)[1] + m(v, h22)[1]];
+      const p1 = m(n11, n22), p2 = m(n12, n21), dt = [p1[0] - p2[0], p1[1] - p2[1]];
+      Lrr = Math.log(cabs(dt[0], dt[1])); Lri = Math.atan2(dt[1], dt[0]);
+    }
+    const Lr = Lrr - dlr, Li = wrapAngle(Lri - dli);
+    return { Lr: Lr, Li: Li, thr, thi, Lrr, Lri: wrapAngle(Lri) };    // L = (Lr, Li) principal; th; remainder (Lrr, Lri)
+  }
+
+  // continuation of log D along a path of node values v[m] = logd(...): returns the continued imaginary parts
+  // and the largest wrapped increment.  anchorIm: the branch of the first node.
+  function contlog(nodes, anchorIm) {
+    const n = nodes.length, out = new Float64Array(n); let jump = 0;
+    out[0] = anchorIm + wrapAngle(nodes[0].Li - anchorIm);
+    for (let m = 1; m < n; m++) {
+      const a = nodes[m - 1], b = nodes[m];
+      const dthr = b.thr - a.thr, dthi = b.thi - a.thi;
+      const flip = Math.hypot(b.thr + a.thr, b.thi + a.thi) < Math.hypot(dthr, dthi);
+      const useA = !flip && Math.hypot(dthr, dthi) >= 1;
+      let d, j;
+      if (useA) { const w = wrapAngle(b.Lri - a.Lri); d = dthi + w; j = Math.abs(w); }
+      else { d = wrapAngle(b.Li - a.Li); j = Math.abs(d); }
+      out[m] = out[m - 1] + d; if (j > jump) jump = j;
+    }
+    return { im: out, jump };
+  }
+
+  // ---------- setup: scales of B and the quadrature constants ----------
+  function setup(c, rho, opts) {
+    opts = opts || {};
+    if (!(c < 0)) throw new Error('lur: c must be negative');
+    if (!(Math.abs(rho) < 1)) throw new Error('lur: |rho| must be below 1');
+    const k = -c, stationary = (opts.start || 'stationary') === 'stationary';
+    const P = { c, k, rho, sig: Math.sqrt(1 - rho * rho), stationary, ref: opts.ref || 1 };
+    const EB0 = 1 / (2 * k) - (k - 1 + Math.exp(-k)) / (k * k * k);
+    // cumulants of B from log E exp(tB) = -log D(0,t)/2, Cauchy integral on a circle of radius 0.2/EB0 (32 nodes)
+    const N = 32, r = 0.2 / EB0; let c1r = 0, c2r = 0;
+    for (let j = 0; j < N; j++) {
+      const th = 2 * Math.PI * j / N, z = [r * Math.cos(th), r * Math.sin(th)];
+      const d = logd(0, 0, z[0], z[1], k, stationary);
+      // log E = -(Lr + i Li)/2, continued: D is real positive on the circle? not necessarily; use the principal value
+      // (the circle is small: |t| EB = 0.2, inside the strip where D does not wind)
+      const Lre = -0.5 * d.Lr, Lim = -0.5 * d.Li;
+      c1r += Lre * Math.cos(-th) - Lim * Math.sin(-th);
+      c2r += Lre * Math.cos(-2 * th) - Lim * Math.sin(-2 * th);
+    }
+    P.EB = c1r / (N * r); P.VB = 2 * c2r / (N * r * r); P.sdB = Math.sqrt(Math.max(P.VB, 0));
+    // t*: first positive zero of D(0,t)
+    const Dpos = t => { const d = logd(0, 0, t, 0, k, stationary); return Math.exp(d.Lr) * Math.cos(d.Li) > 0; };
+    let a = 0, b = 0.1 / P.EB; while (Dpos(b)) { a = b; b *= 1.02; }
+    for (let it = 0; it < 200; it++) { const m = (a + b) / 2; if (Dpos(m)) a = m; else b = m; if (b - a < 1e-14 * b) break; }
+    P.tstar = a;
+    P.hw = opts.hw || 0.12;
+    // upper limit of omega sqrt(EB): E exp(-sig^2 w^2 B/2) < e^-40
+    const gfun = wt => { const d = logd(0, 0, -P.sig * P.sig * wt * wt / (2 * P.EB), 0, k, stationary); return -0.5 * d.Lr + 40; };
+    a = 0; b = Math.sqrt(80) / P.sig; while (gfun(b) > 0) { a = b; b *= 1.5; }
+    for (let it = 0; it < 60; it++) { const m = (a + b) / 2; if (gfun(m) > 0) a = m; else b = m; }
+    P.wmax = opts.wmax || b;
+    P.tau = opts.tau || Math.min(4 / P.EB, 0.5 * P.tstar);
+    P.hu = opts.hu || 0.03;
+    P.Y = opts.Y || Math.min(P.tau, 1 / P.sdB);
+    P.umax = opts.umax || Math.asinh((opts.ymax || Math.max(60 / P.sdB, 4e4 / P.EB)) / P.Y);
+    return P;
+  }
+
+  // ---------- Theorem 1: the limit of T b, Gil-Pelaez in omega ----------
+  function coreB(xs, P) {
+    const nx = xs.length, F = new Float64Array(nx), f = new Float64Array(nx);
+    const sEB = Math.sqrt(P.EB), k = P.k, rho = P.rho, sig2 = P.sig * P.sig, st = P.stationary;
+    // groups of comparable |x|: the omega step depends on max |x|
+    const grp = xs.map(x => Math.max(0, Math.floor(Math.log2(Math.abs(x) * sEB) + 1)));
+    const groups = new Map(); grp.forEach((g, i) => { if (!groups.has(g)) groups.set(g, []); groups.get(g).push(i); });
+    let jump = 0, Nwmax = 0;
+    for (const idx of groups.values()) {
+      const xmax = Math.max(...idx.map(i => Math.abs(xs[i])));
+      const a = 45 * xmax / P.tstar;
+      const hw = P.ref * Math.min(P.hw / sEB, a > 0 ? 2 * Math.PI / a : Infinity);
+      const Nw = Math.ceil(P.wmax / sEB / hw); if (Nw > Nwmax) Nwmax = Nw;
+      for (const i of idx) {
+        const x = xs[i];
+        // nodes w = 0 (anchor) and (m - 1/2) hw, m = 1..Nw; argument t = -i w x - sig^2 w^2/2 + i k rho w
+        const nodes = new Array(Nw + 1); const ws = new Float64Array(Nw + 1);
+        for (let m = 0; m <= Nw; m++) {
+          const w = m === 0 ? 0 : (m - 0.5) * hw; ws[m] = w;
+          nodes[m] = logd(0, rho * w, -sig2 * w * w / 2, -w * x + k * rho * w, k, st);
+        }
+        const ct = contlog(nodes, 0); if (ct.jump > jump) jump = ct.jump;
+        let sF = 0, sf = 0;
+        for (let m = 1; m <= Nw; m++) {
+          const w = ws[m], Lre = nodes[m].Lr, Lim = ct.im[m];
+          // K = exp(-S/2 - L/2), S = i rho w
+          const Kr = Math.exp(-Lre / 2), Kph = -rho * w / 2 - Lim / 2;
+          const Kre = Kr * Math.cos(Kph), Kim = Kr * Math.sin(Kph);
+          sF += Kim / w;
+          // dK/dw = -K (d log D / dt)/2, five-point difference of D(s,.) in t, step h = 1e-3 (|t| + 1/EB)
+          const tr = -sig2 * w * w / 2, ti = -w * x + k * rho * w;
+          const h = 1e-3 * (Math.hypot(tr, ti) + 1 / P.EB);
+          const Dv = dt => { const d = logd(0, rho * w, tr + dt, ti, k, st); const e = Math.exp(d.Lr); return [e * Math.cos(d.Li), e * Math.sin(d.Li)]; };
+          const D0 = Dv(0), Dm2 = Dv(-2 * h), Dm1 = Dv(-h), Dp1 = Dv(h), Dp2 = Dv(2 * h);
+          const dDr = (Dm2[0] - 8 * Dm1[0] + 8 * Dp1[0] - Dp2[0]) / (12 * h), dDi = (Dm2[1] - 8 * Dm1[1] + 8 * Dp1[1] - Dp2[1]) / (12 * h);
+          const dL = cdivRI(dDr, dDi, D0[0], D0[1]);
+          // Re(dK) = Re(-0.5 K dL)
+          sf += -0.5 * (Kre * dL[0] - Kim * dL[1]);
+        }
+        F[i] = 0.5 - hw * sF / Math.PI;
+        f[i] = hw * sf / Math.PI;
+      }
+    }
+    return { F: Array.from(F), f: Array.from(f), jump, Nw: Nwmax };
+  }
+
+  // ---------- Theorem 2: the limit of t(betahat), double integral ----------
+  // The mgf grid (which does not depend on x) is built once per (P, bf, step) and reused for all x.
+  function tGrid(P, bf, hw) {
+    const sEB = Math.sqrt(P.EB), k = P.k, rho = P.rho, sig2 = P.sig * P.sig, st = P.stationary;
+    const tau = P.tau, hu = P.ref * P.hu;
+    const Nw = Math.ceil(P.wmax / sEB / hw);
+    // branch along omega at y = 0
+    const n0 = new Array(Nw + 1);
+    for (let m = 0; m <= Nw; m++) { const w = m === 0 ? 0 : (m - 0.5) * hw; n0[m] = logd(0, rho * w, tau - sig2 * w * w / 2, (k * rho + bf) * w, k, st); }
+    const c0 = contlog(n0, 0); let jump = c0.jump;
+    const Dl = P.ref * Math.min(0.785 / P.EB, 2 * Math.PI * tau / 37);
+    const ymax = P.Y * Math.sinh(P.umax);
+    // per omega: y nodes (both halves), K dy as (re, im), and T = tau + i y
+    const rows = [];
+    let total = 0;
+    for (let m = 1; m <= Nw; m++) {
+      const w = (m - 0.5) * hw;
+      const yc = Math.abs(w * bf) + 10 / P.sdB;
+      const need = (P.EB / P.sdB >= 3) && (yc * hu > Dl) && (yc > P.Y);
+      const Yj = need ? yc : P.Y, huj = need ? Math.min(hu, Dl / yc) : hu;
+      const Mu = Math.ceil(Math.asinh(Math.max(ymax, 10 * Yj) / Yj) / huj);
+      const n = 2 * Mu + 1;
+      const y = new Float64Array(n), Kre = new Float64Array(n), Kim = new Float64Array(n);
+      // right half (j = 0..Mu) then left half (j = 0..-Mu); each continued from the centre
+      for (const side of [1, -1]) {
+        const nodes = new Array(Mu + 1), yy = new Float64Array(Mu + 1), dy = new Float64Array(Mu + 1);
+        for (let j = 0; j <= Mu; j++) {
+          const u = side * j * huj; yy[j] = Yj * Math.sinh(u); dy[j] = Yj * Math.cosh(u) * huj * (j === 0 ? 0.5 : 1);
+          nodes[j] = logd(0, rho * w, tau - sig2 * w * w / 2, yy[j] + (k * rho + bf) * w, k, st);
+        }
+        const ct = contlog(nodes, c0.im[m]); if (ct.jump > jump) jump = ct.jump;
+        for (let j = 0; j <= Mu; j++) {
+          const idx = side === 1 ? Mu + j : Mu - j;
+          const Kr = Math.exp(-nodes[j].Lr / 2) * dy[j], Kph = -rho * w / 2 - ct.im[j] / 2;
+          y[idx] = yy[j]; Kre[idx] += Kr * Math.cos(Kph); Kim[idx] += Kr * Math.sin(Kph);
+        }
+      }
+      rows.push({ w, y, Kre, Kim }); total += n;
+    }
+    return { rows, Nw, hw, jump, Ny: total / Nw, tau };
+  }
+  // Faddeeva in the upper half plane with scalar outputs (no allocation): sets FW_R, FW_I
+  let FW_R = 0, FW_I = 0;
+  function faddeevaUpS(zr, zi) {
+    const L = FAD.L, a = FAD.a, n = a.length;
+    const nr = L - zi, ni = zr, dr = L + zi, di = -zr;
+    // Z = (nr + i ni)/(dr + i di)
+    let Zr, Zi;
+    if (Math.abs(dr) >= Math.abs(di)) { const r = di / dr, d = dr + di * r; Zr = (nr + ni * r) / d; Zi = (ni - nr * r) / d; }
+    else { const r = dr / di, d = dr * r + di; Zr = (nr * r + ni) / d; Zi = (ni * r - nr) / d; }
+    let pr = a[0], pi = 0;
+    for (let k = 1; k < n; k++) { const t = pr * Zr - pi * Zi + a[k]; pi = pr * Zi + pi * Zr; pr = t; }
+    // w = (2p + (1/sqrt pi)(L - i z)) / (L - i z)^2
+    const d2r = dr * dr - di * di, d2i = 2 * dr * di;
+    const qr = 2 * pr + 0.5641895835477563 * dr, qi = 2 * pi + 0.5641895835477563 * di;
+    if (Math.abs(d2r) >= Math.abs(d2i)) { const r = d2i / d2r, d = d2r + d2i * r; FW_R = (qr + qi * r) / d; FW_I = (qi - qr * r) / d; }
+    else { const r = d2r / d2i, d = d2r * r + d2i; FW_R = (qr * r + qi) / d; FW_I = (qi * r - qr) / d; }
+  }
+  function coreT(xs, P, bf) {
+    bf = bf || 0;
+    const nx = xs.length, sEB = Math.sqrt(P.EB);
+    const xmax = Math.max(...xs.map(Math.abs));
+    const a = 45 * Math.abs(bf) / P.tstar + 2 * xmax * Math.sqrt(45 / P.tstar);
+    const hw = P.ref * Math.min(P.hw / sEB, a > 0 ? 2 * Math.PI / a : Infinity);
+    const G = tGrid(P, bf, hw), tau = G.tau;
+    const F = new Float64Array(nx), f = new Float64Array(nx);
+    const spi = Math.sqrt(Math.PI);
+    for (const row of G.rows) {
+      const w = row.w, y = row.y, Kre = row.Kre, Kim = row.Kim, n = y.length;
+      // per node: 1/(2 sqrt T) as (ar, ai) and 1/T as (br, bi), 1/(T sqrt T) as (cr, ci); independent of x
+      const ar = new Float64Array(n), ai = new Float64Array(n), br = new Float64Array(n), bi = new Float64Array(n), cr = new Float64Array(n), ci = new Float64Array(n);
+      for (let j = 0; j < n; j++) {
+        const s = csqrtRI(tau, y[j]); const q = cdivRI(0.5, 0, s[0], s[1]); ar[j] = q[0]; ai[j] = q[1];
+        const t = cdivRI(1, 0, tau, y[j]); br[j] = t[0]; bi[j] = t[1];
+        const u = cdivRI(t[0], t[1], s[0], s[1]); cr[j] = u[0]; ci[j] = u[1];
+      }
+      for (let i = 0; i < nx; i++) {
+        const x = xs[i], wx = w * x; let IFi = 0, Ifr = 0;
+        for (let j = 0; j < n; j++) {
+          // zeta = i w x /(2 sqrt T) = i wx (ar + i ai) = (-wx ai, wx ar);  i zeta = (-wx ar, -wx ai)
+          const zr = -wx * ai[j], zi = wx * ar[j];
+          // E0 = sqrt(pi) w(i zeta), i zeta = (-zi, zr): Weideman's expansion in the upper half plane,
+          // and w(z) = 2 exp(-z^2) - w(-z) below the real axis
+          if (zr >= 0) faddeevaUpS(-zi, zr);
+          else {
+            const pr_ = -zi, pi_ = zr;
+            faddeevaUpS(-pr_, -pi_);
+            const e = Math.exp(-(pr_ * pr_ - pi_ * pi_)), ph = -2 * pr_ * pi_;
+            FW_R = 2 * e * Math.cos(ph) - FW_R; FW_I = 2 * e * Math.sin(ph) - FW_I;
+          }
+          const E0r = spi * FW_R, E0i = spi * FW_I;
+          const E1r = 1 - (zr * E0r - zi * E0i), E1i = -(zr * E0i + zi * E0r);
+          const E2r = E0r - 2 * (zr * E1r - zi * E1i), E2i = E0i - 2 * (zr * E1i + zi * E1r);
+          // J1 = E1/(2T): Im(K J1); J2 = E2/(4 T sqrt T): Re(K J2)
+          const J1r = 0.5 * (E1r * br[j] - E1i * bi[j]), J1i = 0.5 * (E1r * bi[j] + E1i * br[j]);
+          const J2r = 0.25 * (E2r * cr[j] - E2i * ci[j]), J2i = 0.25 * (E2r * ci[j] + E2i * cr[j]);
+          IFi += Kre[j] * J1i + Kim[j] * J1r;
+          Ifr += Kre[j] * J2r - Kim[j] * J2i;
+        }
+        F[i] += (IFi / Math.PI) / w;
+        f[i] += Ifr / (2 * Math.PI);
+      }
+    }
+    for (let i = 0; i < nx; i++) { F[i] = 0.5 - hw * F[i] / Math.PI; f[i] = 2 * hw * f[i] / Math.PI; }
+    return { F: Array.from(F), f: Array.from(f), jump: G.jump, Nw: G.Nw, Ny: G.Ny };
+  }
+
+  // ---------- Proposition 2: moments E X^j, j = 1..p ----------
+  function moments(p, stat, P, bf) {
+    bf = (stat === 'b') ? 0 : (bf || 0);
+    const k = P.k, rho = P.rho, sig2 = P.sig * P.sig, st = P.stationary, sEB = Math.sqrt(P.EB);
+    const N = 128, hz = 0.1 * P.ref;
+    const Dreal = (u, s) => { const d = logd(rho * u, 0, bf * u - s + sig2 * u * u / 2 + k * rho * u, 0, k, st); return Math.exp(d.Lr) * Math.cos(d.Li) > 0; };
+    const m = new Array(p).fill(0);
+    const zs = []; for (let z = -80; z <= 12 + 1e-9; z += hz) zs.push(z);
+    for (const z of zs) {
+      const s = Math.exp(z) / P.EB;
+      // radius of analyticity on each real half-line (bracket by 1.05, bisect)
+      let rmin = Infinity;
+      for (const dir of [1, -1]) {
+        let a = 0, b = 0.05 / sEB;
+        while (Dreal(dir * b, s) && b < 1e4 / sEB) { a = b; b *= 1.05; }
+        for (let it = 0; it < 40; it++) { const mm = (a + b) / 2; if (Dreal(dir * mm, s)) a = mm; else b = mm; }
+        if (a < rmin) rmin = a;
+      }
+      const r = Math.min(0.5 * rmin, 2 / (sEB * (1 + Math.abs(bf) * sEB)));
+      // Cauchy integral on the circle, log D continued around it from u = r
+      const nodes = new Array(N + 1);
+      for (let j = 0; j <= N; j++) {
+        const th = 2 * Math.PI * (j % N) / N, ur = r * Math.cos(th), ui = r * Math.sin(th);
+        // t = bf u - s + sig^2 u^2/2 + k rho u
+        const u2r = ur * ur - ui * ui, u2i = 2 * ur * ui;
+        nodes[j] = logd(rho * ur, rho * ui, bf * ur - s + sig2 * u2r / 2 + k * rho * ur, bf * ui + sig2 * u2i / 2 + k * rho * ui, k, st);
+      }
+      const ct = contlog(nodes, 0);
+      const Mj = new Array(p).fill(0);
+      for (let j = 0; j < N; j++) {
+        const th = 2 * Math.PI * j / N, ur = r * Math.cos(th), ui = r * Math.sin(th);
+        const Gr = Math.exp(-rho * ur / 2 - nodes[j].Lr / 2), Gph = -rho * ui / 2 - ct.im[j] / 2;
+        const gr = Gr * Math.cos(Gph), gi = Gr * Math.sin(Gph);
+        for (let q = 1; q <= p; q++) Mj[q - 1] += gr * Math.cos(-q * th) - gi * Math.sin(-q * th);
+      }
+      for (let q = 1; q <= p; q++) {
+        const Mq = FACT[q] * Mj[q - 1] / (N * Math.pow(r, q));
+        const qq = (stat === 'b') ? q : q / 2;
+        m[q - 1] += hz * Math.pow(s, qq) * Mq / gammaFn(qq);
+      }
+    }
+    return m;
+  }
+  // ---------- moments of the R^2 approximation X^2/(nu B + X^2), X = I + bf B, j = 1..p ----------
+  // E[(R^2)^j] = (-1)^j/Gamma(j) int_0^inf s^(j-1) (2s)^(-j) E_v[He_2j(v) K(i sqrt(2s) v, i sqrt(2s) v bf - s nu)] ds,
+  // v ~ N(0,1): the gamma integral linearizes the denominator, e^(-s X^2) = E_v exp(i sqrt(2s) v X) linearizes
+  // the square, and X^2j e^(i w X) is a 2j-th derivative in v, moved onto the normal density (Hermite polynomials).
+  // Trapezoidal rules in log s and in v; log D continued along v from v = 0, where D > 0.
+  function momentsR2(p, P, bf, nu) {
+    bf = bf || 0;
+    const k = P.k, rho = P.rho, sig2 = P.sig * P.sig, st = P.stationary;
+    const hz = 0.05 * P.ref, hv = 0.125 * P.ref, V = 8, M = Math.ceil(V / hv);
+    const m = new Array(p).fill(0);
+    const He = [v => 1, v => v * v - 1, v => v * v * v * v - 6 * v * v + 3];
+    const scale = nu * P.EB;                   // s nu B is of the order of one at s = 1/(nu E B)
+    for (let z = -25; z <= 8 + 1e-9; z += hz) {
+      const s = Math.exp(z) / scale, om = Math.sqrt(2 * s);
+      // nodes along v on each half line from v = 0
+      const Ev = new Array(p).fill(0);
+      for (const side of [1, -1]) {
+        const nodes = new Array(M + 1);
+        for (let i = 0; i <= M; i++) {
+          const w = om * side * i * hv;          // u = i w: rho u = i rho w, u^2 = -w^2
+          nodes[i] = logd(0, rho * w, -s * nu - sig2 * w * w / 2, w * bf + k * rho * w, k, st);
+        }
+        const ct = contlog(nodes, 0);
+        for (let i = 0; i <= M; i++) {
+          const v = side * i * hv, w = om * v;
+          const Kr = Math.exp(-nodes[i].Lr / 2), Kph = -rho * w / 2 - ct.im[i] / 2;
+          const wt = (i === 0 ? 0.5 : 1) * hv * normpdf(v) * Kr * Math.cos(Kph);   // real part: the integrand is even in v
+          for (let j = 1; j <= p; j++) Ev[j - 1] += wt * He[j](v);
+        }
+      }
+      for (let j = 1; j <= p; j++) m[j - 1] += hz * s * Math.pow(s, j - 1) * Math.pow(2 * s, -j) * ((j % 2) ? -1 : 1) * Ev[j - 1] / gammaFn(j);
+    }
+    return m;
+  }
+  function gammaFn(x) {                         // Lanczos, real x > 0
+    const g = 7, c = [0.99999999999980993, 676.5203681218851, -1259.1392167224028, 771.32342877765313, -176.61502916214059, 12.507343278686905, -0.13857109526572012, 9.9843695780195716e-6, 1.5056327351493116e-7];
+    if (x < 0.5) return Math.PI / (Math.sin(Math.PI * x) * gammaFn(1 - x));
+    x -= 1; let a = c[0]; const t = x + g + 0.5;
+    for (let i = 1; i < g + 2; i++) a += c[i] / (x + i);
+    return Math.sqrt(2 * Math.PI) * Math.pow(t, x + 0.5) * Math.exp(-t) * a;
+  }
+
+  // ---------- user level ----------
+  // dist(xs, stat, c, rho, opts): stat 'b' (T b), 't' (opts.bf), 'r2' (opts.nu, opts.bf), 'tr2'
+  function dist(xs, stat, c, rho, opts) {
+    opts = opts || {};
+    const P = setup(c, rho, opts), bf = opts.bf || 0;
+    if (stat === 'b') return coreB(xs, P);
+    if (stat === 't') return coreT(xs, P, bf);
+    if (stat === 'r2' || stat === 'tr2') {
+      const nu = opts.nu; if (stat === 'r2' && !(nu > 0)) throw new Error('lur: r2 needs opts.nu');
+      const F = new Array(xs.length).fill(0), f = new Array(xs.length).fill(0);
+      const idx = [], q = [];
+      xs.forEach((r, i) => { if (stat === 'r2' ? (r > 0 && r < 1) : r > 0) { idx.push(i); q.push(stat === 'r2' ? Math.sqrt(nu * r / (1 - r)) : Math.sqrt(r)); } else if (stat === 'r2' && r >= 1) F[i] = 1; });
+      if (idx.length) {
+        const R = coreT(q.concat(q.map(v => -v)), P, bf), n = q.length;
+        idx.forEach((i, j) => {
+          F[i] = R.F[j] - R.F[n + j];
+          f[i] = stat === 'r2' ? (R.f[j] + R.f[n + j]) * nu / (2 * q[j] * (1 - xs[i]) * (1 - xs[i])) : (R.f[j] + R.f[n + j]) / (2 * q[j]);
+        });
+      }
+      return { F, f };
+    }
+    throw new Error('lur: unknown stat ' + stat);
+  }
+  function mom(p, stat, c, rho, opts) {
+    opts = opts || {}; const P = setup(c, rho, opts);
+    if (stat === 'r2') { if (!(opts.nu > 0)) throw new Error('lur: r2 needs opts.nu'); if (p > 2) throw new Error('lur: r2 moments up to p = 2'); return momentsR2(p, P, opts.bf, opts.nu); }
+    return moments(p, stat, P, opts.bf);
+  }
+
+  const API = { setup, coreB, coreT, moments, momentsR2, dist, mom, logd, faddeeva, erfc, normcdf, normpdf };
+  root.LUR = API;
+  if (typeof module !== 'undefined' && module.exports) module.exports = API;
+})(typeof globalThis !== 'undefined' ? globalThis : this);
+
+// limits.js — limiting distributions for the demo: the fixed-phi (normal / chi-squared)
+// and the local-to-unit-root (LUR) limits of betahat, t(betahat) and R^2.  Runs inside the
+// Web Worker (and in Node for testing).  Expects lur.js loaded as `LUR`.
+//
+// Fixed-phi (|phi| < 1 fixed, T -> Inf), Kan, Pan and Tang, Section 6.1:
+//   b = (sigma_v/sigma_u)(betahat - beta):  sqrt(T) b => N(0, 1 - phi^2)
+//   t(betahat) - sqrt(T) bt/sqrt(1 - phi^2) => N(0, V(t))
+//   T R^2 => chi^2_1 (bt = 0);  sqrt(T)(R^2 - rho2) => N(0, V(R^2)) (bt != 0)
+// LUR (phi = 1 + c/T, c < 0 fixed), the technical note:
+//   T b => I/B;  t(betahat) => bf sqrt(B) + I/sqrt(B), bf = T bt;  R^2 ~ t^2/(nu + t^2), nu = T - 2,
+//   with the Ornstein-Uhlenbeck limit started at its stationary distribution.
+(function (root) {
+  'use strict';
+  const L = root.LUR || (typeof require === 'function' ? require('./lur.js') : null);
+
+  // ---- which limit "Auto" selects: the LUR limit when the predictor is persistent enough ----
+  const AUTO_C = -40;
+  function autoLimit(T, phi) { const c = T * (phi - 1); return (phi > 0 && c >= AUTO_C) ? 'lur' : 'fixed'; }
+
+  // ---- fixed-phi closed forms ----
+  function fixedConst(p) {
+    const T = p.T, phi = p.phi, bt = p.bt, ruv = p.ruv, q = 1 - phi * phi;
+    const Vt = 1 + 2 * ruv * phi * bt / q + bt * bt / q * ((1 + phi * phi) / (2 * q) + 0.5 - ruv * ruv);
+    const rho2 = bt * bt / (bt * bt + q);
+    const rr1 = (bt * bt * phi + bt * ruv * q) / (bt * bt + q);
+    const VR2 = 4 * rho2 * (1 - rho2) * ((1 - rho2) - (phi - rr1) * (phi - rr1)) / q;
+    return {
+      b: { mean: p.beta, sd: p.c0 * Math.sqrt(q / T) },
+      t: { mean: Math.sqrt(T) * bt / Math.sqrt(q), sd: Math.sqrt(Vt) },
+      r: bt === 0 ? { mean: 1 / T, sd: Math.SQRT2 / T, chi2: true } : { mean: rho2, sd: Math.sqrt(VR2 / T), chi2: false }
+    };
+  }
+  function fixedCurve(stat, p, xs) {
+    const K = fixedConst(p), T = p.T;
+    if (stat === 'r' && K.r.chi2) {
+      return { xs, pdf: xs.map(r => r > 0 ? Math.sqrt(T / (2 * Math.PI * r)) * Math.exp(-T * r / 2) : Infinity),
+               cdf: xs.map(r => r > 0 ? 1 - L.erfc(Math.sqrt(T * r / 2)) : 0), mean: K.r.mean, sd: K.r.sd, family: 'chi2' };
+    }
+    const m = K[stat].mean, s = K[stat].sd;
+    return { xs, pdf: xs.map(x => L.normpdf((x - m) / s) / s), cdf: xs.map(x => L.normcdf((x - m) / s)), mean: m, sd: s, family: 'normal' };
+  }
+  function fixedMoments(p) { const K = fixedConst(p); return { bMean: K.b.mean, bSd: K.b.sd, tMean: K.t.mean, tSd: K.t.sd, rMean: K.r.mean, rSd: K.r.sd }; }
+
+  // ---- LUR limits ----
+  function lurOpts(p, quality) { return { bf: p.T * p.bt, ref: quality === 'high' ? 1.4 : 2 }; }
+  function lurCurve(stat, p, xs, quality) {
+    const T = p.T, c = T * (p.phi - 1), o = lurOpts(p, quality);
+    if (!(c < 0)) throw new Error('the LUR limit needs phi < 1');
+    if (stat === 'b') {
+      // betahat = beta + c0 (T b)/T: X = T (x - beta)/c0
+      const X = xs.map(x => T * (x - p.beta) / p.c0);
+      const r = L.dist(X, 'b', c, p.ruv, o), s = T / p.c0;
+      return { xs, pdf: r.f.map(v => v * s), cdf: r.F, family: 'lur' };
+    }
+    if (stat === 't') { const r = L.dist(xs, 't', c, p.ruv, o); return { xs, pdf: r.f, cdf: r.F, family: 'lur' }; }
+    const r = L.dist(xs, 'r2', c, p.ruv, Object.assign({ nu: T - 2 }, o));
+    return { xs, pdf: r.f, cdf: r.F, family: 'lur' };
+  }
+  function lurMoments(p, quality) {
+    const T = p.T, c = T * (p.phi - 1), o = lurOpts(p, quality);
+    const mb = L.mom(2, 'b', c, p.ruv, o), mt = L.mom(2, 't', c, p.ruv, o);
+    return { bMean: p.beta + p.c0 * mb[0] / T, bSd: p.c0 * Math.sqrt(Math.max(mb[1] - mb[0] * mb[0], 0)) / T,
+             tMean: mt[0], tSd: Math.sqrt(Math.max(mt[1] - mt[0] * mt[0], 0)), rMean: NaN, rSd: NaN };
+  }
+
+  function limitCurve(limit, stat, p, xs, quality) { return limit === 'lur' ? lurCurve(stat, p, xs, quality) : fixedCurve(stat, p, xs); }
+  function limitMoments(limit, p, quality) { return limit === 'lur' ? lurMoments(p, quality) : fixedMoments(p); }
+
+  const API = { AUTO_C, autoLimit, fixedConst, fixedCurve, fixedMoments, lurCurve, lurMoments, limitCurve, limitMoments };
+  root.PREDREG_LIMITS = API;
+  if (typeof module !== 'undefined' && module.exports) module.exports = API;
+})(typeof globalThis !== 'undefined' ? globalThis : this);
+
+// worker.js — Web Worker message handler (appended after predreg.js, compute.js, lur.js and limits.js in the worker bundle)
 (function () {
   const P = globalThis.PREDREG, C = globalThis.PREDREG_COMPUTE;
   let ready = false;
@@ -1470,6 +2032,15 @@ if (typeof globalThis !== 'undefined') globalThis.PREDREG = module.exports;
           self.postMessage({ type: 'point', id, kind, x, pdf: d.pdf, cdf: d.cdf });
         }
         self.postMessage({ type: 'done', id, kind, phase: m.phase, ms: Date.now() - t0 });
+      } else if (kind === 'limpts') {
+        // a limiting distribution on the given points: m.limit 'fixed' | 'lur', m.stat 'b' | 't' | 'r'
+        const Lm = globalThis.PREDREG_LIMITS;
+        const r = Lm.limitCurve(m.limit, m.stat, p, m.xs, m.quality);
+        self.postMessage({ type: 'result', id, kind, limit: m.limit, stat: m.stat, data: r, ms: Date.now() - t0 });
+      } else if (kind === 'limmom') {
+        const Lm = globalThis.PREDREG_LIMITS;
+        const r = Lm.limitMoments(m.limit, p, m.quality);
+        self.postMessage({ type: 'result', id, kind, limit: m.limit, data: r, ms: Date.now() - t0 });
       } else if (kind === 'warm') {
         const S = P.distSetup(p.T, p.bt, p.phi, p.ruv); applyQuality(S, m.quality);
         self.postMessage({ type: 'done', id, kind, ms: Date.now() - t0 });
@@ -1506,6 +2077,32 @@ if (typeof globalThis !== 'undefined') globalThis.PREDREG = module.exports;
   qSeg.addEventListener('click', e => { const b = e.target.closest('button'); if (!b) return; quality = b.dataset.quality;
     qSeg.querySelectorAll('button').forEach(x => x.setAttribute('aria-pressed', String(x === b))); schedule(); });
 
+  // ---------- limiting distribution ----------
+  const AUTO_C = -40;                       // Auto: LUR when c = T(phi - 1) >= AUTO_C and phi > 0 (same rule as limits.js)
+  let limitChoice = 'auto';
+  const limSeg = $('limit-seg');
+  function setLimitChoice(choice) {
+    limitChoice = choice;
+    limSeg.querySelectorAll('button').forEach(b => b.setAttribute('aria-pressed', String(b.dataset.limit === choice)));
+    try { localStorage.setItem('predreg-limit', choice); } catch (e) {}
+    ensureLimits(); draw();
+  }
+  limSeg.addEventListener('click', e => { const b = e.target.closest('button'); if (b) setLimitChoice(b.dataset.limit); });
+  try { const sv = localStorage.getItem('predreg-limit'); if (sv && ['off', 'auto', 'fixed', 'lur'].includes(sv)) limitChoice = sv; } catch (e) {}
+  limSeg.querySelectorAll('button').forEach(b => b.setAttribute('aria-pressed', String(b.dataset.limit === limitChoice)));
+  // the family actually shown for the current run: 'fixed' | 'lur' | null
+  function resolvedLimit(p) {
+    if (limitChoice === 'off') return null;
+    if (limitChoice === 'auto') return (p.phi > 0 && p.T * (p.phi - 1) >= AUTO_C) ? 'lur' : 'fixed';
+    return limitChoice;
+  }
+  // the label of the limit, as TeX source (rendered with tex())
+  function limitLabel(p, lim, family) {
+    const auto = limitChoice === 'auto' ? '\\text{ (auto)}' : '';
+    if (lim === 'lur') return '\\text{LUR limit}' + auto;
+    return '\\text{fixed-}\\phi\\text{ limit}' + (family === 'chi2' ? '\\text{ }(\\chi^2_1)' : '') + auto;
+  }
+
   // ---------- parameters: sliders <-> numbers ----------
   const logMap = (lo, hi) => ({ toVal: p => lo * Math.pow(hi / lo, p / 1000), toPos: v => 1000 * Math.log(v / lo) / Math.log(hi / lo) });
   const Tmap = logMap(10, 2000), Rmap = logMap(0.1, 100);
@@ -1525,6 +2122,10 @@ if (typeof globalThis !== 'undefined') globalThis.PREDREG = module.exports;
     d.num.addEventListener('change', () => { const v = d.clamp(+d.num.value); if (!Number.isFinite(v)) return; params[k] = v; d.num.value = v; d.rng.value = d.toPos(v); updateDerived(); schedule(); });
   }
   const fmt = (v, d) => (v === undefined || v === null || !Number.isFinite(v)) ? '—' : (d === undefined ? v.toPrecision(4) : v.toFixed(d));
+  // a number as TeX (exponents as powers of ten), and the pieces of the stats lines
+  const texNum = (v, d) => { const f = fmt(v, d); if (f === '—') return '\\text{—}'; const m = /^(-?[\d.]+)e([+-]?\d+)$/.exec(f); return m ? m[1] + '\\times10^{' + parseInt(m[2], 10) + '}' : f; };
+  const lab = t => tex('\\text{' + t + '}');
+  const val = (v, d) => '<b>' + tex(texNum(v, d)) + '</b>';
   function updateDerived() {
     const bt = params.beta / params.ratio;
     $('tile-bt').textContent = fmt(bt);
@@ -1586,13 +2187,16 @@ if (typeof globalThis !== 'undefined') globalThis.PREDREG = module.exports;
       id, p, t0: performance.now(), tasksTotal: 0, tasksDone: 0,
       t: { pts: new Map(), range: null, seed: null }, r: { pts: new Map(), range: null, seed: null, A: null },
       moments: null, bhat: null,
+      lim: { fixed: { b: null, t: null, r: null, mom: null }, lur: { b: null, t: null, r: null, mom: null } },   // limiting distributions, filled on demand
       onPoint(m) { const side = m.kind === 'tpts' ? R.t : R.r; side.pts.set(m.x, { pdf: m.pdf, cdf: m.cdf }); throttledDraw(); },
       onDone(m) {
         R.tasksDone += 1;
-        if (m.kind === 'bhat') { R.bhat = m.data; drawB(); }
+        if (m.kind === 'bhat') { R.bhat = m.data; ensureLimits(); drawB(); }
+        else if (m.kind === 'limpts') { const slot = R.lim[m.limit][m.stat]; for (let i = 0; i < m.data.xs.length; i++) slot.pts.set(m.data.xs[i], { pdf: m.data.pdf[i], cdf: m.data.cdf[i] }); slot.family = m.data.family; slot.done = (slot.done || 0) + 1; if (slot.done === slot.tasks) slot.ready = true; throttledDraw(); }
+        else if (m.kind === 'limmom') { R.lim[m.limit].mom = m.data; updateTiles(); }
         else if (m.kind === 'seed') { R.t.seed = m.data; R.r.seed = m.data; R.r.A = m.data.A; launchCoarse(R); }
         else if (m.kind === 'moments') { R.moments = m.data; updateTiles(); }
-        else if (m.kind === 'tpts' || m.kind === 'rpts') { const side = m.kind === 'tpts' ? R.t : R.r; if (!side.range && m.phase === 'coarse') { side.coarseDone = (side.coarseDone || 0) + 1; if (side.coarseDone === side.coarseTasks) launchFine(R, side, m.kind); } }
+        else if (m.kind === 'tpts' || m.kind === 'rpts') { const side = m.kind === 'tpts' ? R.t : R.r; if (!side.range && m.phase === 'coarse') { side.coarseDone = (side.coarseDone || 0) + 1; if (side.coarseDone === side.coarseTasks) { launchFine(R, side, m.kind); ensureLimits(); } } }
         updateProgress();
       }
     };
@@ -1655,6 +2259,7 @@ if (typeof globalThis !== 'undefined') globalThis.PREDREG = module.exports;
         for (let i = 0; i < n; i++) xs.push(lo + (hi - lo) * i / (n - 1));
       }
     }
+    side.fineXs = xs.slice();
     // interleave the order so the curve fills in evenly (centre first, then halves, quarters ...)
     const N = xs.length, order = []; const used = new Set();
     for (let step = N - 1; step >= 1; step = Math.floor(step / 2)) for (let i = 0; i < N; i += step) if (!used.has(i)) { used.add(i); order.push(i); }
@@ -1664,13 +2269,53 @@ if (typeof globalThis !== 'undefined') globalThis.PREDREG = module.exports;
     R.tasksTotal += tasks.length;
     for (const t of tasks) enqueue(t);
   }
+  // ---------- limiting distributions: computed in the workers on the grids of the exact curves, on demand ----------
+  function ensureLimits() {
+    const R = run; if (!R) return;
+    const lim = resolvedLimit(R.p); if (!lim) return;
+    const store = R.lim[lim];
+    const grids = { b: R.bhat ? R.bhat.xs : null, t: R.t.fineXs || null, r: R.r.fineXs || null };
+    for (const stat of ['b', 't', 'r']) {
+      if (store[stat] || !grids[stat]) continue;
+      const xs = grids[stat];
+      // the t and R^2 limits are the costly ones: split them over the workers
+      const nchunk = stat === 'b' ? 1 : Math.max(1, Math.min(4, poolReady));
+      const chunks = []; for (let k = 0; k < nchunk; k++) chunks.push([]);
+      xs.forEach((x, i) => chunks[i % nchunk].push(x));
+      store[stat] = { pts: new Map(), tasks: nchunk, done: 0, ready: false, family: null };
+      R.tasksTotal += nchunk;
+      for (const c of chunks) enqueue({ msg: { type: 'task', id: R.id, kind: 'limpts', p: R.p, xs: c, limit: lim, stat, quality } });
+    }
+    if (!store.mom) { store.mom = 'pending'; R.tasksTotal += 1; enqueue({ msg: { type: 'task', id: R.id, kind: 'limmom', p: R.p, limit: lim, quality } }); }
+    if (R.finished && queue.length) { R.finished = false; setStatus('Computing the limiting distribution\u2026'); setProgress(0.5); }
+  }
+  function limitSide(stat) {
+    const R = run; if (!R) return null;
+    const lim = resolvedLimit(R.p); if (!lim) return null;
+    const slot = R.lim[lim][stat]; if (!slot || slot.pts.size < 2) return null;
+    const a = [...slot.pts.entries()].sort((u, v) => u[0] - v[0]);
+    return { lim, family: slot.family, xs: a.map(e => e[0]), pdf: a.map(e => e[1].pdf), cdf: a.map(e => e[1].cdf), label: limitLabel(R.p, lim, slot.family), ready: slot.ready };
+  }
+  function limitMomentsText(stat) {
+    const R = run; if (!R) return '';
+    const lim = resolvedLimit(R.p); if (!lim) return '';
+    const mom = R.lim[lim].mom, fam = R.lim[lim][stat] && R.lim[lim][stat].family;
+    const c = R.p.T * (R.p.phi - 1);
+    let s = ' <span class="lim"><span>' + tex(limitLabel(R.p, lim, fam) + (lim === 'lur' ? ',\\ c = T(\\phi-1) = ' + fmt(c, Math.abs(c) < 10 ? 2 : 1) : '')) + ':</span>';
+    if (mom && mom !== 'pending') {
+      const mk = stat + 'Mean', sk = stat + 'Sd';
+      s += ' ' + lab('mean') + ' ' + val(mom[mk]) + ' ' + lab('sd') + ' ' + val(mom[sk]);
+    } else s += ' ' + tex('\\ldots');
+    return s + '</span>';
+  }
+
   function updateProgress() {
     if (!run) return;
     const f = run.tasksDone / Math.max(1, run.tasksTotal);
     setProgress(0.02 + 0.98 * f);
     if (queue.length === 0 && pool.every(r => !r.busy) && run.t.range && run.r.range && run.moments && run.bhat) {
       const secs = ((performance.now() - run.t0) / 1000).toFixed(1);
-      setStatus('Done in ' + secs + ' s (' + poolReady + ' workers, ' + quality + ' quadrature).'); setProgress(1);
+      setStatus('Done in ' + secs + ' s (' + poolReady + ' workers, ' + quality + ' quadrature).'); setProgress(1); run.finished = true;
       draw();
     }
   }
@@ -1684,10 +2329,10 @@ if (typeof globalThis !== 'undefined') globalThis.PREDREG = module.exports;
     if (m) { $('tile-t-mean').textContent = fmt(m.tMean); $('tile-t-sd').textContent = fmt(m.tSd); $('tile-r-mean').textContent = fmt(m.rMean); $('tile-r-sd').textContent = fmt(m.rSd); }
     if (run.bhat) { $('tile-b-mean').textContent = fmt(run.bhat.mean); $('tile-b-sd').textContent = fmt(run.bhat.sd); }
     const p = run.p;
-    if (run.bhat) $('stats-b').innerHTML = 'mean <b>' + fmt(run.bhat.mean) + '</b> sd <b>' + fmt(run.bhat.sd) + '</b> bias ' + tex('E[\\hat\\beta]-\\beta') + ' <b>' + fmt(run.bhat.mean - p.beta) + '</b>';
+    if (run.bhat) $('stats-b').innerHTML = lab('mean') + ' ' + val(run.bhat.mean) + ' ' + lab('sd') + ' ' + val(run.bhat.sd) + ' ' + tex('\\text{bias } E[\\hat\\beta]-\\beta') + ' ' + val(run.bhat.mean - p.beta) + limitMomentsText('b');
     if (m) {
-      $('stats-t').innerHTML = 'mean <b>' + fmt(m.tMean) + '</b> sd <b>' + fmt(m.tSd) + '</b>';
-      $('stats-r').innerHTML = 'mean <b>' + fmt(m.rMean) + '</b> sd <b>' + fmt(m.rSd) + '</b>' + (run.r.A !== null ? ' near 0: ' + tex('f(z)\\approx A\\,z^{-1/2}') + ' with ' + tex('A') + ' = <b>' + fmt(run.r.A) + '</b>' : '');
+      $('stats-t').innerHTML = lab('mean') + ' ' + val(m.tMean) + ' ' + lab('sd') + ' ' + val(m.tSd) + limitMomentsText('t');
+      $('stats-r').innerHTML = lab('mean') + ' ' + val(m.rMean) + ' ' + lab('sd') + ' ' + val(m.rSd) + (run.r.A !== null ? ' ' + tex('\\text{near }0\\text{: } f(z)\\approx A\\,z^{-1/2}\\text{ with } A =') + ' ' + val(run.r.A) : '') + limitMomentsText('r');
     }
   }
 
@@ -1757,7 +2402,8 @@ if (typeof globalThis !== 'undefined') globalThis.PREDREG = module.exports;
     const xs = spec.xs, ys = spec.ys;
     if (!xs || xs.length < 2) { el('text', { x: W / 2, y: H / 2, 'text-anchor': 'middle', class: 'note' }, svg).textContent = spec.empty || 'computing…'; return; }
     const xlo = xs[0], xhi = xs[xs.length - 1];
-    let ylo = 0, yhi = spec.kind === 'cdf' ? 1 : (spec.ymax || Math.max(...ys) * 1.08);
+    const ov = spec.overlay && spec.overlay.xs && spec.overlay.xs.length >= 2 ? spec.overlay : null;
+    let ylo = 0, yhi = spec.kind === 'cdf' ? 1 : (spec.ymax || Math.max(Math.max(...ys), ov ? Math.max(...ov.ys.filter(Number.isFinite)) : 0) * 1.08);
     if (!(yhi > 0)) yhi = 1;
     const ylog = !!spec.ylog;
     let sy, yt;
@@ -1793,6 +2439,28 @@ if (typeof globalThis !== 'undefined') globalThis.PREDREG = module.exports;
     if (spec.kind === 'pdf') { areaPath = path.join(' ') + ' L' + sx(xhi).toFixed(2) + ' ' + (mt + ph).toFixed(2) + ' L' + sx(xlo).toFixed(2) + ' ' + (mt + ph).toFixed(2) + ' Z'; el('path', { d: areaPath, class: 'area' }, cg); }
     el('path', { d: path.join(' '), class: 'curve ' + spec.kind }, cg);
     if (spec.points) for (let i = 0; i < xs.length; i++) { if (ys[i] <= yhi * 1.02 && (!ylog || ys[i] > 0)) el('circle', { cx: sx(xs[i]), cy: sy(ys[i]), r: 2.2, class: 'pt ' + spec.kind }, svg); }
+    // the limiting distribution, dashed, through its own points, with a legend
+    let fov = null;
+    if (ov) {
+      const oxs = [], oys = [];
+      for (let i = 0; i < ov.xs.length; i++) if (ov.xs[i] >= xlo && ov.xs[i] <= xhi && Number.isFinite(ov.ys[i])) { oxs.push(ov.xs[i]); oys.push(ov.ys[i]); }
+      if (oxs.length >= 2) {
+        fov = ylog ? (g => x => Math.exp(g(x)))(interp(oxs, oys.map(v => Math.log(Math.max(v, ylo * 1e-3))))) : interp(oxs, oys);
+        const op = [];
+        for (let i = 0; i <= N; i++) { const x = oxs[0] + (oxs[oxs.length - 1] - oxs[0]) * i / N, y = fov(x); op.push((i ? 'L' : 'M') + sx(x).toFixed(2) + ' ' + sy(y).toFixed(2)); }
+        el('path', { d: op.join(' '), class: 'curve lim' }, cg);
+        // legend on the side where the curves are lower (under the singularity label when on the right)
+        const third = (xhi - xlo) / 3, hiL = Math.max(...xs.map((v, i) => v < xlo + third ? ys[i] : 0)), hiR = Math.max(...xs.map((v, i) => v > xhi - third ? ys[i] : 0));
+        // (cdfs: lower right, where the curves are near one and the legend is clear of them)
+        const right = spec.kind === 'cdf' ? true : hiL > hiR;
+        const lg = el('g', { class: 'legend' }, svg), lx = right ? ml + pw - 170 : ml + 10;
+        const ly = spec.kind === 'cdf' ? mt + ph - 36 : mt + 12 + (right && spec.singular ? 18 : 0);
+        el('line', { x1: lx, x2: lx + 22, y1: ly, y2: ly, class: 'ex', stroke: spec.kind === 'pdf' ? 'var(--pdf)' : 'var(--cdf)' }, lg);
+        texLabel(svg, lx + 28, ly + 5, tex('\\text{exact}'), 'start', 160).firstChild.classList.add('fo-legend');
+        el('line', { x1: lx, x2: lx + 22, y1: ly + 16, y2: ly + 16, class: 'lim' }, lg);
+        texLabel(svg, lx + 28, ly + 21, tex(ov.label + (ov.ready ? '' : '\\ \\ldots')), 'start', 160).firstChild.classList.add('fo-legend');
+      }
+    }
     if (Number.isFinite(spec.mean) && spec.mean > xlo && spec.mean < xhi) { el('line', { x1: sx(spec.mean), x2: sx(spec.mean), y1: mt, y2: mt + ph, class: 'mean' }, svg); el('text', { x: sx(spec.mean) + 4, y: mt + ph - 20, class: 'note' }, svg).textContent = 'mean'; }
     if (Number.isFinite(spec.pop) && spec.pop > xlo && spec.pop < xhi) { el('line', { x1: sx(spec.pop), x2: sx(spec.pop), y1: mt, y2: mt + ph, class: 'pop' }, svg); texLabel(svg, sx(spec.pop) + 4, mt + ph - 4, tex('\\text{population } R^2'), 'start', 140).firstChild.classList.add('fo-pop'); }
     if (spec.singular) texLabel(svg, ml + pw - 6, mt + 14, spec.singular, 'end', 320);
@@ -1806,7 +2474,7 @@ if (typeof globalThis !== 'undefined') globalThis.PREDREG = module.exports;
       const r = svg.getBoundingClientRect(); const px = (ev.clientX - r.left) / r.width * W;
       const x = Math.min(xhi, Math.max(xlo, xlo + (px - ml) / pw * (xhi - xlo))), y = f(x);
       hover.style.display = ''; cross.setAttribute('x1', sx(x)); cross.setAttribute('x2', sx(x)); dot.setAttribute('cx', sx(x)); dot.setAttribute('cy', Math.max(mt, sy(y)));
-      read.innerHTML = tex((spec.xname || 'x') + ' = ' + fmt(x) + (spec.kind === 'pdf' ? ',\\quad f = ' : ',\\quad F = ') + fmt(y));
+      read.innerHTML = tex((spec.xname || 'x') + ' = ' + fmt(x) + (spec.kind === 'pdf' ? ',\\quad f = ' : ',\\quad F = ') + fmt(y) + (fov ? ',\\quad \\text{limit } ' + fmt(fov(x)) : ''));
     }
     hit.addEventListener('mousemove', move); hit.addEventListener('touchmove', e => { if (e.touches[0]) move(e.touches[0]); }, { passive: true });
     hit.addEventListener('mouseleave', () => { hover.style.display = 'none'; read.innerHTML = ''; });
@@ -1815,8 +2483,9 @@ if (typeof globalThis !== 'undefined') globalThis.PREDREG = module.exports;
   function drawB() {
     if (!run || !run.bhat) return;
     const b = run.bhat;
-    drawChart({ svg: $('ch-b-pdf'), readEl: $('read-b-pdf'), xs: b.xs, ys: b.pdf, kind: 'pdf', mean: b.mean, xlabel: tex('\\hat\\beta\\quad(\\beta = ' + fmt(run.p.beta) + ')'), xname: '\\hat\\beta' });
-    drawChart({ svg: $('ch-b-cdf'), readEl: $('read-b-cdf'), xs: b.xs, ys: b.cdf, kind: 'cdf', mean: b.mean, xlabel: tex('\\hat\\beta'), xname: '\\hat\\beta' });
+    const lb = limitSide('b');
+    drawChart({ svg: $('ch-b-pdf'), readEl: $('read-b-pdf'), xs: b.xs, ys: b.pdf, kind: 'pdf', mean: b.mean, xlabel: tex('\\hat\\beta\\quad(\\beta = ' + fmt(run.p.beta) + ')'), xname: '\\hat\\beta', overlay: lb && { xs: lb.xs, ys: lb.pdf, label: lb.label, ready: lb.ready } });
+    drawChart({ svg: $('ch-b-cdf'), readEl: $('read-b-cdf'), xs: b.xs, ys: b.cdf, kind: 'cdf', mean: b.mean, xlabel: tex('\\hat\\beta'), xname: '\\hat\\beta', overlay: lb && { xs: lb.xs, ys: lb.cdf, label: lb.label, ready: lb.ready } });
     updateTiles();
   }
   function sortedSide(side) {
@@ -1832,15 +2501,18 @@ if (typeof globalThis !== 'undefined') globalThis.PREDREG = module.exports;
     // keep only points inside the final range once it is known
     const inT = tr ? t.xs.map((x, i) => i).filter(i => t.xs[i] >= tr[0] - 1e-12 && t.xs[i] <= tr[1] + 1e-12) : t.xs.map((x, i) => i);
     const txs = inT.map(i => t.xs[i]), tpdf = inT.map(i => t.pdf[i]), tcdf = inT.map(i => t.cdf[i]);
-    drawChart({ svg: $('ch-t-pdf'), readEl: $('read-t-pdf'), xs: txs, ys: tpdf, kind: 'pdf', mean: m && (m.tMean), xlabel: tex('t(\\hat\\beta)'), xname: 't', points: !tr });
-    drawChart({ svg: $('ch-t-cdf'), readEl: $('read-t-cdf'), xs: txs, ys: tcdf, kind: 'cdf', mean: m && (m.tMean), xlabel: tex('t(\\hat\\beta)'), xname: 't', points: !tr });
+    const lt = tr ? limitSide('t') : null;
+    drawChart({ svg: $('ch-t-pdf'), readEl: $('read-t-pdf'), xs: txs, ys: tpdf, kind: 'pdf', mean: m && (m.tMean), xlabel: tex('t(\\hat\\beta)'), xname: 't', points: !tr, overlay: lt && { xs: lt.xs, ys: lt.pdf, label: lt.label, ready: lt.ready } });
+    drawChart({ svg: $('ch-t-cdf'), readEl: $('read-t-cdf'), xs: txs, ys: tcdf, kind: 'cdf', mean: m && (m.tMean), xlabel: tex('t(\\hat\\beta)'), xname: 't', points: !tr, overlay: lt && { xs: lt.xs, ys: lt.cdf, label: lt.label, ready: lt.ready } });
     const inR = rr ? r.xs.map((x, i) => i).filter(i => r.xs[i] >= rr[0] - 1e-12 && r.xs[i] <= rr[1] + 1e-12) : r.xs.map((x, i) => i);
     const rxs = inR.map(i => r.xs[i]), rpdf = inR.map(i => r.pdf[i]), rcdf = inR.map(i => r.cdf[i]);
     // the density is unbounded at 0: scale the axis to the body of the curve (points beyond the first 6% of the range)
-    let ymax; if (rxs.length > 3) { const body = rpdf.filter((v, i) => rxs[i] > 0.03 * rxs[rxs.length - 1]); ymax = Math.max(...body) * 1.12; }
+    const lr = rr ? limitSide('r') : null;
+    let ymax; if (rxs.length > 3) { const body = rpdf.filter((v, i) => rxs[i] > 0.03 * rxs[rxs.length - 1]); ymax = Math.max(...body) * 1.12;
+      if (lr) { const ob = lr.pdf.filter((v, i) => Number.isFinite(v) && lr.xs[i] > 0.03 * rxs[rxs.length - 1]); if (ob.length) ymax = Math.max(ymax, Math.max(...ob) * 1.12); } }
     const pop = run.p.bt * run.p.bt / (1 - run.p.phi * run.p.phi + run.p.bt * run.p.bt);
-    drawChart({ svg: $('ch-r-pdf'), readEl: $('read-r-pdf'), xs: rxs, ys: rpdf, kind: 'pdf', mean: m && m.rMean, pop, ymax, ylog: $('log-r-pdf').checked, xlabel: tex('R^2'), xname: 'R^2', points: !rr, singular: (rxs.length > 3 && (!rr || rr[0] === 0)) ? tex('f(z)\\to\\infty \\text{ as } z\\to 0,\\ f(z)\\approx A\\,z^{-1/2}') : '' });
-    drawChart({ svg: $('ch-r-cdf'), readEl: $('read-r-cdf'), xs: rxs, ys: rcdf, kind: 'cdf', mean: m && m.rMean, pop, xlabel: tex('R^2'), xname: 'R^2', points: !rr });
+    drawChart({ svg: $('ch-r-pdf'), readEl: $('read-r-pdf'), xs: rxs, ys: rpdf, kind: 'pdf', mean: m && m.rMean, pop, ymax, ylog: $('log-r-pdf').checked, xlabel: tex('R^2'), xname: 'R^2', points: !rr, singular: (rxs.length > 3 && (!rr || rr[0] === 0)) ? tex('f(z)\\to\\infty \\text{ as } z\\to 0,\\ f(z)\\approx A\\,z^{-1/2}') : '', overlay: lr && { xs: lr.xs, ys: lr.pdf, label: lr.label, ready: lr.ready } });
+    drawChart({ svg: $('ch-r-cdf'), readEl: $('read-r-cdf'), xs: rxs, ys: rcdf, kind: 'cdf', mean: m && m.rMean, pop, xlabel: tex('R^2'), xname: 'R^2', points: !rr, overlay: lr && { xs: lr.xs, ys: lr.cdf, label: lr.label, ready: lr.ready } });
     updateTiles();
   }
   $('log-r-pdf').addEventListener('change', draw);
