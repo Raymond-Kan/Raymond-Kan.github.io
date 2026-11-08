@@ -140,7 +140,7 @@ window.MathJax = { tex: { inlineMath: [['\\(', '\\)']], displayMath: [['\\[', '\
   <div class="ttl">
     <div class="eyebrow">Companion demo</div>
     <h1>Multivariate Saddlepoint Explorer</h1>
-    <p class="cite">Densities and orthant probabilities of \(d\) random variables to any order, from S.&nbsp;A. Broda and R. Kan, <i>Uniform saddlepoint expansions for multivariate tail probabilities</i>.</p>
+    <p class="cite">Densities and orthant probabilities of \(d\) random variables to any order, from S.&nbsp;A. Broda and R. Kan (2026), <a href="https://raymond-kan.github.io/papers/spa_paper.pdf"><i>Uniform saddlepoint expansions for multivariate tail probabilities</i></a>, with its Supplementary Material. Theorem, equation, section and table numbers refer to the version of November 2026.</p>
   </div>
   <div class="theme">
     <span class="eyebrow" id="themeLab">Theme</span>
@@ -154,21 +154,21 @@ window.MathJax = { tex: { inlineMath: [['\\(', '\\)']], displayMath: [['\\[', '\
   <header>
     <div class="eyebrow">Sections 2 and 3 of the paper</div>
     <h2>The expansions for any \(d\) and order \(M\)</h2>
-    <p>\(X\) is a \(d\)-vector with cumulant generating function \(K\). As in the applications of the paper, \(n\) is absorbed into \(K\): the approximation of order \(M\) has relative error \(O(n^{-M})\) when \(X\) is the mean of \(n\) observations. With the saddlepoint \(K'(\hat s)=x\) and the Cholesky factorization \(K''(\hat s)=LL^{\top}\), every term is computed for the whitened vector \(Y=L^{-1}X\), whose cumulant generating function \(K_Y(u)=K(L^{-\top}u)\) has its saddlepoint at \(\hat u=L^{\top}\hat s\) and Hessian \(I\) there. Write \(\theta_\nu=\partial^{\nu}K_Y(\hat u)/\nu!\) for \(|\nu|\geq3\); for \(d=1\) these are the \(\theta_k\) of Section 4.</p>
+    <p>\(X\) is a \(d\)-vector with cumulant generating function \(K\). As in the applications of the paper, \(n\) is absorbed into \(K\): the approximation of order \(M\) has relative error \(O(n^{-M})\) when \(X\) is the mean of \(n\) observations. With the saddlepoint \(K'(\hat s)=x\) and the Cholesky factorization \(K''(\hat s)=LL^{\top}\), every term is computed for the whitened vector \(Y=L^{-1}X\), whose cumulant generating function \(K_Y(u)=K(L^{-\top}u)\) has its saddlepoint at \(\hat u=L^{\top}\hat s\) and Hessian \(I\) there. Write \(\theta_\nu=\partial^{\nu}K_Y(\hat u)/\nu!\), \(|\nu|\geq3\), for the Taylor coefficients of \(K_Y\), the counterparts of the \(\kappa_\nu=\hat K_\nu/\nu!\) of Section 2 for the whitened vector; for \(d=1\) they are the standardized coefficients \(\theta_k\) of Section 4. The whitened coefficients \(\tilde c_{r,\nu}\) and integrals \(\tilde I(\nu)\) are those of Appendix C.</p>
   </header>
   <div class="panel">
     <div class="defs">
-      \[ c_{1,\nu}=\theta_\nu,\qquad c_{r,\nu}=\frac{1}{r}\sum_{k=3}^{|\nu|-3(r-1)}\ \sum_{|\lambda|=k,\ \lambda\leq\nu}\theta_\lambda\,c_{r-1,\nu-\lambda}\quad(r\geq2), \]
-      \[ f(x)\approx\frac{e^{K(\hat s)-\hat s^{\top}x}}{(2\pi)^{d/2}|K''(\hat s)|^{1/2}}\sum_{m=0}^{M-1}a_m,\qquad a_0=1,\quad a_m=\sum_{r=1}^{2m}\ \sum_{|\nu|=2m+2r}c_{r,\nu}\,\mathrm{He}_\nu(0), \]
-      \[ \Pr(X\geq x)\approx e^{K(\hat s)-\hat s^{\top}x+|\hat u|^2/2}\sum_{m=0}^{2M-1}T_m,\qquad T_0=\tilde I_{0},\quad T_m=\sum_{r=1}^{m}\ \sum_{|\nu|=m+2r}c_{r,\nu}\,\tilde I_{\nu}, \]
-      \[ \tilde I_{\nu}=\int_{Lv\geq0}\ \prod_{j=1}^{d}\mathrm{He}_{\nu_j}(v_j)\,\phi_d(v+\hat u)\,dv,\qquad \mathrm{He}_\nu(0)=\prod_{j=1}^{d}\mathrm{He}_{\nu_j}(0),\quad \mathrm{He}_{2i}(0)=\prod_{j=1}^{i}(1-2j),\quad \mathrm{He}_{2i+1}(0)=0. \]
+      \[ \tilde c_{1,\nu}=\theta_\nu,\qquad \tilde c_{r,\nu}=\frac{1}{r}\sum_{k=3}^{|\nu|-3(r-1)}\ \sum_{|\lambda|=k,\ \lambda\leq\nu}\theta_\lambda\,\tilde c_{r-1,\nu-\lambda}\quad(r\geq2), \]
+      \[ f(x)\approx\frac{e^{K(\hat s)-\hat s^{\top}x}}{(2\pi)^{d/2}|K''(\hat s)|^{1/2}}\sum_{m=0}^{M-1}a_m,\qquad a_0=1,\quad a_m=\sum_{r=1}^{2m}\ \sum_{|\nu|=2m+2r}\tilde c_{r,\nu}\,\mathrm{He}_\nu(0), \]
+      \[ \mathrm{P}(X\geq x)\approx e^{K(\hat s)-\hat s^{\top}x+|\hat u|^2/2}\sum_{m=0}^{2M-1}T_m,\qquad T_0=\tilde I(0),\quad T_m=\sum_{r=1}^{m}\ \sum_{|\nu|=m+2r}\tilde c_{r,\nu}\,\tilde I(\nu), \]
+      \[ \tilde I(\nu)=\int_{Lv\geq0}\ \prod_{j=1}^{d}\mathrm{He}_{\nu_j}(v_j)\,\phi_d(v+\hat u)\,dv,\qquad \mathrm{He}_\nu(0)=\prod_{j=1}^{d}\mathrm{He}_{\nu_j}(0),\quad \mathrm{He}_{2i}(0)=\prod_{j=1}^{i}(1-2j),\quad \mathrm{He}_{2i+1}(0)=0. \]
     </div>
-    <p class="note">The density is Theorem 3 and the orthant probability is Theorem 1 in the whitened form (54) of Appendix C. The orthant formula needs \(\hat s\geq0\). When \(N=\{j:\hat s_j<0\}\) is not empty, equation (17), \(\Pr(X\geq x)=\sum_{T\subseteq N}(-1)^{|T|}\Pr(\tilde X_{N^c\cup T}\geq\tilde x_{N^c\cup T})\) with the components in \(T\) negated, reduces it to orthant probabilities whose saddlepoints are nonnegative, recursively. The region \(Lv\geq0\) is \(v_1\geq0\), \(v_2\geq-L_{21}v_1/L_{22}\), and so on, and the integrand is a product, so all the \(\tilde I_\nu\) come from one nested Gauss–Legendre quadrature.</p>
+    <p class="note">The density is Theorem 3 and the orthant probability is Theorem 1, both in the whitened form of Appendix C; \(\tilde I(\nu)\) is the integral (54) after the substitution \(z=K(\hat s)\hat s+Lv\), and the cancellation indicator \(\mathcal C\) of Appendix C is the sum of the absolute values of the terms \(\tilde c_{r,\nu}\tilde I(\nu)\), \(\tilde I(0)\) included, divided by the absolute value of their sum. The orthant formula needs \(\hat s\geq0\). When \(N=\{j:\hat s_j<0\}\) is not empty, equation (17), \(\mathrm{P}(X\geq x)=\sum_{T\subseteq N}(-1)^{|T|}\mathrm{P}(\tilde X_{N^c\cup T}\geq\tilde x_{N^c\cup T})\) with the components in \(T\) negated, reduces it to orthant probabilities whose saddlepoints are nonnegative, recursively where a marginal saddlepoint is again negative; Theorem 2 gives conditions under which the reduction keeps the relative error of Theorem 1. The region \(Lv\geq0\) is \(v_1\geq0\), \(v_2\geq-L_{21}v_1/L_{22}\), and so on, and the integrand is a product, so all the \(\tilde I(\nu)\) come from one nested quadrature. The demo uses piecewise Gauss–Legendre quadrature for every \(\hat u\), with the pieces scaled to the decay of the integrand; the programs of the paper use the recursion (35) for \(|\hat u|\leq2.5\) when \(d=1\) and the Gauss–Hermite representation of Appendix C away from the boundary of the orthant, and in our checks for \(d=1\) and \(2\) the two agree to about \(2\times10^{-14}\).</p>
     <ol class="steps small">
       <li>Solve \(K'(\hat s)=x\) by Newton's method with backtracking.</li>
       <li>Factor \(K''(\hat s)=LL^{\top}\) and compute the derivatives of \(K_Y\) at \(\hat u\), up to order \(2M\) for the density and \(2M+1\) for the orthant probability.</li>
-      <li>Form the \(c_{r,\nu}\) by the recursion above.</li>
-      <li>Density: multiply by \(\mathrm{He}_\nu(0)\) and sum. Orthant probability: if \(\hat s\) has negative components, apply (17); for each term, compute the \(\tilde I_\nu\) and sum.</li>
+      <li>Form the \(\tilde c_{r,\nu}\) by the recursion above, which is (5) for \(K_Y\).</li>
+      <li>Density: multiply by \(\mathrm{He}_\nu(0)\) and sum. Orthant probability: if \(\hat s\) has negative components, apply (17); for each term, compute the \(\tilde I(\nu)\) and sum.</li>
     </ol>
     <div class="controls">
       <div class="ctl"><span class="lab" id="dLab">Dimension \(d\)</span><div class="seg" role="group" aria-labelledby="dLab" id="dSeg"></div></div>
@@ -190,7 +190,7 @@ window.MathJax = { tex: { inlineMath: [['\\(', '\\)']], displayMath: [['\\[', '\
   </header>
   <div class="panel">
     <div class="defs">\[ K(s)=-\tfrac12\log|D^{-1}|+\tfrac12m^{\top}(D-I)m,\qquad K_{\nu}=\frac{2^{|\nu|-1}\nu!}{|\nu|}\big\{\operatorname{tr}F_\nu+|\nu|\,m^{\top}F_\nu Dm\big\},\qquad F_\nu=\sum_{j=1}^{d}DM_jF_{\nu-e_j},\quad F_0=I, \]</div>
-    <p class="note">\(F_\nu\) is the sum of all products of \(\nu_j\) copies of \(DM_j\), \(j=1,\ldots,d\), in every order. For \(K_Y\) the same recursion is applied to the matrices \(\sum_j(L^{-\top})_{ji}M_j\), as in Appendix C of the paper.</p>
+    <p class="note">\(F_\nu\) is the sum of all products of \(\nu_j\) copies of \(DM_j\), \(j=1,\ldots,d\), in every order. This is (43) of Section 5.5. The Taylor coefficients of \(K_Y\) are computed directly, as recommended in Section S5 of the Supplementary Material: the same recursion is applied to the matrices \(\sum_j(L^{-\top})_{ji}M_j\).</p>
     <div class="controls" id="ex1Ctl"></div>
     <div class="setting" id="ex1Set"></div>
     <div class="status" id="ex1Status" aria-live="polite"></div>
@@ -206,7 +206,7 @@ window.MathJax = { tex: { inlineMath: [['\\(', '\\)']], displayMath: [['\\[', '\
   <header>
     <div class="eyebrow">Example 2 &middot; \(d=2\) or \(3\)</div>
     <h2>Several quadratic forms</h2>
-    <p>\(Q_j=z^{\top}A_jz\), \(j=1,\ldots,d\), with the same \(z\sim N(\mu,\Sigma)\) in \(\mathbb{R}^N\). Choosing \(d\) loads a default setting for that dimension; exact values for \(d=3\) take up to about 30 seconds. The table compares the joint density and the orthant probability \(\Pr(Q_1\geq x_1,\ldots,Q_d\geq x_d)\) at \(x_j=\operatorname{E}(Q_j)+q_j\operatorname{sd}(Q_j)\) with exact values. When the saddlepoint has a negative component, the terms of (17) are listed below the table.</p>
+    <p>\(Q_j=z^{\top}A_jz\), \(j=1,\ldots,d\), with the same \(z\sim N(\mu,\Sigma)\) in \(\mathbb{R}^N\). Choosing \(d\) loads a default setting for that dimension; exact values for \(d=3\) take up to about 30 seconds. The table compares the joint density and the orthant probability \(\mathrm{P}(Q_1\geq x_1,\ldots,Q_d\geq x_d)\) at \(x_j=\operatorname{E}(Q_j)+q_j\operatorname{sd}(Q_j)\) with exact values. When the saddlepoint has a negative component, the terms of (17) are listed below the table.</p>
   </header>
   <div class="panel">
     <div class="controls" id="ex2Ctl"></div>
@@ -225,7 +225,7 @@ window.MathJax = { tex: { inlineMath: [['\\(', '\\)']], displayMath: [['\\[', '\
 </section>
 
 <footer>
-  <div>Exact values: numerical inversion of the density and of the orthant probability, along a contour through the saddlepoint (moved just right of the poles \(s_j=0\) when a component of \(\hat s\) is near zero), with (17) applied exactly to saddlepoints with negative components. In whitened polar coordinates \(s=a+\mathrm{i}rL^{-\top}\omega\), the matrix \(I-2C(a)-2\mathrm{i}rC(L^{-\top}\omega)\) on each ray reduces to a real symmetric eigenproblem, so each radial node costs \(O(N)\). The radial integral uses Gauss–Legendre pieces and the directions use the trapezoidal rule (\(d=2\)) or a Gauss–Legendre product rule (\(d=3\)), refined until two levels agree to \(10^{-12}\) for \(d\leq2\); for \(d=3\) the refinement stops after about 30 seconds and the accuracy reached is shown. The rays are shared among several background workers, one per processor core. The code reproduces the relative errors of Table 6 of the paper, whose exact values were computed independently.</div>
+  <div>Exact values: numerical inversion of the density and of the orthant probability, along a contour through the saddlepoint (moved just right of the poles \(s_j=0\) when a component of \(\hat s\) is near zero), with (17) applied exactly to saddlepoints with negative components. In whitened polar coordinates \(s=a+\mathrm{i}rL^{-\top}\omega\), the matrix \(I-2C(a)-2\mathrm{i}rC(L^{-\top}\omega)\) on each ray reduces to a real symmetric eigenproblem, so each radial node costs \(O(N)\). The radial integral uses Gauss–Legendre pieces and the directions use the trapezoidal rule (\(d=2\)) or a Gauss–Legendre product rule (\(d=3\)), refined until two levels agree to \(10^{-12}\) for \(d\leq2\); for \(d=3\) the refinement stops after about 30 seconds and the accuracy reached is shown. The rays are shared among several background workers, one per processor core. With the matrices of Section 5.5 of the paper (pairs of forms with a common component) in place of the Toeplitz matrices, the same code reproduces every relative error of Table 6, whose exact values were computed independently.</div>
   <div>Matrices: \(A_j\) and \(\Sigma\) are \(N\times N\) Toeplitz matrices \(T_N(\rho)\) with \((i,k)\) entry \(\rho^{|i-k|}\) (\(T_N(0)=I_N\)), and \(\mu=c\,1_N\). Relative errors: density \((\hat f-f)/f\); distribution function \((\hat F-F)/\min(F,1-F)\); orthant probability \((\hat P-P)/P\). Everything runs in your browser in double precision.</div>
 </footer>
 </div>
@@ -1478,7 +1478,7 @@ return { makePool, exactIntegral, treeLeaves, exactQF, exactRatio, $, el, initTh
 (function () {
 const { makePool, exactQF, exactRatio, treeLeaves, $, el, typeset, setTeX, aligned, sgn, coefBody, monoTeX, polyPieces, groupPieces, sortTerms, exprItem, plural, segButtons, slider, debounce, f2, fmtNum, fmtRel, texNum, texRel, drawChart, texTable, makeRunner } = UI;
 UI.initTheme('mse-theme');
-const subI = nu => '\\tilde I_{' + nu.join('') + '}';
+const subI = nu => '\\tilde I(' + nu.join(',') + ')';
 
 /* ---------------- symbolic section ---------------- */
 const CAP = { 1: 6, 2: 4, 3: 3 };
@@ -1503,8 +1503,8 @@ function renderGeneral() {
   for (let m = 1; m < gen.M; m++) { const P = E.densityTerm(m); exprItem(A, 'a_{' + m + '}', plural(P.size, 'term'), () => aligned('a_{' + m + '}', polyPieces(P), 60), m === 1 && P.size <= 40); }
   for (let m = 1; m <= 2 * gen.M - 1; m++) { const ent = E.cdfTerm(m); exprItem(T, 'T_{' + m + '}', plural(ent.length, 'integral'), () => aligned('T_{' + m + '}', cdfPieces(ent), 60), m <= 2 && ent.length <= 12); }
   $('genNote').innerHTML = gen.d === 1
-    ? 'For d = 1, a<sub>m</sub> is the coefficient of Daniels’ expansion and T<sub>m</sub> = Σ<sub>r</sub> d<sub>r,m</sub> I<sub>m+2r</sub>(û), the Hauschildt–Robinson terms of Corollary 2.'
-    : 'Here θ<sub>21</sub> stands for θ<sub>(2,1)</sub> and Ĩ<sub>102</sub> for Ĩ<sub>(1,0,2)</sub>. The terms of a<sub>m</sub> are of order n<sup>−m</sup> and those of T<sub>m</sub> of order n<sup>−m/2</sup>; the number of terms grows quickly with d and M.';
+    ? 'For d = 1, a<sub>m</sub> is the coefficient of Daniels’ expansion and T<sub>m</sub> = Σ<sub>r</sub> d<sub>r,m</sub> I<sub>m+2r</sub>(û), the Hauschildt–Robinson terms of Corollary 2 (Ĩ(k) = I<sub>k</sub>(û) of (34)).'
+    : 'Here θ<sub>21</sub> stands for θ<sub>(2,1)</sub>. The terms of a<sub>m</sub> are of order n<sup>−m</sup> and those of T<sub>m</sub> of order n<sup>−m/2</sup>; the number of terms grows quickly with d and M.';
 }
 renderGeneral();
 
@@ -1615,7 +1615,7 @@ const vecTeX = v => '(' + v.map(x => texNum(x, 4)).join(',\\ ') + ')';
       render();
     }).catch(err => { if (run === st.run) status('ex2Status', 'Could not compute the exact values: ' + err.message); });
   }
-  function leafTeX(node) { return '\\Pr(' + node.idx.map((j, k) => (node.signs[k] < 0 ? '-Q_{' + (j + 1) + '}\\geq -x_{' + (j + 1) + '}' : 'Q_{' + (j + 1) + '}\\geq x_{' + (j + 1) + '}')).join(',\\ ') + ')'; }
+  function leafTeX(node) { return '\\mathrm{P}(' + node.idx.map((j, k) => (node.signs[k] < 0 ? '-Q_{' + (j + 1) + '}\\geq -x_{' + (j + 1) + '}' : 'Q_{' + (j + 1) + '}\\geq x_{' + (j + 1) + '}')).join(',\\ ') + ')'; }
   function render() {
     const s = st.spa; if (!s) return; const ex = st.ex, Mx = s.pdf.length, d = st.d;
     const relf = M => (ex ? s.pdf[M - 1] / ex.pdf.val - 1 : NaN), relP = M => (ex ? s.P[M - 1] / ex.P.val - 1 : NaN);
@@ -1635,12 +1635,12 @@ const vecTeX = v => '(' + v.map(x => texNum(x, 4)).join(',\\ ') + ')';
     else intro = 'The saddlepoint \\(\\hat s=' + vecTeX(s.s) + '\\) has a negative component, so (17) is applied' + (leaves.some(l => l.node.idx.length < d - 1) ? ', recursively where a marginal saddlepoint is again negative' : '') + ':';
     T.appendChild(el('p', { class: 'note', text: intro }));
     const eq = aligned(lhs, leaves.map((l, i) => (i === 0 ? (l.sg < 0 ? '-' : '') : (l.sg < 0 ? ' - ' : ' + ')) + (Math.abs(l.sg) > 1 ? Math.abs(l.sg) : '') + (l.node.idx.length ? leafTeX(l.node) : '1')), 70);
-    const head = ['\\text{term}', '\\hat s\\ \\text{of the term}', 'P_{' + Mx + '}', '\\kappa_{' + Mx + '}'];
+    const head = ['\\text{term}', '\\hat s\\ \\text{of the term}', 'P_{' + Mx + '}', '\\mathcal C_{' + Mx + '}'];
     const rws = leaves.map(l => [(l.sg < 0 ? '-' : '+') + (Math.abs(l.sg) > 1 ? Math.abs(l.sg) : '') + (l.node.idx.length ? leafTeX(l.node) : '1'), l.node.s ? vecTeX(l.node.s) : '', texNum(l.node.P[Mx - 1], 8), l.node.kappa ? texNum(l.node.kappa[Mx - 1], 3) : '']);
     const m1 = el('div'); m1.textContent = '\\[' + (leaves.length > 1 ? eq : lhs + '\\approx ' + texNum(s.P[Mx - 1], 10)) + '\\]';
     const m2 = el('div', { class: 'tabletex' }); m2.textContent = '\\[\\begin{array}{lllr}' + head.join(' & ') + ' \\\\ \\hline ' + rws.map(r => r.join(' & ')).join(' \\\\ ') + '\\end{array}\\]';
     T.append(m1, m2); typeset(T);
-    $('ex2Note').innerHTML = 'E(Q) = (' + st.mom.mean.map(v => fmtNum(v)).join(', ') + '), sd(Q) = (' + st.mom.sd.map(v => fmtNum(v)).join(', ') + '), corr(Q<sub>1</sub>, Q<sub>2</sub>) = ' + fmtNum(st.mom.corr, 3) + '. κ is the cancellation indicator of Appendix C (sum of the absolute values of the terms divided by the absolute value of their sum); about log<sub>10</sub>κ digits are lost to cancellation. The approximations took ' + s.ms + ' ms.';
+    $('ex2Note').innerHTML = 'E(Q) = (' + st.mom.mean.map(v => fmtNum(v)).join(', ') + '), sd(Q) = (' + st.mom.sd.map(v => fmtNum(v)).join(', ') + '), corr(Q<sub>1</sub>, Q<sub>2</sub>) = ' + fmtNum(st.mom.corr, 3) + '. 𝒞 is the cancellation indicator of Appendix C (sum of the absolute values of the terms divided by the absolute value of their sum); about log<sub>10</sub>𝒞 digits are lost to cancellation. The approximations took ' + s.ms + ' ms.';
   }
   function run() {
     const N = +n.value, d = st.d, rhos = rh.slice(0, d).map(r => +r.value);

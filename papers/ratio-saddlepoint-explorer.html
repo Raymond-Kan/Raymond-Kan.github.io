@@ -140,7 +140,7 @@ window.MathJax = { tex: { inlineMath: [['\\(', '\\)']], displayMath: [['\\[', '\
   <div class="ttl">
     <div class="eyebrow">Companion demo</div>
     <h1>Ratio Saddlepoint Explorer</h1>
-    <p class="cite">Joint densities and distribution functions of \(d\) ratios to any order, from Appendix A of S.&nbsp;A. Broda and R. Kan, <i>Uniform saddlepoint expansions for multivariate tail probabilities</i>.</p>
+    <p class="cite">Joint densities and distribution functions of \(d\) ratios to any order, from Appendix A of S.&nbsp;A. Broda and R. Kan (2026), <a href="https://raymond-kan.github.io/papers/spa_paper.pdf"><i>Uniform saddlepoint expansions for multivariate tail probabilities</i></a>, with its Supplementary Material. Theorem, equation, section and table numbers refer to the version of November 2026.</p>
   </div>
   <div class="theme">
     <span class="eyebrow" id="themeLab">Theme</span>
@@ -154,15 +154,15 @@ window.MathJax = { tex: { inlineMath: [['\\(', '\\)']], displayMath: [['\\[', '\
   <header>
     <div class="eyebrow">Appendix A of the paper</div>
     <h2>The expansions for any \(d\) and order \(M\)</h2>
-    <p>Let \(R_j=X_j/Y_j\), \(j=1,\ldots,d\), with \(Y_j>0\) and joint cumulant generating function \(\mathcal K(s,t)\) of \((X,Y)\), and let \(W_j=X_j-r_jY_j\), whose cumulant generating function is \(K_W(s)=\mathcal K(s,-r\circ s)\). As in the applications of the paper, \(n\) is absorbed into \(\mathcal K\). The distribution function \(\Pr(R\leq r)=\Pr(-W\geq0)\) is the orthant probability of \(-W\) at \(0\), given by Theorem 1 with \(x=0\) and by (17) when the saddlepoint has negative components. The density is the saddlepoint integral (45), whose amplitude collects the derivatives \(\mathcal K_B=\partial^{|B|}\mathcal K/\prod_{j\in B}\partial t_j\) over the partitions \(\pi\) of \(\{1,\ldots,d\}\):</p>
+    <p>Let \(R_j=X_j/Y_j\), \(j=1,\ldots,d\), with \(Y_j>0\) and joint cumulant generating function \(\mathcal K(s,t)\) of \((X,Y)\), and let \(W_j=X_j-r_jY_j\), whose cumulant generating function is \(K_W(s)=\mathcal K(s,-r\circ s)\). As in the applications of the paper, \(n\) is absorbed into \(\mathcal K\). The distribution function \(\mathrm{P}(R\leq r)=\mathrm{P}(-W\geq0)\) is the orthant probability of \(-W\) at \(0\), given by Theorem 1 with \(x=0\) and by (17) when the saddlepoint has negative components. The density is the saddlepoint integral (45), whose amplitude collects the derivatives \(\mathcal K_B=\partial^{|B|}\mathcal K/\prod_{j\in B}\partial t_j\) over the partitions \(\pi\) of \(\{1,\ldots,d\}\):</p>
   </header>
   <div class="panel">
     <div class="defs">
       \[ f_R(r)=\frac{1}{(2\pi\mathrm{i})^{d}}\int_{\hat s-\mathrm{i}\infty}^{\hat s+\mathrm{i}\infty}e^{K_W(s)}g(s)\,ds,\qquad g=\sum_{\pi}\prod_{B\in\pi}\mathcal K_B(s,-r\circ s)=\sum_{k=0}^{d-1}g_k, \]
       \[ f_R(r)\approx\frac{e^{K_W(\hat s)}}{(2\pi)^{d/2}|K_W''(\hat s)|^{1/2}}\sum_{m=0}^{M-1}\tilde a_m,\qquad \tilde a_m=\sum_{k=0}^{\min(m,d-1)}b_{m-k}(g_k), \]
-      \[ b_m(h)=\sum_{r=0}^{2m}\ \sum_{j=3r}^{2m+2r}\ \sum_{|\nu|=j}\ \sum_{|\mu|=2m+2r-j}c_{r,\nu}\,\gamma_\mu\,\mathrm{He}_{\nu+\mu}(0),\qquad c_{0,0}=1, \]
+      \[ b_m(h)=\sum_{r=0}^{2m}\ \sum_{j=3r}^{2m+2r}\ \sum_{|\nu|=j}\ \sum_{|\mu|=2m+2r-j}\tilde c_{r,\nu}\,\gamma_\mu\,\mathrm{He}_{\nu+\mu}(0),\qquad \tilde c_{0,0}=1, \]
     </div>
-    <p class="note">Here \(K_W'(\hat s)=0\), \(g_k\) collects the partitions into \(d-k\) blocks, and everything is whitened as on the companion page for \(d\) random variables: with \(K_W''(\hat s)=LL^{\top}\), \(\theta_\nu\) are the Taylor coefficients of \(K_W(L^{-\top}u)\) at \(\hat u=L^{\top}\hat s\) (\(|\nu|\geq3\)), the \(c_{r,\nu}\) follow from the recursion (5), \(\gamma_\mu\) are the Taylor coefficients of \(h(L^{-\top}u)\) at \(\hat u\), and \(\mathrm{He}_\nu(0)=\prod_j\mathrm{He}_{\nu_j}(0)\). This is Theorem 4 and Corollary 3. For \(d=1\), \(b_m(g)/\gamma_0\) is the coefficient \(\tilde a_m\) of Rice's expansion (Corollary 5), for example \(\tilde a_1=3\theta_4-\tfrac{15}{2}\theta_3^2+3\theta_3\tilde\gamma_1-\tilde\gamma_2\) with \(\tilde\gamma_l=\gamma_l/\gamma_0\).</p>
+    <p class="note">Here \(K_W'(\hat s)=0\), \(g_k\) collects the partitions into \(d-k\) blocks, and everything is whitened as on the companion page for \(d\) random variables: with \(K_W''(\hat s)=LL^{\top}\), \(\theta_\nu\) are the Taylor coefficients of \(K_W(L^{-\top}u)\) at \(\hat u=L^{\top}\hat s\) (\(|\nu|\geq3\)), the \(\tilde c_{r,\nu}\) follow from the recursion (5) applied to the \(\theta_\nu\), \(\gamma_\mu\) are the Taylor coefficients of \(h(L^{-\top}u)\) at \(\hat u\) (the \(\gamma_\mu\) of Theorem 4 in the whitened coordinates), and \(\mathrm{He}_\nu(0)=\prod_j\mathrm{He}_{\nu_j}(0)\). This is Theorem 4 and Corollary 3. For \(d=1\), \(b_m(g)/\gamma_0\) is the coefficient \(\tilde a_m\) of Rice's expansion (Corollary 5), for example \(\tilde a_1=3\theta_4-\tfrac{15}{2}\theta_3^2+3\theta_3\tilde\gamma_1-\tilde\gamma_2\) with \(\tilde\gamma_l=\gamma_l/\gamma_0\).</p>
     <div class="controls">
       <div class="ctl"><span class="lab" id="dLab">Number of ratios \(d\)</span><div class="seg" role="group" aria-labelledby="dLab" id="dSeg"></div></div>
       <div class="ctl"><span class="lab" id="mLab">Order \(M\)</span><div class="seg" role="group" aria-labelledby="mLab" id="mSeg"></div></div>
@@ -1494,7 +1494,7 @@ function bPieces(P) {
   }
   return pieces;
 }
-const blockTeX = B => '\\mathcal K_{' + B.map(j => j + 1).join('') + '}';
+const blockTeX = B => '\\mathcal K_{\\{' + B.map(j => j + 1).join(',') + '\\}}';
 function partitionsOf(d) { return ENG.partitions(Array.from({ length: d }, (_, i) => i)); }
 function renderGeneral() {
   segButtons($('dSeg'), [1, 2, 3], gen.d, v => { gen.d = v; gen.M = Math.min(gen.M, CAP[v]); renderGeneral(); });
@@ -1612,7 +1612,7 @@ function Wmodel(base, num, den, r) { const B = base.mats[den]; return { N: base.
     }).catch(err => { if (run === st.run) status('ex2Status', 'Could not compute the exact values: ' + err.message); });
   }
   const relDen = F => Math.min(F, 1 - F);
-  function leafTeX(node) { return '\\Pr(' + node.idx.map((j, k) => (node.signs[k] < 0 ? 'R_{' + (j + 1) + '}\\leq r_{' + (j + 1) + '}' : 'R_{' + (j + 1) + '}> r_{' + (j + 1) + '}')).join(',\\ ') + ')'; }
+  function leafTeX(node) { return '\\mathrm{P}(' + node.idx.map((j, k) => (node.signs[k] < 0 ? 'R_{' + (j + 1) + '}\\leq r_{' + (j + 1) + '}' : 'R_{' + (j + 1) + '}> r_{' + (j + 1) + '}')).join(',\\ ') + ')'; }
   function render() {
     const s = st.spa; if (!s) return; const ex = st.ex, Mx = s.pdf.length, d = st.d;
     const hasPdf = ex && ex.pdf;
@@ -1632,12 +1632,12 @@ function Wmodel(base, num, den, r) { const B = base.mats[den]; return { N: base.
     T.appendChild(el('p', { class: 'note', text: intro }));
     const lhs = leafTeX(s.tree);
     const eq = aligned(lhs, leaves.map((l, i) => (i === 0 ? (l.sg < 0 ? '-' : '') : (l.sg < 0 ? ' - ' : ' + ')) + (Math.abs(l.sg) > 1 ? Math.abs(l.sg) : '') + (l.node.idx.length ? leafTeX(l.node) : '1')), 70);
-    const head = ['\\text{term}', '\\hat s\\ \\text{of the term}', 'F_{' + Mx + '}', '\\kappa_{' + Mx + '}'];
+    const head = ['\\text{term}', '\\hat s\\ \\text{of the term}', 'F_{' + Mx + '}', '\\mathcal C_{' + Mx + '}'];
     const rws = leaves.map(l => [(l.sg < 0 ? '-' : '+') + (Math.abs(l.sg) > 1 ? Math.abs(l.sg) : '') + (l.node.idx.length ? leafTeX(l.node) : '1'), l.node.s ? vecTeX(l.node.s) : '', texNum(l.node.P[Mx - 1], 8), l.node.kappa ? texNum(l.node.kappa[Mx - 1], 3) : '']);
     const m1 = el('div'); m1.textContent = '\\[' + (leaves.length > 1 ? eq : lhs + '\\approx ' + texNum(s.F[Mx - 1], 10)) + '\\]';
     const m2 = el('div', { class: 'tabletex' }); m2.textContent = '\\[\\begin{array}{lllr}' + head.join(' & ') + ' \\\\ \\hline ' + rws.map(r => r.join(' & ')).join(' \\\\ ') + '\\end{array}\\]';
     T.append(m1, m2); typeset(T);
-    $('ex2Note').innerHTML = 'r = (' + st.r.map(v => fmtNum(v, 5)).join(', ') + '). Each term is an orthant probability at 0 of a subvector of W with some components negated (−W<sub>j</sub> ≥ 0 is R<sub>j</sub> ≤ r<sub>j</sub>), and its saddlepoint is shown. κ is the cancellation indicator of Appendix C. The approximations took ' + s.ms + ' ms.';
+    $('ex2Note').innerHTML = 'r = (' + st.r.map(v => fmtNum(v, 5)).join(', ') + '). Each term is an orthant probability at 0 of a subvector of W with some components negated (−W<sub>j</sub> ≥ 0 is R<sub>j</sub> ≤ r<sub>j</sub>), and its saddlepoint is shown. 𝒞 is the cancellation indicator of Appendix C. The approximations took ' + s.ms + ' ms.';
   }
   function run() {
     const N = +n.value, d = st.d, R = +rho.value;
