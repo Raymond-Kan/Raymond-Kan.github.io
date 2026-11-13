@@ -640,5 +640,17 @@
    ]
   ],
   "info": "with <a href=\"https://www.hslu.ch/de-ch/hochschule-luzern/ueber-uns/personensuche/profile/?pid=4728\">Simon Broda</a>, 2026."
+ },
+ {
+  "sec": "wp",
+  "title": "Computation of the Exact Density Function of the Product of a Wishart Matrix and a Normal Vector",
+  "url": "papers/wz.pdf",
+  "extras": [
+   [
+    "Matlab Programs",
+    "papers/wz_programs.zip"
+   ]
+  ],
+  "info": "with Taras Bodnar and Stepan Mazur, 2026."
  }
 ]
